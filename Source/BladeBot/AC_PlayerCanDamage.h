@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
-#include "BladeBot/I_DamageEventContainer.h"
+#include "I_DamageEventContainer.h"
 #include "AC_PlayerCanDamage.generated.h"
 
 class AActor;
@@ -26,16 +26,17 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	UFUNCTION(BlueprintNativeEvent, Category = "Damage Model")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Damage Model")
 		void OnEnemyDamaged(int Amount);
 	
-	UFUNCTION(BlueprintNativeEvent, Category = "Damage Model")
+	UFUNCTION(BlueprintImplementableEvent, Category = "Damage Model")
 		void OnEnemyKilled();
 
 	bool ApplyDamage(int Damage);
 
 	bool IsDead = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage Model")
 	FString Name = "Enemy";
 
 	// Number of attacks the enemy can endure
@@ -66,17 +67,17 @@ public:
 	// When the player hits an enemy at speed
 	// Returns whether the enemy was killed
 	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage Events")
-		bool OnPlayerBounce_Implementation(AActor* Player, float Speed) override;
+		bool OnPlayerBounce_Implementation(AActor* Player, float Speed);
 
 	// OnPlayerAttack
 	// When the player hits an enemy with an attack
 	// Returns whether the enemy was killed
 	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage Events")
-		bool OnPlayerAttack_Implementation(AActor* Player, float Speed) override;
+		bool OnPlayerAttack_Implementation(AActor* Player, float Speed);
 
 	// OnPlayerStab
 	// When the player hits an enemy at speed with a stab
 	// Returns whether the enemy was killed
 	//UFUNCTION(BlueprintCallable, BlueprintNativeEvent, Category = "Damage Events")
-		bool OnPlayerStab_Implementation(AActor* Player, float Speed) override;
+		bool OnPlayerStab_Implementation(AActor* Player, float Speed);
 };
