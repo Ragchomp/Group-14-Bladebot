@@ -8,6 +8,8 @@
 #include "AC_PlayerCanDamage.generated.h"
 
 class AActor;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnEnemyDamaged, int, damage);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnEnemyKilled);
 
 UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class BLADEBOT_API UAC_PlayerCanDamage : public UActorComponent, public II_DamageEventContainer
@@ -26,11 +28,11 @@ public:
 	// Called every frame
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	UFUNCTION(BlueprintImplementableEvent, Category = "Damage Model")
-		void OnEnemyDamaged(int Amount);
+	UPROPERTY(BlueprintAssignable)
+		FOnEnemyDamaged OnEnemyDamaged;
 	
-	UFUNCTION(BlueprintImplementableEvent, Category = "Damage Model")
-		void OnEnemyKilled();
+	UPROPERTY(BlueprintAssignable)
+		FOnEnemyKilled OnEnemyKilled;
 
 	bool ApplyDamage(int Damage);
 
