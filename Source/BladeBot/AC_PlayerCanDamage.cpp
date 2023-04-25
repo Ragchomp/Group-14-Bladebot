@@ -37,11 +37,12 @@ bool UAC_PlayerCanDamage::ApplyDamage(int Amount) {
 	Health -= Amount;
 	if (Health <= 0) {
 		// Kill the enemy
-		OnEnemyKilled();
+		OnEnemyKilled.Broadcast();
 		IsDead = true;
 		return true;
+	} else {
+		OnEnemyDamaged.Broadcast(Amount);
 	}
-	OnEnemyDamaged(Amount);
 	return false;
 }
 
