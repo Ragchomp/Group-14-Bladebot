@@ -14,11 +14,12 @@ public:
 	APlayerCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
 
 protected:
 	virtual void BeginPlay() override;
 
-	/** Movement Functions */
+	/** Input Functions */
 	UFUNCTION()
 		void GroundMovement(const FInputActionValue& Value);
 
@@ -27,6 +28,20 @@ protected:
 
 	UFUNCTION()
 		void DoJump(const FInputActionValue& Value);
+
+	UFUNCTION()
+		void ShootGrapple(const FInputActionValue& Value);
+
+	UFUNCTION()
+		void GrappleReel(const FInputActionValue& Value);
+
+	UFUNCTION()
+		void Attack(const FInputActionValue& Value);
+
+	/** Bools */
+
+	UPROPERTY(BlueprintReadWrite)
+	bool GrappleOut = false;
 
 
 	/** Input Calls */
@@ -37,22 +52,39 @@ protected:
 	class UInputAction* IA_GroundMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-		class UInputAction* IA_CameraMovement;
+	class UInputAction* IA_CameraMovement;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
 	class UInputAction* IA_DoJump;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_ShootGrapple;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_GrappleReel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_Attack;
+
+	/** Constants */
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
+	float GrappleDistance = 500.f;
 
 
 private:
 
+	void InputInit();
+
+	FVector GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance);
+	void LineTrace(FHitResult& OutHit);
+
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere)
-		class UCameraComponent* Camera;
+	class UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere)
-		class USpringArmComponent* SpringArm;
-
+	class USpringArmComponent* SpringArm;
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;

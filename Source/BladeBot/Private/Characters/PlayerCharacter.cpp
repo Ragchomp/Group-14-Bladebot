@@ -1,6 +1,7 @@
 
 //Main
 #include "Characters/PlayerCharacter.h"
+#include "GrapplingHook/GrapplingHookHead.h"
 
 //Components
 #include "Camera/CameraComponent.h"
@@ -8,32 +9,39 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 
+//Gameplay Statics
+#include "Kismet/GameplayStatics.h"
+#include "Kismet/KismetMathLibrary.h"
+
 //Input
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubSystems.h"
 #include "InputActionValue.h"
 
+//Math Includes
+#include "Math/Vector.h"
+#include "Math/Rotator.h"
 
 APlayerCharacter::APlayerCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	// Orientation Init
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
 	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 40.f, 0.f);
-
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
 
 	// Mesh Init
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
 
-	// Capsule Component init
+	// Capsule Init
 	GetCapsuleComponent()->SetCapsuleHalfHeight(60);
 	GetCapsuleComponent()->SetCapsuleRadius(10);
 
-	// Spring Arm init
+	// Spring-Arm Init
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetMesh());
 	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, 90.f));
@@ -42,11 +50,11 @@ APlayerCharacter::APlayerCharacter()
 	SpringArm->bEnableCameraLag = true;
 	SpringArm->CameraLagSpeed = 20.f;
 
-	// Camera init
+	// Camera Init
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 
-	// Player possession
+	// Player Possession
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
@@ -59,6 +67,9 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::GroundMovement);
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
+		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
+		EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
+		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 	}
 }
 
@@ -66,17 +77,10 @@ void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Player control init
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController)
-	{
-		// Input system
-		GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("MappincontextAdded"));
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
-	}
-
 	Tags.Add(FName("Player"));
+	InputInit();
+
+	
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -87,8 +91,9 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 {
-	if (Controller && Value.IsNonZero())
+	if (Value.IsNonZero())
 	{
+		//GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("Groundmove"));
 		FVector2D VectorDirection = Value.Get<FVector2D>();
 
 		//We want to move in the direction of the Yaw rotation(x-look-axis). Fixing rotation to Yaw.
@@ -106,8 +111,9 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 
 void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 {
-	if (Controller && Value.IsNonZero())
+	if (Value.IsNonZero())
 	{
+		//GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("Camera move"));
 		FVector2D LookAxisInput = Value.Get<FVector2D>();
 		AddControllerYawInput(LookAxisInput.X);
 		AddControllerPitchInput(-LookAxisInput.Y);
@@ -116,10 +122,98 @@ void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 
 void APlayerCharacter::DoJump(const FInputActionValue& Value)
 {
-	if (Controller && Value.IsNonZero())
+	if (Value.IsNonZero())
 	{
+		//GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("Jump"));
 		Jump();
 	}
+}
+
+void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
+{
+
+	if(Value.IsNonZero() && GrappleOut == false)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 0.5, FColor::Blue, TEXT("Shot Grapple"));
+
+		//Line trace
+		FHitResult OutHit;
+		LineTrace(OutHit);
+
+		GrappleOut = true;
+	}
+	else
+	{
+		GEngine->AddOnScreenDebugMessage(2, 0.5, FColor::Red, TEXT("Retract Grapple"));
+		GrappleOut = false;
+	}
+}
+
+void APlayerCharacter::GrappleReel(const FInputActionValue& Value)
+{
+
+	if (Value.IsNonZero() && GrappleOut == true)
+	{
+		GEngine->AddOnScreenDebugMessage(0, 0.5, FColor::Green, TEXT("Retract Grapple"));
+
+	}
+}
+
+void APlayerCharacter::Attack(const FInputActionValue& Value)
+{
+	if (Value.IsNonZero())
+	{
+		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Yellow, TEXT("Attack"));
+	}
+}
+
+void APlayerCharacter::InputInit()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		// Input system
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
+	}
+}
+
+FVector APlayerCharacter::GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance)
+{
+	// Convert the rotation to a quaternion
+	FQuat Quaternion = Rotation.Quaternion();
+
+	// Create a direction vector from the quaternion
+	FVector Direction = Quaternion.GetForwardVector();
+
+	// Calculate the coordinates of the point using the direction vector and distance
+	FVector Point = Start + (Direction * Distance);
+
+	return Point;
+}
+
+void APlayerCharacter::LineTrace(FHitResult& OutHit)
+{
+
+	// Trace Information
+	const FVector Start = GetActorLocation();
+	const FVector End = GetPointWithRotator(Start,GetControlRotation(),GrappleDistance);
+	bool bTraceComplex = false;
+	TArray<AActor*> ActorsToIgnore;
+		ActorsToIgnore.Add(this);
+
+	// The Trace
+	UKismetSystemLibrary::LineTraceSingle(
+		this,
+		Start,
+		End,
+		ETraceTypeQuery::TraceTypeQuery1,
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		OutHit,
+		true
+	);
 }
 
 
