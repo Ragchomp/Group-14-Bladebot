@@ -2,14 +2,17 @@
 //Main
 #include "Characters/PlayerCharacter.h"
 #include "GrapplingHook/GrapplingHookHead.h"
+#include "HUD/MainHUD.h"
+#include "HUD/PlayerOverlay.h"
 
 //Components
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/WidgetComponent.h"
 
-//Gameplay Statics
+//Game play Statics
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -44,7 +47,7 @@ APlayerCharacter::APlayerCharacter()
 	// Spring-Arm Init
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetMesh());
-	SpringArm->SetRelativeLocation(FVector(0.f, 0.f, 90.f));
+	SpringArm->SetRelativeLocation(FVector(0.f, 10.f, 90.f));
 	SpringArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 	SpringArm->TargetArmLength = 400.f;
 	SpringArm->bEnableCameraLag = true;
@@ -53,6 +56,9 @@ APlayerCharacter::APlayerCharacter()
 	// Camera Init
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
+
+	// GrapplingHook Init
+	GrapplingHookRef = CreateDefaultSubobject<AGrapplingHookHead>(TEXT("GrapplingHookRef"));
 
 	// Player Possession
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -76,31 +82,42 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
+	CharacterState = ECharacterState::ECS_Idle;
 	Tags.Add(FName("Player"));
+
 	InputInit();
 
-	
+	InitOverlay();
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	DespawnGrappleIfAtTeatherMax();
+	GrapplePhysicsUpdate();
+
+	// Fix this?
+	TryingTooReel = false;
+
+	// Debug Distance
+	if(GrapplingHookRef)
+	{
+		const float DistanceBetweenGrapAndPlayer = GetDistanceBetweenTwoPoints(GrapplingHookRef->GetActorLocation(), GetActorLocation());
+
+		GEngine->AddOnScreenDebugMessage(0, 0.1f, FColor::Yellow, FString::Printf(TEXT("Distance is: %f"), DistanceBetweenGrapAndPlayer));
+	}
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero())
+	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
-		//GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("Groundmove"));
 		FVector2D VectorDirection = Value.Get<FVector2D>();
-
-		//We want to move in the direction of the Yaw rotation(x-look-axis). Fixing rotation to Yaw.
+		
 		const FRotator ControlPlayerRotationYaw = GetControlRotation();
 		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
 
-		//Calculated the UnitAxis. We normalize the vector and find the normalized vector.
 		const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
 		const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
 
@@ -111,9 +128,8 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 
 void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero())
+	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
-		//GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("Camera move"));
 		FVector2D LookAxisInput = Value.Get<FVector2D>();
 		AddControllerYawInput(LookAxisInput.X);
 		AddControllerPitchInput(-LookAxisInput.Y);
@@ -122,48 +138,55 @@ void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 
 void APlayerCharacter::DoJump(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero())
+	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
-		//GEngine->AddOnScreenDebugMessage(1, 10, FColor::Yellow, TEXT("Jump"));
 		Jump();
 	}
 }
 
 void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 {
-
-	if(Value.IsNonZero() && GrappleOut == false)
+	
+	if(Value.IsNonZero() && IsRetracted == true && CharacterState != ECharacterState::ECS_Dead)
 	{
-		GEngine->AddOnScreenDebugMessage(1, 0.5, FColor::Blue, TEXT("Shot Grapple"));
-
-		//Line trace
 		FHitResult OutHit;
 		LineTrace(OutHit);
 
-		GrappleOut = true;
+		SpawnGrappleProjectile();
+
+		GetGrapplingHookRef();
+
+		IsRetracted = false;
 	}
-	else
+	else if(Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
-		GEngine->AddOnScreenDebugMessage(2, 0.5, FColor::Red, TEXT("Retract Grapple"));
-		GrappleOut = false;
+		if (GrapplingHookRef)
+		{
+			GrapplingHookRef->Despawn();
+			GEngine->AddOnScreenDebugMessage(0, 0.5, FColor::Red, GrapplingHookRef->GetName() + TEXT(" Deleted"));
+			GrapplingHookRef = nullptr;
+		}
+
+		IsRetracted = true;
 	}
 }
 
 void APlayerCharacter::GrappleReel(const FInputActionValue& Value)
 {
-
-	if (Value.IsNonZero() && GrappleOut == true)
+	if (Value.IsNonZero() && GrapplingHookRef && GrapplingHookRef->GetGrappleState() != EGrappleState::EGS_Retracted
+		&& CharacterState != ECharacterState::ECS_Dead)
 	{
-		GEngine->AddOnScreenDebugMessage(0, 0.5, FColor::Green, TEXT("Retract Grapple"));
-
+		TryingTooReel = true;
+		GrapplePullUpdate();
 	}
 }
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero())
+	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
 		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Yellow, TEXT("Attack"));
+		TakeDamage(10.f);
 	}
 }
 
@@ -175,6 +198,82 @@ void APlayerCharacter::InputInit()
 		// Input system
 		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
 		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
+	}
+}
+
+void APlayerCharacter::InitOverlay()
+{
+	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("InitOverlay"));
+
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("GotController"));
+
+		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
+		if (MainHUD)
+		{
+			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("GotMainHud"));
+
+			PlayerOverlay = MainHUD->GetMainOverlay();
+
+			if (PlayerOverlay)
+			{
+				GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("GotPlayerOverlay"));
+
+				//PlayerOverlay->SetHealthBarPercent(GetHealthPercent());
+				PlayerOverlay->SetHealthBarPercent(0.2f);
+				PlayerOverlay->SetMinutes(1);
+				PlayerOverlay->SetSeconds(2);
+				PlayerOverlay->EnableGrapplingCrosshair(false);
+			}
+		}
+	}
+}
+
+void APlayerCharacter::LineTrace(FHitResult& OutHit)
+{
+	// Trace Information
+	const FVector Start = GetActorLocation();
+	const FVector End = GetPointWithRotator(Start, GetControlRotation(), GrappleDistance);
+	bool bTraceComplex = false;
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	// The Trace
+	UKismetSystemLibrary::LineTraceSingle(
+		this,
+		Start,
+		End,
+		ETraceTypeQuery::TraceTypeQuery1,
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		OutHit,
+		true
+	);
+
+}
+
+void APlayerCharacter::SpawnGrappleProjectile()
+{
+	const FRotator SpawnRotation = FRotator(GetControlRotation().Pitch - 90, GetControlRotation().Yaw, GetControlRotation().Roll);
+	const FVector SpownLocation = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z - 10);
+
+	if (BP_GrapplingHookHead)
+		GetWorld()->SpawnActor<AGrapplingHookHead>(BP_GrapplingHookHead, SpownLocation, SpawnRotation);
+}
+
+void APlayerCharacter::GetGrapplingHookRef()
+{
+	 //Creating a class reference to all Grappling hooks in case of duplicates,
+	// Uses slot 0 or first shot. Should always only be one
+	TArray<AActor*> GrapplingHooks;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), BP_GrapplingHookHead, GrapplingHooks);
+	GrapplingHookRef = Cast<AGrapplingHookHead>(GrapplingHooks[0]);
+	if (GrapplingHookRef)
+	{
+		GEngine->AddOnScreenDebugMessage(0, 10, FColor::Yellow, GrapplingHookRef->GetName());
 	}
 }
 
@@ -192,29 +291,107 @@ FVector APlayerCharacter::GetPointWithRotator(const FVector& Start, const FRotat
 	return Point;
 }
 
-void APlayerCharacter::LineTrace(FHitResult& OutHit)
+FVector APlayerCharacter::GetVectorOfRotation(const FRotator& Rotation)
 {
+	// Convert the rotation to a quaternion
+	FQuat Quaternion = Rotation.Quaternion();
 
-	// Trace Information
-	const FVector Start = GetActorLocation();
-	const FVector End = GetPointWithRotator(Start,GetControlRotation(),GrappleDistance);
-	bool bTraceComplex = false;
-	TArray<AActor*> ActorsToIgnore;
-		ActorsToIgnore.Add(this);
+	// Create a direction vector from the quaternion
+	FVector Direction = Quaternion.GetForwardVector();
 
-	// The Trace
-	UKismetSystemLibrary::LineTraceSingle(
-		this,
-		Start,
-		End,
-		ETraceTypeQuery::TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
-		OutHit,
-		true
-	);
+	return Direction;
 }
 
+FVector APlayerCharacter::GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2)
+{
+	FVector VectorBetweenLocations = Point1 - Point2;
+	VectorBetweenLocations.Normalize();
+	
+
+	return -VectorBetweenLocations;
+}
+
+float APlayerCharacter::GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2)
+{
+	float DistanceToTarget = FVector::Dist(Point1, Point2);
+
+	return DistanceToTarget;
+}
+
+void APlayerCharacter::GrapplePhysicsUpdate()
+{
+	if (GrapplingHookRef && GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached)
+	{
+		const float Distance = GetDistanceBetweenTwoPoints(GrapplingHookRef->GetActorLocation(), GetActorLocation());
+	
+		FVector AnchorPoint = GrapplingHookRef->GetActorLocation();
+
+		// Calculate the vector between the character's current location and the anchor point
+		FVector CharacterToAnchor = GetActorLocation() - AnchorPoint;
+
+		// Clamp the distance vector to the maximum allowed distance
+		FVector ClampedVector = CharacterToAnchor.GetClampedToMaxSize(GrappleDistance);
+			
+		// Set the character's new location after applying the constraint
+		SetActorLocation(AnchorPoint + ClampedVector);
+
+		if(Distance >= GrappleDistance && TryingTooReel == true)
+		{
+			SetActorLocation(AnchorPoint + ClampedVector);
+			GetCharacterMovement()->Velocity = FVector::ZeroVector;
+		}
+	}
+}
+
+void APlayerCharacter::GrapplePullUpdate()
+{
+	if(GrapplingHookRef->GetGrappleState()==EGrappleState::EGS_Attached)
+	{
+		FVector PullVector = GetVectorBetweenTwoPoints
+							 (GetActorLocation(),
+							 GrapplingHookRef->GetActorLocation());
+
+		GetCharacterMovement()->AddImpulse(PullVector * PullStrenght);
+	}
+}
+
+void APlayerCharacter::DespawnGrappleIfAtTeatherMax()
+{
+	if (GrapplingHookRef)
+	{
+		if (GetDistanceBetweenTwoPoints(GrapplingHookRef->GetActorLocation(), GetActorLocation()) > GrappleDistance 
+										&& GrapplingHookRef->GetGrappleState() != EGrappleState::EGS_Attached)
+		{
+			GrapplingHookRef->Despawn();
+			IsRetracted = true;
+		}
+	}
+}
+
+void APlayerCharacter::TakeDamage(float DamageAmount)
+{
+	
+	//if(HUDWidget)
+	//{
+	//	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("2Took Damage"));
+	//	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.f, MaxHealth);
+	//	HUDWidget->SetHealthPercent(GetHealthPercent());
+	//}
+}
+
+float APlayerCharacter::GetHealthPercent()
+{
+	return CurrentHealth / MaxHealth;
+}
+
+bool APlayerCharacter::IsAlive()
+{
+	return CurrentHealth > 0.f;
+}
+
+void APlayerCharacter::Die()
+{
+	CharacterState = ECharacterState::ECS_Dead;
+}
 
 

@@ -14,10 +14,27 @@ public:
 	APlayerCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
 
 protected:
 	virtual void BeginPlay() override;
+
+	/** Class Components  */
+	UPROPERTY(VisibleAnywhere)
+		class UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere)
+		class USpringArmComponent* SpringArm;
+
+	/** Subclasses */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "2 - Sub Objects")
+		TSubclassOf<class AGrapplingHookHead> BP_GrapplingHookHead;
+
+	UPROPERTY()
+		class AGrapplingHookHead* GrapplingHookRef{ nullptr };
+
+	UPROPERTY()
+		class UPlayerOverlay* PlayerOverlay;
+
 
 	/** Input Functions */
 	UFUNCTION()
@@ -39,10 +56,8 @@ protected:
 		void Attack(const FInputActionValue& Value);
 
 	/** Bools */
-
-	UPROPERTY(BlueprintReadWrite)
-	bool GrappleOut = false;
-
+	bool IsRetracted = true;
+	bool TryingTooReel = false;
 
 	/** Input Calls */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
@@ -67,24 +82,38 @@ protected:
 	class UInputAction* IA_Attack;
 
 	/** Constants */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
+	float GrappleDistance = 3000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float GrappleDistance = 500.f;
+	float PullStrenght = 3000.f;
 
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	float CurrentHealth = 100.f;
 
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	float MaxHealth = 100.f;
+	
 private:
 
 	void InputInit();
+	void InitOverlay();
+	void LineTrace(FHitResult& OutHit);
+	void SpawnGrappleProjectile();
+	void GetGrapplingHookRef();
+	void GrapplePhysicsUpdate();
+	void GrapplePullUpdate();
+	void DespawnGrappleIfAtTeatherMax();
+	void TakeDamage(float DamageAmount);
+	void Die();
+	
 
 	FVector GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance);
-	void LineTrace(FHitResult& OutHit);
-
-	/** Class Components  */
-	UPROPERTY(VisibleAnywhere)
-	class UCameraComponent* Camera;
-
-	UPROPERTY(VisibleAnywhere)
-	class USpringArmComponent* SpringArm;
+	FVector GetVectorOfRotation(const FRotator& Rotation);
+	FVector GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
+	float GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
+	float GetHealthPercent();
+	bool IsAlive();
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;

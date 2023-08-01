@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Characters/StateControl.h"
 #include "GameFramework/Actor.h"
 #include "GrapplingHookHead.generated.h"
 
@@ -13,33 +14,36 @@ public:
 	AGrapplingHookHead();
 	virtual void Tick(float DeltaTime) override;
 
+	void Despawn();
+
 protected:
 	virtual void BeginPlay() override;
 
+	/** Class Components  */
+	UPROPERTY(VisibleAnywhere)
+		class UStaticMeshComponent* Mesh;
+
+	UPROPERTY(VisibleAnywhere)
+		class UBoxComponent* CollisionBox;
+
 	/** Class Functions  */
 	void Move(float DeltaTime);
-	void Despawn();
+
+	UFUNCTION()
+		void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
+						bool bFromSweep, const FHitResult& SweepResult);
 
 	/** Class Constants  */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float ProjectileSpeed = 2000.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float ProjectileLife = 0.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float ProjectileMaxLife = 3.f;
+	float ProjectileSpeed = 4000.f;
 
 
 private:
 
-	/** Class Components  */
-	UPROPERTY(VisibleAnywhere)
-	class UStaticMeshComponent* Mesh;
-
-	
+	/** State Control  */
+	EGrappleState GrappleState = EGrappleState::EGS_Retracted;
 
 public:	
-
-
+	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }
 };
