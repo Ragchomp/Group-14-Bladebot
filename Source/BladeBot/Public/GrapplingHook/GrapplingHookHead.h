@@ -14,8 +14,8 @@ public:
 	AGrapplingHookHead();
 	virtual void Tick(float DeltaTime) override;
 
-	void Despawn();
-
+	UFUNCTION(BlueprintCallable)
+		void Despawn();
 protected:
 	virtual void BeginPlay() override;
 
@@ -23,11 +23,9 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 		class UStaticMeshComponent* Mesh;
 
-	UPROPERTY(VisibleAnywhere)
-		class UBoxComponent* CollisionBox;
-
 	/** Class Functions  */
 	void Move(float DeltaTime);
+
 
 	UFUNCTION()
 		void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -38,6 +36,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
 	float ProjectileSpeed = 4000.f;
 
+	/** Bools  */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
+		bool CanMove = true;
 
 private:
 

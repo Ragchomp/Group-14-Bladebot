@@ -12,27 +12,21 @@ AGrapplingHookHead::AGrapplingHookHead()
 
 	// Mesh init
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("Mesh"));
-	Mesh->SetupAttachment(GetRootComponent());
+	SetRootComponent(Mesh);
 
-	// Collision Init
-	CollisionBox = CreateDefaultSubobject<UBoxComponent>(TEXT("CollisionBox"));
-	CollisionBox->SetupAttachment(GetRootComponent());
-
-	CollisionBox->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	CollisionBox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Overlap);
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	CollisionBox->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
-	CollisionBox->SetGenerateOverlapEvents(true);
-
+	// Collision init
+	Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Overlap);
+	Mesh->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Ignore);
+	Mesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
+	
 }
 
 void AGrapplingHookHead::BeginPlay()
 {
 	Super::BeginPlay();
-	CollisionBox->OnComponentBeginOverlap.AddDynamic(this, &AGrapplingHookHead::OnOverlap);
 	Mesh->OnComponentBeginOverlap.AddDynamic(this, &AGrapplingHookHead::OnOverlap);
 
 	GrappleState = EGrappleState::EGS_InAir;
@@ -48,6 +42,7 @@ void AGrapplingHookHead::Tick(float DeltaTime)
 
 void AGrapplingHookHead::Move(float DeltaTime)
 {
+	if (CanMove == false) return;
 	if(GrappleState == EGrappleState::EGS_InAir)
 	{
 		FVector NewLocation = GetActorLocation();
@@ -67,7 +62,7 @@ void AGrapplingHookHead::Despawn()
 void AGrapplingHookHead::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	const FString OtherActorName = OtherActor->GetName();
-	GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Red, OtherActorName);
+	//GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Red, OtherActorName);
 
 	GrappleState = EGrappleState::EGS_Attached;
 

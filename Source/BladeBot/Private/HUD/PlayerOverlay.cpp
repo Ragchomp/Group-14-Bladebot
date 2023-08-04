@@ -1,18 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
+//Main
 #include "HUD/PlayerOverlay.h"
 
+//Components
 #include "Components/ProgressBar.h"
 #include "Components/TextBlock.h"
 #include "Components/Image.h"
 
 void UPlayerOverlay::SetHealthBarPercent(float Percent)
 {
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("SetHealthBarPercent IsCalled"));
 	if(HealthBar)
 	{
 		HealthBar->SetPercent(Percent);
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("Sat  HealthBarPercent Percent"));
 	}
 }
 

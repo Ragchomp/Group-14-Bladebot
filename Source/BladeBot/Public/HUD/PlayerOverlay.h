@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -11,6 +9,7 @@ class BLADEBOT_API UPlayerOverlay : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	/** Functions*/
 	void SetHealthBarPercent(float Percent);
 	void SetSeconds(int32 InnSeconds);
 	void SetMinutes(int32 InnMinutes);
@@ -18,6 +17,7 @@ public:
 
 private:
 
+	/** Corresponding Widget Elements to WBP */
 	UPROPERTY(meta = (BindWidget))
 	class UProgressBar* HealthBar;
 

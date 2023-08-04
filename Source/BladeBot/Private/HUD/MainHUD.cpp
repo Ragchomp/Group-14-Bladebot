@@ -1,24 +1,15 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "HUD/MainHUD.h"
 #include "HUD/PlayerOverlay.h"
 
 void AMainHUD::PreInitializeComponents()
 {
-
-	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHUD INIT"));
-
+	// Adds the Hud overlay to the screen through the Gamemode(World), then through the player controller
 	UWorld* World = GetWorld();
 	if (World)
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHud Got Wordld"));
-
 		APlayerController* Controller = World->GetFirstPlayerController();
 		if (Controller && PlayerOverlayClass)
 		{
-			//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHud got Controller"));
-
 			PlayerOverlay = CreateWidget<UPlayerOverlay>(Controller, PlayerOverlayClass);
 			PlayerOverlay->AddToViewport();
 		}
