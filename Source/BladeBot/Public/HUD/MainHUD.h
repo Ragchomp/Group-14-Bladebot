@@ -12,16 +12,16 @@ class BLADEBOT_API AMainHUD : public AHUD
 	GENERATED_BODY()
 
 protected:
-	virtual void BeginPlay() override;
+	virtual void PreInitializeComponents() override;
 
-private:
+
+public:
 	UPROPERTY(EditDefaultsOnly,Category = "Player")
 	TSubclassOf<class UPlayerOverlay> PlayerOverlayClass;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere)
 	UPlayerOverlay* PlayerOverlay;
 
-public:
-	FORCEINLINE UPlayerOverlay* GetMainOverlay() const {  return PlayerOverlay; }
+	FORCEINLINE UPlayerOverlay* GetMainOverlay() {  return PlayerOverlay; }
 
 };

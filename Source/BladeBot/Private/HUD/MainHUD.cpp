@@ -4,24 +4,24 @@
 #include "HUD/MainHUD.h"
 #include "HUD/PlayerOverlay.h"
 
-void AMainHUD::BeginPlay()
+void AMainHUD::PreInitializeComponents()
 {
-	Super::BeginPlay();
 
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHUD INIT"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHUD INIT"));
 
 	UWorld* World = GetWorld();
-	if(World)
+	if (World)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHud Got Wordld"));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHud Got Wordld"));
 
 		APlayerController* Controller = World->GetFirstPlayerController();
-		if(Controller && PlayerOverlayClass)
+		if (Controller && PlayerOverlayClass)
 		{
-			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHud got Controller"));
+			//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("MainHud got Controller"));
 
 			PlayerOverlay = CreateWidget<UPlayerOverlay>(Controller, PlayerOverlayClass);
 			PlayerOverlay->AddToViewport();
 		}
 	}
+
 }

@@ -79,15 +79,15 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
+void APlayerCharacter::CountSeconds()
+{
+	TimeInSeconds++;
+}
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	CharacterState = ECharacterState::ECS_Idle;
-	Tags.Add(FName("Player"));
-
-	InputInit();
-
-	InitOverlay();
+	Inits();
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -96,17 +96,15 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	DespawnGrappleIfAtTeatherMax();
 	GrapplePhysicsUpdate();
+	DetectIfCanGrapple();
+	TimeManager();
+
+	if(IsAlive() == false) Die();
 
 	// Fix this?
 	TryingTooReel = false;
 
-	// Debug Distance
-	if(GrapplingHookRef)
-	{
-		const float DistanceBetweenGrapAndPlayer = GetDistanceBetweenTwoPoints(GrapplingHookRef->GetActorLocation(), GetActorLocation());
-
-		GEngine->AddOnScreenDebugMessage(0, 0.1f, FColor::Yellow, FString::Printf(TEXT("Distance is: %f"), DistanceBetweenGrapAndPlayer));
-	}
+	
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -149,9 +147,6 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 	
 	if(Value.IsNonZero() && IsRetracted == true && CharacterState != ECharacterState::ECS_Dead)
 	{
-		FHitResult OutHit;
-		LineTrace(OutHit);
-
 		SpawnGrappleProjectile();
 
 		GetGrapplingHookRef();
@@ -186,48 +181,6 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
 		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Yellow, TEXT("Attack"));
-		TakeDamage(10.f);
-	}
-}
-
-void APlayerCharacter::InputInit()
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController)
-	{
-		// Input system
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
-	}
-}
-
-void APlayerCharacter::InitOverlay()
-{
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("InitOverlay"));
-
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("GotController"));
-
-		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
-		if (MainHUD)
-		{
-			GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("GotMainHud"));
-
-			PlayerOverlay = MainHUD->GetMainOverlay();
-
-			if (PlayerOverlay)
-			{
-				GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("GotPlayerOverlay"));
-
-				//PlayerOverlay->SetHealthBarPercent(GetHealthPercent());
-				PlayerOverlay->SetHealthBarPercent(0.2f);
-				PlayerOverlay->SetMinutes(1);
-				PlayerOverlay->SetSeconds(2);
-				PlayerOverlay->EnableGrapplingCrosshair(false);
-			}
-		}
 	}
 }
 
@@ -248,7 +201,7 @@ void APlayerCharacter::LineTrace(FHitResult& OutHit)
 		ETraceTypeQuery::TraceTypeQuery1,
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
+		EDrawDebugTrace::None,
 		OutHit,
 		true
 	);
@@ -355,6 +308,26 @@ void APlayerCharacter::GrapplePullUpdate()
 	}
 }
 
+void APlayerCharacter::DetectIfCanGrapple()
+{
+	if (PlayerOverlay == nullptr) return;
+
+	FHitResult OutHit;
+	LineTrace(OutHit);
+
+	if(OutHit.bBlockingHit)
+	{
+		PlayerOverlay->EnableGrapplingCrosshair(true);
+		InGrappleRange = true;
+	}
+	else
+	{
+		PlayerOverlay->EnableGrapplingCrosshair(false);
+		InGrappleRange = false;
+	}
+	
+}
+
 void APlayerCharacter::DespawnGrappleIfAtTeatherMax()
 {
 	if (GrapplingHookRef)
@@ -368,15 +341,27 @@ void APlayerCharacter::DespawnGrappleIfAtTeatherMax()
 	}
 }
 
-void APlayerCharacter::TakeDamage(float DamageAmount)
+void APlayerCharacter::TokDamage(float DamageAmount)
 {
-	
-	//if(HUDWidget)
-	//{
-	//	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("2Took Damage"));
-	//	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.f, MaxHealth);
-	//	HUDWidget->SetHealthPercent(GetHealthPercent());
-	//}
+	//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("2Took Damage"));
+	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.f, MaxHealth);
+
+	if(PlayerOverlay)
+	{
+		PlayerOverlay->SetHealthBarPercent(GetHealthPercent());
+	}
+}
+
+void APlayerCharacter::TimeManager()
+{
+	if(TimeInSeconds > 60)
+	{
+		TimeInMinutes++;
+		TimeInSeconds = 0;
+	}
+
+	PlayerOverlay->SetSeconds(TimeInSeconds);
+	PlayerOverlay->SetMinutes(TimeInMinutes);
 }
 
 float APlayerCharacter::GetHealthPercent()
@@ -391,7 +376,55 @@ bool APlayerCharacter::IsAlive()
 
 void APlayerCharacter::Die()
 {
+
 	CharacterState = ECharacterState::ECS_Dead;
 }
 
+void APlayerCharacter::Inits()
+{
+	InputInit();
+	OverlayInit();
+	TimerInit();
+	CharacterState = ECharacterState::ECS_Idle;
+	Tags.Add(FName("Player"));
+}
+
+void APlayerCharacter::InputInit()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		// Input system
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
+	}
+}
+
+void APlayerCharacter::OverlayInit()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	if (PlayerController)
+	{
+		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
+
+		if (MainHUD)
+		{
+			PlayerOverlay = MainHUD->GetMainOverlay();
+
+			if (PlayerOverlay)
+			{
+				PlayerOverlay->SetHealthBarPercent(GetHealthPercent());
+				PlayerOverlay->SetMinutes(0);
+				PlayerOverlay->SetSeconds(0);
+				PlayerOverlay->EnableGrapplingCrosshair(false);
+			}
+		}
+	}
+}
+
+void APlayerCharacter::TimerInit()
+{
+	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountSeconds, 1.f, true);
+}
 

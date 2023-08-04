@@ -8,11 +8,11 @@
 
 void UPlayerOverlay::SetHealthBarPercent(float Percent)
 {
-	GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("SetHealthBarPercent IsCalled"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("SetHealthBarPercent IsCalled"));
 	if(HealthBar)
 	{
 		HealthBar->SetPercent(Percent);
-		GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("Sat Percent"));
+		//GEngine->AddOnScreenDebugMessage(-1, 3, FColor::Red, TEXT("Sat  HealthBarPercent Percent"));
 	}
 }
 

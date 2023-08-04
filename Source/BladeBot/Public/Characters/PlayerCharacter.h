@@ -15,6 +15,9 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	FTimerHandle Seconds;
+	void CountSeconds();
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -32,9 +35,8 @@ protected:
 	UPROPERTY()
 		class AGrapplingHookHead* GrapplingHookRef{ nullptr };
 
-	UPROPERTY()
-		class UPlayerOverlay* PlayerOverlay;
-
+	//UPROPERTY()
+	class UPlayerOverlay* PlayerOverlay;
 
 	/** Input Functions */
 	UFUNCTION()
@@ -58,6 +60,7 @@ protected:
 	/** Bools */
 	bool IsRetracted = true;
 	bool TryingTooReel = false;
+	bool InGrappleRange = false;
 
 	/** Input Calls */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
@@ -89,24 +92,35 @@ protected:
 	float PullStrenght = 3000.f;
 
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float CurrentHealth = 100.f;
+	float CurrentHealth = 3.f;
 
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float MaxHealth = 100.f;
+	float MaxHealth = 3.f;
+
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	float TimeInSeconds = 0.f;
+
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	float TimeInMinutes = 0.f;
 	
 private:
 
-	void InputInit();
-	void InitOverlay();
 	void LineTrace(FHitResult& OutHit);
 	void SpawnGrappleProjectile();
 	void GetGrapplingHookRef();
 	void GrapplePhysicsUpdate();
 	void GrapplePullUpdate();
+	void DetectIfCanGrapple();
 	void DespawnGrappleIfAtTeatherMax();
-	void TakeDamage(float DamageAmount);
+	void TokDamage(float DamageAmount);
+	void TimeManager();
+	UFUNCTION(BlueprintCallable)
 	void Die();
-	
+
+	void Inits();
+	void InputInit();
+	void OverlayInit();
+	void TimerInit();
 
 	FVector GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance);
 	FVector GetVectorOfRotation(const FRotator& Rotation);

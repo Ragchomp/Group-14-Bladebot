@@ -6,9 +6,6 @@
 #include "Blueprint/UserWidget.h"
 #include "PlayerOverlay.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class BLADEBOT_API UPlayerOverlay : public UUserWidget
 {
