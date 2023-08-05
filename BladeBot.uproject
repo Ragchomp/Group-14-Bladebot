@@ -7,7 +7,12 @@
 		{
 			"Name": "BladeBot",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CableComponent",
+				"UMG"
+			]
 		}
 	],
 	"Plugins": [
