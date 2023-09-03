@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "StateControl.h"
-#include "GameFramework/Character.h"
+#include "BaseCharacter.h"
 #include "PlayerCharacter.generated.h"
 
 UCLASS()
-class BLADEBOT_API APlayerCharacter : public ACharacter
+class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
 	GENERATED_BODY()
 
@@ -14,6 +14,9 @@ public:
 	APlayerCharacter();
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
 	/** Timer Manager  */
 	FTimerHandle Seconds;
@@ -30,7 +33,6 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 		class USpringArmComponent* SpringArm;
 
-	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 		class UCableComponent* CableComponent;
 
 	/** Subclasses */
@@ -39,6 +41,9 @@ protected:
 
 	UPROPERTY()
 		class AGrapplingHookHead* GrapplingHookRef{ nullptr };
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		class UAttributeComponent* Attributes;
 
 	/** HUD */
 	UPROPERTY()
@@ -104,48 +109,37 @@ protected:
 	float PullStrenght = 5000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float CurrentHealth = 3.f;
-
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "3-Constants")
-	float MaxHealth = 3.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
 	float DisplaySeconds = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
 	float DisplayMinutes = 0.f;
 	
 private:
-	UFUNCTION(BlueprintCallable)
-	void TokDamage(float DamageAmount);
-	UFUNCTION(BlueprintCallable)
-	void Die();
+
+	virtual void Die() override;
+
+	virtual void LineTrace(FHitResult& OutHit) override;
+
 	UFUNCTION(BlueprintCallable)
 	void TimeManager();
+
 	void GetGrapplingHookRef();
+
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
+
 	UFUNCTION(BlueprintCallable)
 	void GrapplePhysicsUpdate();
+
 	UFUNCTION(BlueprintCallable)
 	void GrapplePullUpdate();
+
 	UFUNCTION(BlueprintCallable)
 	void DetectIfCanGrapple();
+
 	UFUNCTION(BlueprintCallable)
 	void DespawnGrappleIfAtTeatherMax();
-	void LineTrace(FHitResult& OutHit);
-	UFUNCTION(BlueprintCallable)
-	FVector GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance);
-	UFUNCTION(BlueprintCallable)
-	FVector GetVectorOfRotation(const FRotator& Rotation);
-	UFUNCTION(BlueprintCallable)
-	FVector GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
-	UFUNCTION(BlueprintCallable)
-	float GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
-	UFUNCTION(BlueprintCallable)
-	float GetHealthPercent();
-	UFUNCTION(BlueprintCallable)
-	bool IsAlive();
+
 	void Inits();
 	void InputInit();
 	void OverlayInit();

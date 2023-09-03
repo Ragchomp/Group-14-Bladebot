@@ -2,6 +2,7 @@
 //Main
 #include "Characters/PlayerCharacter.h"
 #include "GrapplingHook/GrapplingHookHead.h"
+#include "Components/AttributeComponent.h"
 #include "HUD/MainHUD.h"
 #include "HUD/PlayerOverlay.h"
 
@@ -21,10 +22,6 @@
 #include "EnhancedInputComponent.h"
 #include "EnhancedInputSubSystems.h"
 #include "InputActionValue.h"
-
-//Math Includes
-#include "Math/Vector.h"
-#include "Math/Rotator.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -58,16 +55,20 @@ APlayerCharacter::APlayerCharacter()
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
 
+	// Attribute Component
+	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
+
 	//CableInit
 	CableComponent = CreateDefaultSubobject<UCableComponent>(TEXT("CableComponent"));
 	CableComponent->SetupAttachment(GetRootComponent());
-	
 
 	// GrapplingHook Init
 	GrapplingHookRef = CreateDefaultSubobject<AGrapplingHookHead>(TEXT("GrapplingHookRef"));
 
 	// Player Possession
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
+
+
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -82,6 +83,28 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
 		EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
+	}
+}
+
+float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+
+	if (Attributes && PlayerOverlay) {
+		
+		Attributes->ReciveDamage(DamageAmount);
+		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+	}
+
+	return DamageAmount;
+}
+
+void APlayerCharacter::GetHit_Implementation(const FVector& ImpactPoint)
+{
+	Super::GetHit_Implementation(ImpactPoint);
+	
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, TEXT("GetHit implementation"));
+	if (Attributes->IsAlive()) {
+		Die();
 	}
 }
 
@@ -102,8 +125,6 @@ void APlayerCharacter::Tick(float DeltaTime)
 	TimeManager();
 	CableManager();
 
-	// Checks if Alive
-	if(IsAlive() == false) Die();
 	//Makes sure grapplePhysics don't apply when not reeling
 	TryingTooReel = false;
 
@@ -192,23 +213,24 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	{
 		if (DebugMode == true)
 		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, TEXT("Attack"));
+
+		// Apply damage function through gameplaystatics funciton
+		//UGameplayStatics::ApplyDamage(
+		//Actor that did damge
+		//Amount of damage as float
+		// SetOwner(this) is the owner of this attack
+		// SetInstigator(this) is the instigator
+		// UDamageType::StaticClass()
+		//);
+
 	}
 }
 
 // Player Spesific Functions
 
-void APlayerCharacter::TokDamage(float DamageAmount)
-{
-	CurrentHealth = FMath::Clamp(CurrentHealth - DamageAmount, 0.f, MaxHealth);
-
-	if (PlayerOverlay)
-	{
-		PlayerOverlay->SetHealthBarPercent(GetHealthPercent());
-	}
-}
-
 void APlayerCharacter::Die()
 {
+	Super::Die();
 
 	if (CanDie == false) return;
 	CharacterState = ECharacterState::ECS_Dead;
@@ -356,13 +378,13 @@ void APlayerCharacter::DespawnGrappleIfAtTeatherMax()
 }
 
 // Tracers
-
 void APlayerCharacter::LineTrace(FHitResult& OutHit)
 {
 	// Trace Information
 	const FVector Start = GetActorLocation();
 	const FVector End = GetPointWithRotator(Start, GetControlRotation(), GrappleMaxDistance);
 	bool bTraceComplex = false;
+	FHitResult LineHit;
 	TArray<AActor*> ActorsToIgnore;
 	ActorsToIgnore.Add(this);
 
@@ -378,60 +400,20 @@ void APlayerCharacter::LineTrace(FHitResult& OutHit)
 		OutHit,
 		true
 	);
-
-}
-
-// Getters and Checkers
-
-FVector APlayerCharacter::GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance)
-{
-	// Convert the rotation to a quaternion
-	FQuat Quaternion = Rotation.Quaternion();
-
-	// Create a direction vector from the quaternion
-	FVector Direction = Quaternion.GetForwardVector();
-
-	// Calculate the coordinates of the point using the direction vector and distance
-	FVector Point = Start + (Direction * Distance);
-
-	return Point;
-}
-
-FVector APlayerCharacter::GetVectorOfRotation(const FRotator& Rotation)
-{
-	// Convert the rotation to a quaternion
-	FQuat Quaternion = Rotation.Quaternion();
-
-	// Create a direction vector from the quaternion
-	FVector Direction = Quaternion.GetForwardVector();
-
-	return Direction;
-}
-
-FVector APlayerCharacter::GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2)
-{
-	FVector VectorBetweenLocations = Point1 - Point2;
-	VectorBetweenLocations.Normalize();
 	
-
-	return -VectorBetweenLocations;
-}
-
-float APlayerCharacter::GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2)
-{
-	float DistanceToTarget = FVector::Dist(Point1, Point2);
-
-	return DistanceToTarget;
-}
-
-float APlayerCharacter::GetHealthPercent()
-{
-	return CurrentHealth / MaxHealth;
-}
-
-bool APlayerCharacter::IsAlive()
-{
-	return CurrentHealth > 0.f;
+	// This will hit anything hitable with the line trace
+	// if the line trace hits something the first if is passed
+	if (LineHit.GetActor())
+	{
+		// if this cast works it means what we hit has a hitinterface as well
+		IHitInterface* HitInterface = Cast<IHitInterface>(LineHit.GetActor());
+		if (HitInterface) {
+			// it then calls what we hits; get hit function
+			HitInterface->Execute_GetHit(LineHit.GetActor(), LineHit.ImpactPoint);
+			// As long as a class that is supposed to get hit has hit interface 
+			// inherited it will take damage from the attack
+		}
+	}
 }
 
 // Inits
@@ -468,9 +450,9 @@ void APlayerCharacter::OverlayInit()
 		{
 			PlayerOverlay = MainHUD->GetMainOverlay();
 
-			if (PlayerOverlay)
+			if (PlayerOverlay && Attributes)
 			{
-				PlayerOverlay->SetHealthBarPercent(GetHealthPercent());
+				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 				PlayerOverlay->SetSeconds(DisplaySeconds);
 				PlayerOverlay->SetMinutes(DisplayMinutes);
 				PlayerOverlay->EnableGrapplingCrosshair(false);
