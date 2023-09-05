@@ -65,5 +65,8 @@ void AGrapplingHookHead::OnOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 	//GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Red, OtherActorName);
 
 	GrappleState = EGrappleState::EGS_Attached;
-
+	
+	// grapple pull update goes here
+	// Cast to player character
+	// GrapplePullUpdate();
 }

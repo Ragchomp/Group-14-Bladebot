@@ -15,3 +15,12 @@ enum class EGrappleState : uint8
 	EGS_InAir UMETA(DisplayName = "InAir"),
 	EGS_Attached UMETA(DisplayName = "Attached")
 };
+
+UENUM(BlueprintType)
+enum class EEnemyState : uint8
+{
+	EES_Idle UMETA(DisplayName = "Idle"),
+	EES_Occupied UMETA(DisplayName = "Occupied"),
+	EES_Patroling UMETA(DisplayName = "Patroling"),
+	EES_Attacking UMETA(DisplayName = "Attacking")
+};
