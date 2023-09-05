@@ -43,6 +43,10 @@ void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint)
 
 }
 
+void ABaseCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+}
+
 FVector ABaseCharacter::GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance)
 {
 	// Convert the rotation to a quaternion

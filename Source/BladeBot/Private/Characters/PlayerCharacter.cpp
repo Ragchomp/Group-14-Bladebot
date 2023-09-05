@@ -203,6 +203,7 @@ void APlayerCharacter::GrappleReel(const FInputActionValue& Value)
 		&& CharacterState != ECharacterState::ECS_Dead)
 	{
 		TryingTooReel = true;
+		// delete theis grapple pull update when called in grappeling hook head
 		GrapplePullUpdate();
 	}
 }
@@ -335,7 +336,7 @@ void APlayerCharacter::GrapplePullUpdate()
 	if (GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached)
 	{
 		FVector PullVector = GetVectorBetweenTwoPoints
-		(GetActorLocation(),
+			(GetActorLocation(),
 		GrapplingHookRef->GetActorLocation());
 
 		GetCharacterMovement()->AddImpulse(PullVector * PullStrenght);
