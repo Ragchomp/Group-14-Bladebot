@@ -134,6 +134,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 		float Distance = GetDistanceBetweenTwoPoints(GetActorLocation(), GrapplingHookRef->GetActorLocation());
 		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Distance from Grapple : %f"),Distance));
 	}
+	MakeNoise(1.f);
 }
 
 // Input Functions
@@ -264,7 +265,7 @@ void APlayerCharacter::CountSeconds()
 void APlayerCharacter::CableManager()
 {
 	// Set Collision enabled for cable in bp, as code is still experimental
-	if (GrapplingHookRef)
+	if (GrapplingHookRef && CableComponent)
 	{
 		CableComponent->SetVisibility(true);
 		// for moving the cable end position with the grappling hook
@@ -426,6 +427,10 @@ void APlayerCharacter::Inits()
 	TimerInit();
 	CharacterState = ECharacterState::ECS_Idle;
 	Tags.Add(FName("Player"));
+
+
+	//Make noise function for sensing component detection
+	GetWorldTimerManager().SetTimer(NoiseTimer, this, &APlayerCharacter::GenerateNoise, 0.3f, true);
 }
 
 void APlayerCharacter::InputInit()
@@ -465,5 +470,10 @@ void APlayerCharacter::OverlayInit()
 void APlayerCharacter::TimerInit()
 {
 	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountSeconds, 1.f, true);
+}
+
+void APlayerCharacter::GenerateNoise()
+{
+	MakeNoise(1.f);
 }
 
