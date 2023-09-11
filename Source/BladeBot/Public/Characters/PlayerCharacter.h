@@ -5,6 +5,8 @@
 #include "BaseCharacter.h"
 #include "PlayerCharacter.generated.h"
 
+struct FInputActionValue;
+
 UCLASS()
 class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
@@ -13,8 +15,8 @@ class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 public:
 	APlayerCharacter();
 	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-	
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
@@ -23,8 +25,69 @@ public:
 	void CountSeconds();
 	void CableManager();
 
+	void GetGrapplingHookRef();
+
+	UFUNCTION(BlueprintCallable)
+	void GrapplePullUpdate();
+
+	UFUNCTION(BlueprintCallable)
+	void SpawnGrappleProjectile();
+
+		/** Bools */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
+	bool IsRetracted = true;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
+	bool TryingTooReel = false;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
+	bool InGrappleRange = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
+	bool DebugMode = false;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
+	bool IsMaxTeather = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
+	bool TimerShouldTick = true;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
+	bool CanDie = true;
+
+
 protected:
+
 	virtual void BeginPlay() override;
+	/** Input Functions */
+	UFUNCTION()
+		void GroundMovement(const FInputActionValue& Value);
+	UFUNCTION()
+		void CameraMovement(const FInputActionValue& Value);
+	UFUNCTION()
+		void DoJump(const FInputActionValue& Value);
+	UFUNCTION()
+		void ShootGrapple(const FInputActionValue& Value);
+	UFUNCTION()
+		void GrappleReel();
+	UFUNCTION()
+		void Attack(const FInputActionValue& Value);
+
+		/** Input Calls */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputMappingContext* IMC;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_GroundMovement;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_CameraMovement;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_DoJump;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_ShootGrapple;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_GrappleReel;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
+	class UInputAction* IA_Attack;
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere)
@@ -49,57 +112,7 @@ protected:
 	UPROPERTY()
 		class UPlayerOverlay* PlayerOverlay;
 
-	/** Input Functions */
-	UFUNCTION()
-		void GroundMovement(const FInputActionValue& Value);
-	UFUNCTION()
-		void CameraMovement(const FInputActionValue& Value);
-	UFUNCTION()
-		void DoJump(const FInputActionValue& Value);
-	UFUNCTION()
-		void ShootGrapple(const FInputActionValue& Value);
-	UFUNCTION()
-		void GrappleReel(const FInputActionValue& Value);
-	UFUNCTION()
-		void Attack(const FInputActionValue& Value);
 
-	/** Bools */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
-	bool IsRetracted = true;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
-	bool TryingTooReel = false;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
-	bool InGrappleRange = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
-	bool DebugMode = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
-	bool IsMaxTeather = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
-	bool TimerShouldTick = true;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
-	bool CanDie = true;
-
-	/** Input Calls */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputMappingContext* IMC;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputAction* IA_GroundMovement;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputAction* IA_CameraMovement;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputAction* IA_DoJump;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputAction* IA_ShootGrapple;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputAction* IA_GrappleReel;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
-	class UInputAction* IA_Attack;
 
 	/** Constants */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
@@ -123,16 +136,8 @@ private:
 	UFUNCTION(BlueprintCallable)
 	void TimeManager();
 
-	void GetGrapplingHookRef();
-
-	UFUNCTION(BlueprintCallable)
-	void SpawnGrappleProjectile();
-
 	UFUNCTION(BlueprintCallable)
 	void GrapplePhysicsUpdate();
-
-	UFUNCTION(BlueprintCallable)
-	void GrapplePullUpdate();
 
 	UFUNCTION(BlueprintCallable)
 	void DetectIfCanGrapple();
@@ -144,6 +149,8 @@ private:
 	void InputInit();
 	void OverlayInit();
 	void TimerInit();
+
+	
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;
