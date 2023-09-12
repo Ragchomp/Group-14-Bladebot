@@ -2,63 +2,38 @@
 
 #include "CoreMinimal.h"
 #include "StateControl.h"
-#include "GameFramework/Character.h"
+#include "BaseCharacter.h"
 #include "PlayerCharacter.generated.h"
 
+struct FInputActionValue;
+
 UCLASS()
-class BLADEBOT_API APlayerCharacter : public ACharacter
+class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
 	GENERATED_BODY()
 
 public:
 	APlayerCharacter();
 	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
 	/** Timer Manager  */
 	FTimerHandle Seconds;
 	void CountSeconds();
 	void CableManager();
 
-protected:
-	virtual void BeginPlay() override;
+	void GetGrapplingHookRef();
 
-	/** Class Components  */
-	UPROPERTY(VisibleAnywhere)
-		class UCameraComponent* Camera;
+	UFUNCTION(BlueprintCallable)
+	void GrapplePullUpdate();
 
-	UPROPERTY(VisibleAnywhere)
-		class USpringArmComponent* SpringArm;
+	UFUNCTION(BlueprintCallable)
+	void SpawnGrappleProjectile();
 
-	//UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-		class UCableComponent* CableComponent;
-
-	/** Subclasses */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "2-SubObjects")
-		TSubclassOf<class AGrapplingHookHead> BP_GrapplingHookHead;
-
-	UPROPERTY()
-		class AGrapplingHookHead* GrapplingHookRef{ nullptr };
-
-	/** HUD */
-	UPROPERTY()
-		class UPlayerOverlay* PlayerOverlay;
-
-	/** Input Functions */
-	UFUNCTION()
-		void GroundMovement(const FInputActionValue& Value);
-	UFUNCTION()
-		void CameraMovement(const FInputActionValue& Value);
-	UFUNCTION()
-		void DoJump(const FInputActionValue& Value);
-	UFUNCTION()
-		void ShootGrapple(const FInputActionValue& Value);
-	UFUNCTION()
-		void GrappleReel(const FInputActionValue& Value);
-	UFUNCTION()
-		void Attack(const FInputActionValue& Value);
-
-	/** Bools */
+		/** Bools */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
 	bool IsRetracted = true;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "4-Bools")
@@ -74,7 +49,25 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
 	bool CanDie = true;
 
-	/** Input Calls */
+
+protected:
+
+	virtual void BeginPlay() override;
+	/** Input Functions */
+	UFUNCTION()
+		void GroundMovement(const FInputActionValue& Value);
+	UFUNCTION()
+		void CameraMovement(const FInputActionValue& Value);
+	UFUNCTION()
+		void DoJump(const FInputActionValue& Value);
+	UFUNCTION()
+		void ShootGrapple(const FInputActionValue& Value);
+	UFUNCTION()
+		void GrappleReel();
+	UFUNCTION()
+		void Attack(const FInputActionValue& Value);
+
+		/** Input Calls */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
 	class UInputMappingContext* IMC;
 
@@ -96,6 +89,31 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "1-Inputsystem")
 	class UInputAction* IA_Attack;
 
+	/** Class Components  */
+	UPROPERTY(VisibleAnywhere)
+		class UCameraComponent* Camera;
+
+	UPROPERTY(VisibleAnywhere)
+		class USpringArmComponent* SpringArm;
+
+		class UCableComponent* CableComponent;
+
+	/** Subclasses */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "2-SubObjects")
+		TSubclassOf<class AGrapplingHookHead> BP_GrapplingHookHead;
+
+	UPROPERTY()
+		class AGrapplingHookHead* GrapplingHookRef{ nullptr };
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+		class UAttributeComponent* Attributes;
+
+	/** HUD */
+	UPROPERTY()
+		class UPlayerOverlay* PlayerOverlay;
+
+
+
 	/** Constants */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
 	float GrappleMaxDistance = 3000.f;
@@ -104,52 +122,35 @@ protected:
 	float PullStrenght = 5000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float CurrentHealth = 3.f;
-
-	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "3-Constants")
-	float MaxHealth = 3.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
 	float DisplaySeconds = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
 	float DisplayMinutes = 0.f;
 	
 private:
-	UFUNCTION(BlueprintCallable)
-	void TokDamage(float DamageAmount);
-	UFUNCTION(BlueprintCallable)
-	void Die();
+
+	virtual void Die() override;
+
+	virtual void LineTrace(FHitResult& OutHit) override;
+
 	UFUNCTION(BlueprintCallable)
 	void TimeManager();
-	void GetGrapplingHookRef();
-	UFUNCTION(BlueprintCallable)
-	void SpawnGrappleProjectile();
+
 	UFUNCTION(BlueprintCallable)
 	void GrapplePhysicsUpdate();
-	UFUNCTION(BlueprintCallable)
-	void GrapplePullUpdate();
+
 	UFUNCTION(BlueprintCallable)
 	void DetectIfCanGrapple();
+
 	UFUNCTION(BlueprintCallable)
 	void DespawnGrappleIfAtTeatherMax();
-	void LineTrace(FHitResult& OutHit);
-	UFUNCTION(BlueprintCallable)
-	FVector GetPointWithRotator(const FVector& Start, const FRotator& Rotation, float Distance);
-	UFUNCTION(BlueprintCallable)
-	FVector GetVectorOfRotation(const FRotator& Rotation);
-	UFUNCTION(BlueprintCallable)
-	FVector GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
-	UFUNCTION(BlueprintCallable)
-	float GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
-	UFUNCTION(BlueprintCallable)
-	float GetHealthPercent();
-	UFUNCTION(BlueprintCallable)
-	bool IsAlive();
+
 	void Inits();
 	void InputInit();
 	void OverlayInit();
 	void TimerInit();
+
+	
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;

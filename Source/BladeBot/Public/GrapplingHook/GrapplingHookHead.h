@@ -46,5 +46,6 @@ private:
 	EGrappleState GrappleState = EGrappleState::EGS_Retracted;
 
 public:	
-	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }
+	FORCEINLINE EGrappleState
+	GetGrappleState() const { return GrappleState; }
 };

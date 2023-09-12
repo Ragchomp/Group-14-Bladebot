@@ -3,7 +3,6 @@
 #include "GrapplingHook/GrapplingHookHead.h"
 
 //Components
-#include "Components/BoxComponent.h"
 #include "Components/StaticMeshComponent.h"
 
 AGrapplingHookHead::AGrapplingHookHead()
@@ -63,7 +62,5 @@ void AGrapplingHookHead::OnOverlap(UPrimitiveComponent* OverlappedComponent, AAc
 {
 	const FString OtherActorName = OtherActor->GetName();
 	//GEngine->AddOnScreenDebugMessage(1, 1.f, FColor::Red, OtherActorName);
-
 	GrappleState = EGrappleState::EGS_Attached;
-
 }
