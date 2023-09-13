@@ -2,17 +2,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Characters/BaseCharacter.h"
 #include "Characters/StateControl.h"
-#include "ScarabEnemy.generated.h"
+#include "Characters/BaseCharacter.h"
+#include "MineEnemy.generated.h"
 
 UCLASS()
-class BLADEBOT_API AScarabEnemy : public ABaseCharacter
+class BLADEBOT_API AMineEnemy : public ABaseCharacter
 {
 	GENERATED_BODY()
-	
+
 public:
-	AScarabEnemy();
+	AMineEnemy();
 	virtual void Tick(float DeltaTime) override;
 
 	// ------------ States ---------------------
@@ -25,52 +25,52 @@ protected:
 	// ------------- Functions ------------
 
 	// Movements ----------
-	void CheckIfAtTargetLocation();
-	bool InTargetRange(FVector& MovementLocation);
-	FVector UpdateRandomTargetPosition();
-	void MoveToTargetPosition();
+	AActor* ChoosePatrolTarget();
+	void CheckPatrolTarget();
+	void PatrolTimerFinished();
+	void MoveToTarget(float DeltaTime);
+	bool InTargetRange(AActor* Target, float Radius);
 
 	// Combat ----------
 	void SeenAnEnemy();
-	void SetTarget();
-	void LaserChargeUpComplete();
-	void LaserCoolDownComplete();
-	void SphereTrace(FHitResult& OutHit);
+	void DischargeChargeUpComplete();
+	void DischargeCoolDownComplete();
 	void EnemyLeft();
 
 	// VFX ----------
 	void VFXPlayChargeup();
-	void VFXPlayLaser();
+	void VFXPlayDischarge();
 	void VFXPlayCooldown();
 
 	// Other ----------
-	
+
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-			UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
-			bool bFromSweep, const FHitResult& SweepResult) override;
+		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
+		bool bFromSweep, const FHitResult& SweepResult) override;
 
 	UFUNCTION()
-	void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
-				UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
-	void ControllerInit();
+		void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+			UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
 
 private:
 
 	// ------------- class Refs ------------
-	UPROPERTY()
-		class AAIController* EnemyController;
-
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;
+
+	UPROPERTY(VisibleAnywhere)
+		class AActor* PatrolTarget;
+
+	UPROPERTY(EditInstanceOnly, Category = "Patrol")
+		TArray<AActor*> PatrolTargets;
+
+	UPROPERTY()
+		class UNiagaraComponent* NiagaraComp;
 
 	// ------------- Components ------------
 	UPROPERTY(VisibleAnywhere)
 		class USphereComponent* DetectionSphere;
-
-	UPROPERTY()
-		class UNiagaraComponent* NiagaraComp;
 
 	// ------------- VFX Components ------------
 
@@ -78,66 +78,54 @@ private:
 		class UNiagaraSystem* VFXChargeup;
 
 	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXLaser;
+		class UNiagaraSystem* VFXDischarge;
 
 	UPROPERTY(EditAnywhere, Category = "VFX-4")
 		class UNiagaraSystem* VFXCooldown;
 
 	// ------------- Timer Handlers ------------
 
-	FTimerHandle MoveToNewLocation;
+	FTimerHandle PatrolTimer;
 
-	FTimerHandle LaserSetTargetTimer;
+	FTimerHandle DischargeChargeUpTimer;
 
-	FTimerHandle LaserChargeUpTimer;
-
-	FTimerHandle LaserCoolDownTimer;
+	FTimerHandle DischargeCoolDownTimer;
 
 	// ------------- Constants ------------
 
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float LaserMaxRange = 3000.f;
+		float DischargeMaxRange = 1500.f;
 
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float LaserRadius = 30.f;
+		float DischargeChargeRate = 3.f;
 
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float ChargupUntilSetTargetTimer = 2.f;
-
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float ChargupAfterTargetSetTimer = 1.f;
-
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float CooldownTimer = 5.f;
-
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float WaitAtLocaionMin = 2.f;
-
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float WaitAtLocaionMax = 5.f;
-
-	UPROPERTY(VisibleInstanceOnly)
-	FVector MovementTarget = FVector(0,0,0);
+		float DischargeCooldownRate = 3.f;
 
 	UPROPERTY()
-	FVector LaserTargetPosition = FVector(0, 0, 0);
+		float DetectionRange = 2000.f;
+
+	// Radius of operation
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+		double PatrolRadius = 100.f;
 
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-	float MovementRange = 3000.f;
+		float MovementSpeed = 200.f;
 
-	float AcceptanceRange = 20.f;
+	// Timer Delays
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+		float PatrolDelayMin = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "3-Constants")
+		float PatrolDelayMax = 5.f;
 
 	// ------------- Bools ------------
-
-	bool NavWorked = false;
+	bool CanMove = true;
 
 public:
 	// ------------- Getters and Setters ------------
 
 		// Gets the AI state from the state controller
 	FORCEINLINE EEnemyState GetAIState() const { return EnemyState; }
-	FORCEINLINE ESGunState GetScarabGunState() const { return GunState; }
 
 };
-
-

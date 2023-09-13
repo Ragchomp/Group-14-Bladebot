@@ -14,7 +14,9 @@
 
 // These can be moved to base character
 #include "Kismet/GameplayStatics.h"
-
+//Niagara Include
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraComponent.h"
 
 
 AScarabEnemy::AScarabEnemy()
@@ -140,6 +142,7 @@ void AScarabEnemy::SeenAnEnemy()
 	if(GunState == ESGunState::ESGS_Idle)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
+		VFXPlayChargeup();
 		GetWorldTimerManager().SetTimer(LaserSetTargetTimer, this, &AScarabEnemy::SetTarget, ChargupUntilSetTargetTimer);
 	}
 
@@ -171,7 +174,9 @@ void AScarabEnemy::LaserChargeUpComplete()
 	GunState = ESGunState::ESGS_Shooting;
 	FHitResult OutHit;
 	SphereTrace(OutHit);
+	VFXPlayLaser();
 
+	VFXPlayCooldown();
 	GunState = ESGunState::ESGS_Cooling;
 	GetWorldTimerManager().SetTimer(LaserCoolDownTimer, this, &AScarabEnemy::LaserCoolDownComplete, CooldownTimer);
 }
@@ -184,6 +189,7 @@ void AScarabEnemy::LaserCoolDownComplete()
 	if(EnemyState == EEnemyState::EES_Attacking)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
+		VFXPlayChargeup();
 		GetWorldTimerManager().SetTimer(LaserSetTargetTimer, this, &AScarabEnemy::SetTarget, ChargupUntilSetTargetTimer);
 	}
 }
@@ -225,6 +231,54 @@ void AScarabEnemy::EnemyLeft()
 	GetWorldTimerManager().SetTimer(MoveToNewLocation, this, &AScarabEnemy::MoveToTargetPosition, WaitTime);
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("No longer an attacktarget"));
 	CombatTarget = nullptr;
+}
+
+void AScarabEnemy::VFXPlayChargeup()
+{
+	if (VFXChargeup) {
+		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			VFXChargeup,
+			GetActorLocation(),
+			GetActorRotation(),
+			FVector(1.f),
+			true,
+			true,
+			ENCPoolMethod::None,
+			true);
+	}
+}
+
+void AScarabEnemy::VFXPlayLaser()
+{
+	if (VFXLaser) {
+		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			VFXLaser,
+			GetActorLocation(),
+			GetActorRotation(),
+			FVector(1.f),
+			true,
+			true,
+			ENCPoolMethod::None,
+			true);
+	}
+}
+
+void AScarabEnemy::VFXPlayCooldown()
+{
+	if (VFXCooldown) {
+		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			VFXCooldown,
+			GetActorLocation(),
+			GetActorRotation(),
+			FVector(1.f),
+			true,
+			true,
+			ENCPoolMethod::None,
+			true);
+	}
 }
 
 // Other --------------------
