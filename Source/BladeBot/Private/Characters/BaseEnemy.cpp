@@ -196,7 +196,7 @@ void ABaseEnemy::SphereTrace(FHitResult& OutHit, const FVector& StartLocation, c
 		ETraceTypeQuery::TraceTypeQuery1,
 		false,
 		ActorsToIgnore,
-		EDrawDebugTrace::None,
+		EDrawDebugTrace::ForDuration,
 		OutHit,
 		true);
 }
