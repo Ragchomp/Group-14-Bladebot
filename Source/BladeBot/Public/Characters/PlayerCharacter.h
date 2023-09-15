@@ -22,6 +22,7 @@ public:
 
 	/** Timer Manager  */
 	FTimerHandle Seconds;
+	FTimerHandle NoiseTimer;
 	void CountSeconds();
 	void CableManager();
 
@@ -149,6 +150,7 @@ private:
 	void InputInit();
 	void OverlayInit();
 	void TimerInit();
+	void GenerateNoise();
 
 	
 

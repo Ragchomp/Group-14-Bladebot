@@ -19,14 +19,16 @@ protected:
 
 private:
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-		float CurrentHealth;
+		float CurrentHealth = 1;
 		
 	UPROPERTY(EditAnywhere, Category = "3-Constants")
-		float MaxHealth;
+		float MaxHealth = 1;
 
 public: // Getters and setters
 	
 	void ReciveDamage(float damage);
 	float GetHealthPercent();
-	bool IsAlive();
+	bool IsNotAlive();
+	void SetMaxHealth(const float& h);
+	void SetCurrentHealth(const float& h);
 };

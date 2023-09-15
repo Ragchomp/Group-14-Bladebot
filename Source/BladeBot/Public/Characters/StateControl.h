@@ -24,3 +24,12 @@ enum class EEnemyState : uint8
 	EES_Patroling UMETA(DisplayName = "Patroling"),
 	EES_Attacking UMETA(DisplayName = "Attacking")
 };
+
+UENUM(BlueprintType)
+enum class ESGunState : uint8
+{
+	ESGS_Idle UMETA(DisplayName = "Idle"),
+	ESGS_Chargeing UMETA(DisplayName = "Chargeing"),
+	ESGS_Shooting UMETA(DisplayName = "Shooting"),
+	ESGS_Cooling UMETA(DisplayName = "Cooling")
+};
