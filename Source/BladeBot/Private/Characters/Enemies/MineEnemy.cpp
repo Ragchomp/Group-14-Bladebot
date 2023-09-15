@@ -7,13 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-
-// These can be moved to base character
-#include "Kismet/GameplayStatics.h"
-//Niagara Include
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
+//#include "GameFramework/CharacterMovementComponent.h"
 
 AMineEnemy::AMineEnemy()
 {
@@ -21,11 +15,6 @@ AMineEnemy::AMineEnemy()
 
 	// Mesh Init
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -30.f));
-
-	GetMesh()->SetGenerateOverlapEvents(true);
-	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	// Capsule Init
 	GetCapsuleComponent()->SetCapsuleHalfHeight(75);
@@ -79,6 +68,13 @@ void AMineEnemy::Tick(float DeltaTime)
 }
 
 // Movement -------------------
+
+void AMineEnemy::Die()
+{
+	GetWorldTimerManager().ClearTimer(DischargeChargeUpTimer);
+	GetWorldTimerManager().ClearTimer(DischargeCoolDownTimer);
+	Super::Die();
+}
 
 AActor* AMineEnemy::ChoosePatrolTarget()
 {
@@ -137,15 +133,6 @@ void AMineEnemy::MoveToTarget(float DeltaTime)
 	}
 }
 
-bool AMineEnemy::InTargetRange(AActor* Target, float Radius)
-{
-	if (Target == nullptr) return false;
-
-	const float DistanceToTarget = (Target->GetActorLocation() - GetActorLocation()).Size();
-	
-	return DistanceToTarget <= Radius;
-}
-
 // Combat -------------------
 
 void AMineEnemy::SeenAnEnemy()
@@ -158,7 +145,8 @@ void AMineEnemy::SeenAnEnemy()
 	if (GunState == ESGunState::ESGS_Idle)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
-		VFXPlayChargeup();
+		PlayVFXChargeUp(GetActorLocation());
+		PlayAudioChargeUp(GetActorLocation());
 		GetWorldTimerManager().SetTimer(DischargeChargeUpTimer, this, &AMineEnemy::DischargeChargeUpComplete, DischargeChargeRate);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Charging"));
 	}
@@ -172,12 +160,14 @@ void AMineEnemy::DischargeChargeUpComplete()
 	if (InTargetRange(CombatTarget, DischargeMaxRange))
 	{
 		// Player Takes damage here
-		VFXPlayDischarge();
+		PlayVFXAttack(GetActorLocation());
+		PlayAudioAttack(GetActorLocation());
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player Take Damage"));
 	}
 
 	GunState = ESGunState::ESGS_Cooling;
-	VFXPlayCooldown();
+	PlayVFXCoolDown(GetActorLocation());
+	PlayAudioCoolDown(GetActorLocation());
 	GetWorldTimerManager().SetTimer(DischargeCoolDownTimer, this, &AMineEnemy::DischargeCoolDownComplete, DischargeCooldownRate);
 }
 
@@ -189,7 +179,8 @@ void AMineEnemy::DischargeCoolDownComplete()
 	if (EnemyState == EEnemyState::EES_Attacking)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
-		VFXPlayChargeup();
+		PlayVFXChargeUp(GetActorLocation());
+		PlayAudioChargeUp(GetActorLocation());
 		GetWorldTimerManager().SetTimer(DischargeChargeUpTimer, this, &AMineEnemy::DischargeChargeUpComplete, DischargeChargeRate);
 		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Cooldown complete -> charging"));
 	}
@@ -206,56 +197,6 @@ void AMineEnemy::EnemyLeft()
 	// goes back to patrolling
 	CombatTarget = nullptr;
 	EnemyState = EEnemyState::EES_Patroling;
-}
-
-// VFX -------------------
-
-void AMineEnemy::VFXPlayChargeup()
-{
-	if (VFXChargeup) {
-		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this, 
-			VFXChargeup, 
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.f), 
-			true,
-			true, 
-			ENCPoolMethod::None, 
-			true);
-	}
-}
-
-void AMineEnemy::VFXPlayDischarge()
-{
-	if (VFXDischarge) {
-		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			VFXDischarge,
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.f),
-			true,
-			true,
-			ENCPoolMethod::None,
-			true);
-	}
-}
-
-void AMineEnemy::VFXPlayCooldown()
-{
-	if (VFXCooldown) {
-		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			VFXCooldown,
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.f),
-			true,
-			true,
-			ENCPoolMethod::None,
-			true);
-	}
 }
 
 // Other -------------------

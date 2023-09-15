@@ -3,11 +3,11 @@
 
 #include "CoreMinimal.h"
 #include "Characters/StateControl.h"
-#include "Characters/BaseCharacter.h"
+#include "Characters/BaseEnemy.h"
 #include "MineEnemy.generated.h"
 
 UCLASS()
-class BLADEBOT_API AMineEnemy : public ABaseCharacter
+class BLADEBOT_API AMineEnemy : public ABaseEnemy
 {
 	GENERATED_BODY()
 
@@ -24,12 +24,14 @@ protected:
 
 	// ------------- Functions ------------
 
+	// Health ----------
+	virtual void Die() override;
+
 	// Movements ----------
 	AActor* ChoosePatrolTarget();
 	void CheckPatrolTarget();
 	void PatrolTimerFinished();
 	void MoveToTarget(float DeltaTime);
-	bool InTargetRange(AActor* Target, float Radius);
 
 	// Combat ----------
 	void SeenAnEnemy();
@@ -37,21 +39,14 @@ protected:
 	void DischargeCoolDownComplete();
 	void EnemyLeft();
 
-	// VFX ----------
-	void VFXPlayChargeup();
-	void VFXPlayDischarge();
-	void VFXPlayCooldown();
-
 	// Other ----------
 
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
 		bool bFromSweep, const FHitResult& SweepResult) override;
 
-	UFUNCTION()
-		void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-			UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
-
+	virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+			UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 private:
 
@@ -65,23 +60,11 @@ private:
 	UPROPERTY(EditInstanceOnly, Category = "Patrol")
 		TArray<AActor*> PatrolTargets;
 
-	UPROPERTY()
-		class UNiagaraComponent* NiagaraComp;
 
 	// ------------- Components ------------
 	UPROPERTY(VisibleAnywhere)
 		class USphereComponent* DetectionSphere;
 
-	// ------------- VFX Components ------------
-
-	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXChargeup;
-
-	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXDischarge;
-
-	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXCooldown;
 
 	// ------------- Timer Handlers ------------
 
@@ -93,30 +76,30 @@ private:
 
 	// ------------- Constants ------------
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		float DischargeMaxRange = 1500.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		float DischargeChargeRate = 3.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		float DischargeCooldownRate = 3.f;
 
 	UPROPERTY()
 		float DetectionRange = 2000.f;
 
 	// Radius of operation
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		double PatrolRadius = 100.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		float MovementSpeed = 200.f;
 
 	// Timer Delays
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		float PatrolDelayMin = 1.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 		float PatrolDelayMax = 5.f;
 
 	// ------------- Bools ------------

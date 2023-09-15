@@ -2,12 +2,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Characters/BaseCharacter.h"
+#include "Characters/BaseEnemy.h"
 #include "Characters/StateControl.h"
 #include "ScarabEnemy.generated.h"
 
 UCLASS()
-class BLADEBOT_API AScarabEnemy : public ABaseCharacter
+class BLADEBOT_API AScarabEnemy : public ABaseEnemy
 {
 	GENERATED_BODY()
 	
@@ -24,9 +24,11 @@ protected:
 
 	// ------------- Functions ------------
 
+	// Health ----------
+	virtual void Die() override;
+
 	// Movements ----------
 	void CheckIfAtTargetLocation();
-	bool InTargetRange(FVector& MovementLocation);
 	FVector UpdateRandomTargetPosition();
 	void MoveToTargetPosition();
 
@@ -35,13 +37,7 @@ protected:
 	void SetTarget();
 	void LaserChargeUpComplete();
 	void LaserCoolDownComplete();
-	void SphereTrace(FHitResult& OutHit);
 	void EnemyLeft();
-
-	// VFX ----------
-	void VFXPlayChargeup();
-	void VFXPlayLaser();
-	void VFXPlayCooldown();
 
 	// Other ----------
 	
@@ -49,12 +45,10 @@ protected:
 			UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
 			bool bFromSweep, const FHitResult& SweepResult) override;
 
-	UFUNCTION()
-	void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, 
-				UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
+	virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+				UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 	void ControllerInit();
-
 
 private:
 
@@ -69,20 +63,6 @@ private:
 	UPROPERTY(VisibleAnywhere)
 		class USphereComponent* DetectionSphere;
 
-	UPROPERTY()
-		class UNiagaraComponent* NiagaraComp;
-
-	// ------------- VFX Components ------------
-
-	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXChargeup;
-
-	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXLaser;
-
-	UPROPERTY(EditAnywhere, Category = "VFX-4")
-		class UNiagaraSystem* VFXCooldown;
-
 	// ------------- Timer Handlers ------------
 
 	FTimerHandle MoveToNewLocation;
@@ -95,25 +75,25 @@ private:
 
 	// ------------- Constants ------------
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float LaserMaxRange = 3000.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float LaserRadius = 30.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float ChargupUntilSetTargetTimer = 2.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float ChargupAfterTargetSetTimer = 1.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float CooldownTimer = 5.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float WaitAtLocaionMin = 2.f;
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float WaitAtLocaionMax = 5.f;
 
 	UPROPERTY(VisibleInstanceOnly)
@@ -122,7 +102,7 @@ private:
 	UPROPERTY()
 	FVector LaserTargetPosition = FVector(0, 0, 0);
 
-	UPROPERTY(EditAnywhere, Category = "3-Constants")
+	UPROPERTY(EditAnywhere, Category = "Constants")
 	float MovementRange = 3000.f;
 
 	float AcceptanceRange = 20.f;

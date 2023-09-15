@@ -10,14 +10,6 @@
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Navigation/PathFollowingComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
-
-// These can be moved to base character
-#include "Kismet/GameplayStatics.h"
-//Niagara Include
-#include "NiagaraFunctionLibrary.h"
-#include "NiagaraComponent.h"
-
 
 AScarabEnemy::AScarabEnemy()
 {
@@ -26,11 +18,6 @@ AScarabEnemy::AScarabEnemy()
 	// Mesh Init
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -170.f));
 	GetMesh()->SetRelativeScale3D(FVector(1.f, 1.f, 1.f));
-
-	GetMesh()->SetGenerateOverlapEvents(true);
-	GetMesh()->SetCollisionObjectType(ECollisionChannel::ECC_WorldStatic);
-	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
 	// Capsule Init
 	GetCapsuleComponent()->SetCapsuleHalfHeight(170);
@@ -82,22 +69,23 @@ void AScarabEnemy::Tick(float DeltaTime)
 
 // Movement --------------------
 
+void AScarabEnemy::Die()
+{
+	GetWorldTimerManager().ClearTimer(LaserSetTargetTimer);
+	GetWorldTimerManager().ClearTimer(LaserChargeUpTimer);
+	GetWorldTimerManager().ClearTimer(LaserCoolDownTimer);
+	Super::Die();
+}
+
 void AScarabEnemy::CheckIfAtTargetLocation()
 {
-	if(InTargetRange(MovementTarget) && EnemyState == EEnemyState::EES_Patroling)
+	if(InTargetRange(MovementTarget,AcceptanceRange + 300) && EnemyState == EEnemyState::EES_Patroling)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("At Location"));
 		MovementTarget = UpdateRandomTargetPosition();
 		const float WaitTime = FMath::RandRange(WaitAtLocaionMin, WaitAtLocaionMax);
 		GetWorldTimerManager().SetTimer(MoveToNewLocation, this, &AScarabEnemy::MoveToTargetPosition, WaitTime);
 	}
-}
-
-bool AScarabEnemy::InTargetRange(FVector& MovementLocation)
-{
-	float DistanceToTarget = GetDistanceBetweenTwoPoints(MovementLocation,GetActorLocation());
-
-	return DistanceToTarget <= AcceptanceRange + 300;
 }
 
 FVector AScarabEnemy::UpdateRandomTargetPosition()
@@ -142,7 +130,8 @@ void AScarabEnemy::SeenAnEnemy()
 	if(GunState == ESGunState::ESGS_Idle)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
-		VFXPlayChargeup();
+		PlayVFXChargeUp(GetActorLocation());
+		PlayAudioChargeUp(GetActorLocation());
 		GetWorldTimerManager().SetTimer(LaserSetTargetTimer, this, &AScarabEnemy::SetTarget, ChargupUntilSetTargetTimer);
 	}
 
@@ -173,10 +162,12 @@ void AScarabEnemy::LaserChargeUpComplete()
 
 	GunState = ESGunState::ESGS_Shooting;
 	FHitResult OutHit;
-	SphereTrace(OutHit);
-	VFXPlayLaser();
+	SphereTrace(OutHit,GetActorLocation(),LaserTargetPosition,LaserRadius);
+	PlayVFXAttack(GetActorLocation());
+	PlayAudioAttack(GetActorLocation());
 
-	VFXPlayCooldown();
+	PlayVFXCoolDown(GetActorLocation());
+	PlayAudioCoolDown(GetActorLocation());
 	GunState = ESGunState::ESGS_Cooling;
 	GetWorldTimerManager().SetTimer(LaserCoolDownTimer, this, &AScarabEnemy::LaserCoolDownComplete, CooldownTimer);
 }
@@ -189,31 +180,10 @@ void AScarabEnemy::LaserCoolDownComplete()
 	if(EnemyState == EEnemyState::EES_Attacking)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
-		VFXPlayChargeup();
+		PlayVFXChargeUp(GetActorLocation());
+		PlayAudioChargeUp(GetActorLocation());
 		GetWorldTimerManager().SetTimer(LaserSetTargetTimer, this, &AScarabEnemy::SetTarget, ChargupUntilSetTargetTimer);
 	}
-}
-
-void AScarabEnemy::SphereTrace(FHitResult& OutHit)
-{
-
-	FVector StartLocation = GetActorLocation();
-	FVector EndLocation = LaserTargetPosition;
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this);
-
-	UKismetSystemLibrary::SphereTraceSingle(
-		this,
-		StartLocation,
-		EndLocation,
-		LaserRadius,
-		ETraceTypeQuery::TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
-		OutHit,
-		true);
-
 }
 
 void AScarabEnemy::EnemyLeft()
@@ -231,54 +201,6 @@ void AScarabEnemy::EnemyLeft()
 	GetWorldTimerManager().SetTimer(MoveToNewLocation, this, &AScarabEnemy::MoveToTargetPosition, WaitTime);
 	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("No longer an attacktarget"));
 	CombatTarget = nullptr;
-}
-
-void AScarabEnemy::VFXPlayChargeup()
-{
-	if (VFXChargeup) {
-		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			VFXChargeup,
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.f),
-			true,
-			true,
-			ENCPoolMethod::None,
-			true);
-	}
-}
-
-void AScarabEnemy::VFXPlayLaser()
-{
-	if (VFXLaser) {
-		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			VFXLaser,
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.f),
-			true,
-			true,
-			ENCPoolMethod::None,
-			true);
-	}
-}
-
-void AScarabEnemy::VFXPlayCooldown()
-{
-	if (VFXCooldown) {
-		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
-			this,
-			VFXCooldown,
-			GetActorLocation(),
-			GetActorRotation(),
-			FVector(1.f),
-			true,
-			true,
-			ENCPoolMethod::None,
-			true);
-	}
 }
 
 // Other --------------------
@@ -303,6 +225,6 @@ void AScarabEnemy::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 
 void AScarabEnemy::ControllerInit()
 {
-	// Gets the AI Controller
 	EnemyController = Cast<AAIController>(GetController());
 }
+
