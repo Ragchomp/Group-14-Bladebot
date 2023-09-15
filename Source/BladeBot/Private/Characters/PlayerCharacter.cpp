@@ -80,16 +80,6 @@ float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& Damag
 	return DamageAmount;
 }
 
-void APlayerCharacter::GetHit_Implementation(const FVector& ImpactPoint)
-{
-	Super::GetHit_Implementation(ImpactPoint);
-	
-	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, TEXT("GetHit implementation"));
-	if (Attributes->IsAlive()) {
-		Die();
-	}
-}
-
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
@@ -415,20 +405,6 @@ void APlayerCharacter::LineTrace(FHitResult& OutHit)
 		OutHit,
 		true
 	);
-	
-	// This will hit anything hitable with the line trace
-	// if the line trace hits something the first if is passed
-	if (LineHit.GetActor())
-	{
-		// if this cast works it means what we hit has a hitinterface as well
-		IHitInterface* HitInterface = Cast<IHitInterface>(LineHit.GetActor());
-		if (HitInterface) {
-			// it then calls what we hits; get hit function
-			HitInterface->Execute_GetHit(LineHit.GetActor(), LineHit.ImpactPoint);
-			// As long as a class that is supposed to get hit has hit interface 
-			// inherited it will take damage from the attack
-		}
-	}
 }
 
 // Inits

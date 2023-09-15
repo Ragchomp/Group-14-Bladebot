@@ -18,7 +18,6 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
 	/** Timer Manager  */
 	FTimerHandle Seconds;

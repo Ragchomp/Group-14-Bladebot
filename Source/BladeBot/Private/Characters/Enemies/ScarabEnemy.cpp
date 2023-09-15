@@ -81,7 +81,7 @@ void AScarabEnemy::CheckIfAtTargetLocation()
 {
 	if(InTargetRange(MovementTarget,AcceptanceRange + 300) && EnemyState == EEnemyState::EES_Patroling)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("At Location"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("At Location"));
 		MovementTarget = UpdateRandomTargetPosition();
 		const float WaitTime = FMath::RandRange(WaitAtLocaionMin, WaitAtLocaionMax);
 		GetWorldTimerManager().SetTimer(MoveToNewLocation, this, &AScarabEnemy::MoveToTargetPosition, WaitTime);
@@ -112,7 +112,7 @@ FVector AScarabEnemy::UpdateRandomTargetPosition()
 void AScarabEnemy::MoveToTargetPosition()
 {
 	if (EnemyState != EEnemyState::EES_Patroling && !EnemyController) return;
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("Move to target triggereed"));
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Yellow, TEXT("Move to target triggereed"));
 	FAIMoveRequest MoveRequest;
 	MoveRequest.SetGoalLocation(MovementTarget);
 	MoveRequest.SetAcceptanceRadius(AcceptanceRange);
@@ -199,7 +199,7 @@ void AScarabEnemy::EnemyLeft()
 	EnemyState = EEnemyState::EES_Patroling;
 	const float WaitTime = FMath::RandRange(WaitAtLocaionMin, WaitAtLocaionMax);
 	GetWorldTimerManager().SetTimer(MoveToNewLocation, this, &AScarabEnemy::MoveToTargetPosition, WaitTime);
-	GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("No longer an attacktarget"));
+	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("No longer an attacktarget"));
 	CombatTarget = nullptr;
 }
 
@@ -213,7 +213,7 @@ void AScarabEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
 	{
 		CombatTarget = Player;
 		SeenAnEnemy();
-		GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Attacktarget"));
+		//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Green, TEXT("Attacktarget"));
 	}
 }
 

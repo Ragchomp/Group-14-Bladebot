@@ -162,7 +162,7 @@ void AMineEnemy::DischargeChargeUpComplete()
 		// Player Takes damage here
 		PlayVFXAttack(GetActorLocation());
 		PlayAudioAttack(GetActorLocation());
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player Take Damage"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player Take Damage"));
 	}
 
 	GunState = ESGunState::ESGS_Cooling;
