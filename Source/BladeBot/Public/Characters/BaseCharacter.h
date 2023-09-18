@@ -18,7 +18,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	virtual void Die();
 	virtual void LineTrace(FHitResult& OutHit);
-	virtual void GetHit_Implementation(const FVector& ImpactPoint) override;
 
 	UFUNCTION()
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

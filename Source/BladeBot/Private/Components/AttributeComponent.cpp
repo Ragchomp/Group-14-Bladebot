@@ -11,7 +11,6 @@ void UAttributeComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	
 }
 
 void UAttributeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -32,9 +31,19 @@ float UAttributeComponent::GetHealthPercent()
 	return CurrentHealth / MaxHealth;
 }
 
-bool UAttributeComponent::IsAlive()
+bool UAttributeComponent::IsNotAlive()
 {
-	return CurrentHealth > 0.f;
+	return CurrentHealth <= 0.f;
+}
+
+void UAttributeComponent::SetMaxHealth(const float& h)
+{
+	MaxHealth = h;
+}
+
+void UAttributeComponent::SetCurrentHealth(const float& h)
+{
+	CurrentHealth = h;
 }
 
 

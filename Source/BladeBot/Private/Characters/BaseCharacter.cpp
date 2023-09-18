@@ -38,11 +38,6 @@ void ABaseCharacter::LineTrace(FHitResult& OutHit)
 
 }
 
-void ABaseCharacter::GetHit_Implementation(const FVector& ImpactPoint)
-{
-
-}
-
 void ABaseCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 }
