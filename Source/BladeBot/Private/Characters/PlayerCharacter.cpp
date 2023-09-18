@@ -11,17 +11,15 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "Components/WidgetComponent.h"
 #include "CableComponent.h"
 
-//Game play Statics
-#include "Kismet/GameplayStatics.h"
-#include "Kismet/KismetMathLibrary.h"
-
-//Input
+//Gameplay Statics
 #include "EnhancedInputComponent.h"
-#include "EnhancedInputSubSystems.h"
-#include "InputActionValue.h"
+#include "Controllers/BladebotPlayerController.h"
+#include "Kismet/GameplayStatics.h"
+#include <EnhancedInputSubsystems.h>
+
+
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -67,24 +65,8 @@ APlayerCharacter::APlayerCharacter()
 
 	// Player Possession
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
-
-
 }
 
-void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
-	{
-		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::GroundMovement);
-		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
-		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
-		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
-		EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
-		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
-	}
-}
 
 float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
@@ -125,6 +107,8 @@ void APlayerCharacter::Tick(float DeltaTime)
 	TimeManager();
 	CableManager();
 
+	GrappleReel();
+
 	//Makes sure grapplePhysics don't apply when not reeling
 	TryingTooReel = false;
 
@@ -135,6 +119,37 @@ void APlayerCharacter::Tick(float DeltaTime)
 		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Distance from Grapple : %f"),Distance));
 	}
 }
+
+void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+{
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+	{
+		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::GroundMovement);
+		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
+		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
+		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
+		EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
+		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
+	}
+}
+
+//
+//void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+//{
+//	Super::SetupPlayerInputComponent(PlayerInputComponent);
+//
+//	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+//	{
+//		ABladebotPlayerController* PlayerController = Cast<ABladebotPlayerController>(Controller);
+//		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &ABladebotPlayerController::GroundMovement);
+//		EnhancedInputComponent->BindAction(PlayerController->IA_CameraMovement, ETriggerEvent::Triggered, this, &ABladebotPlayerController::CameraMovement);
+//		EnhancedInputComponent->BindAction(PlayerController->IA_DoJump, ETriggerEvent::Triggered, this, &ABladebotPlayerController::DoJump);
+//		EnhancedInputComponent->BindAction(PlayerController->IA_ShootGrapple, ETriggerEvent::Triggered, this, &ABladebotPlayerController::ShootGrapple);
+//		EnhancedInputComponent->BindAction(PlayerController->IA_Attack, ETriggerEvent::Triggered, this, &ABladebotPlayerController::Attack);
+//	}
+//}
 
 // Input Functions
 
@@ -197,13 +212,13 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::GrappleReel(const FInputActionValue& Value)
+void APlayerCharacter::GrappleReel()
 {
-	if (Value.IsNonZero() && GrapplingHookRef && GrapplingHookRef->GetGrappleState() != EGrappleState::EGS_Retracted
+	if (GrapplingHookRef && GrapplingHookRef->GetGrappleState() != EGrappleState::EGS_Retracted
 		&& CharacterState != ECharacterState::ECS_Dead)
 	{
 		TryingTooReel = true;
-		// delete theis grapple pull update when called in grappeling hook head
+		// delete this grapple pull update when called in grappeling hook head
 		GrapplePullUpdate();
 	}
 }
@@ -228,7 +243,6 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 }
 
 // Player Spesific Functions
-
 void APlayerCharacter::Die()
 {
 	Super::Die();
@@ -264,7 +278,7 @@ void APlayerCharacter::CountSeconds()
 void APlayerCharacter::CableManager()
 {
 	// Set Collision enabled for cable in bp, as code is still experimental
-	if (GrapplingHookRef)
+	if (GrapplingHookRef && (GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached || GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_InAir))
 	{
 		CableComponent->SetVisibility(true);
 		// for moving the cable end position with the grappling hook
@@ -421,9 +435,9 @@ void APlayerCharacter::LineTrace(FHitResult& OutHit)
 
 void APlayerCharacter::Inits()
 {
-	InputInit();
 	OverlayInit();
 	TimerInit();
+	InputInit();
 	CharacterState = ECharacterState::ECS_Idle;
 	Tags.Add(FName("Player"));
 }
