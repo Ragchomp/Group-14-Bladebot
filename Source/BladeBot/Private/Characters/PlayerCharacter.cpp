@@ -114,26 +114,10 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
-		//EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
+		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 	}
 }
-
-//
-//void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-//{
-//	Super::SetupPlayerInputComponent(PlayerInputComponent);
-//
-//	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
-//	{
-//		ABladebotPlayerController* PlayerController = Cast<ABladebotPlayerController>(Controller);
-//		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &ABladebotPlayerController::GroundMovement);
-//		EnhancedInputComponent->BindAction(PlayerController->IA_CameraMovement, ETriggerEvent::Triggered, this, &ABladebotPlayerController::CameraMovement);
-//		EnhancedInputComponent->BindAction(PlayerController->IA_DoJump, ETriggerEvent::Triggered, this, &ABladebotPlayerController::DoJump);
-//		EnhancedInputComponent->BindAction(PlayerController->IA_ShootGrapple, ETriggerEvent::Triggered, this, &ABladebotPlayerController::ShootGrapple);
-//		EnhancedInputComponent->BindAction(PlayerController->IA_Attack, ETriggerEvent::Triggered, this, &ABladebotPlayerController::Attack);
-//	}
-//}
 
 // Input Functions
 
@@ -451,7 +435,8 @@ void APlayerCharacter::TimerInit()
 /**
  * Dash Functions
  */
-//void APlayerCharacter::PlayerDash()
-//{
-//	UGameplayStatics::PlaySound2D(this, );
-//}
+void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
+{
+	UGameplayStatics::PlaySound2D(this, DashSound);
+	GetMesh()->USkeletalMeshComponent::AddRadialForce(FVector::ForwardVector, 300.f, 300.f, RIF_Linear, false);
+}

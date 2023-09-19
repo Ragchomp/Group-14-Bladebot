@@ -52,12 +52,12 @@ public:
 	/**
 	 * Dash Function
 	 */
-	//UFUNCTION()
-	//void PlayerDash(const FInputActionValue& Value);
+	UFUNCTION()
+	void PlayerDashAttack(const FInputActionValue& Value);
 
 	////SlowdownSounds
-	//UPROPERTY()
-	//TObjectPtr<USoundBase> DashSound;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	TObjectPtr<USoundBase> DashSound;
 
 
 protected:
@@ -99,7 +99,7 @@ protected:
 	class UInputAction* IA_Attack;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
-	class UInputAction* IA_Dash;
+	class UInputAction* IA_DashAttack;
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere)
