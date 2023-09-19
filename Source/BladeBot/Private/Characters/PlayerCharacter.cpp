@@ -1,4 +1,3 @@
-
 //Main
 #include "Characters/PlayerCharacter.h"
 #include "GrapplingHook/GrapplingHookHead.h"
@@ -18,8 +17,6 @@
 #include "Controllers/BladebotPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include <EnhancedInputSubsystems.h>
-
-
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -67,12 +64,9 @@ APlayerCharacter::APlayerCharacter()
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
-
 float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-
 	if (Attributes && PlayerOverlay) {
-		
 		Attributes->ReciveDamage(DamageAmount);
 		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 	}
@@ -103,10 +97,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 	TryingTooReel = false;
 
 	//Debug tool for Distance
-	if(DebugMode == true && GrapplingHookRef)
+	if (DebugMode == true && GrapplingHookRef)
 	{
 		float Distance = GetDistanceBetweenTwoPoints(GetActorLocation(), GrapplingHookRef->GetActorLocation());
-		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Distance from Grapple : %f"),Distance));
+		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Distance from Grapple : %f"), Distance));
 	}
 }
 
@@ -120,7 +114,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
-		EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
+		//EnhancedInputComponent->BindAction(IA_GrappleReel, ETriggerEvent::Triggered, this, &APlayerCharacter::GrappleReel);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 	}
 }
@@ -148,7 +142,7 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
 		FVector2D VectorDirection = Value.Get<FVector2D>();
-		
+
 		const FRotator ControlPlayerRotationYaw = GetControlRotation();
 		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
 
@@ -180,8 +174,7 @@ void APlayerCharacter::DoJump(const FInputActionValue& Value)
 
 void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 {
-	
-	if(Value.IsNonZero() && IsRetracted == true && CharacterState != ECharacterState::ECS_Dead)
+	if (Value.IsNonZero() && IsRetracted == true && CharacterState != ECharacterState::ECS_Dead)
 	{
 		SpawnGrappleProjectile();
 
@@ -189,7 +182,7 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 
 		IsRetracted = false;
 	}
-	else if(Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
+	else if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
 		if (GrapplingHookRef)
 		{
@@ -218,7 +211,7 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
 		if (DebugMode == true)
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, TEXT("Attack"));
+			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, TEXT("Attack"));
 
 		// Apply damage function through gameplaystatics funciton
 		//UGameplayStatics::ApplyDamage(
@@ -228,7 +221,6 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 		// SetInstigator(this) is the instigator
 		// UDamageType::StaticClass()
 		//);
-
 	}
 }
 
@@ -289,7 +281,7 @@ void APlayerCharacter::CableManager()
 void APlayerCharacter::GetGrapplingHookRef()
 {
 	// Creating a class reference to all Grappling hooks in case of duplicates,
-    // Uses slot 0 or first shot. Should always only be one
+	// Uses slot 0 or first shot. Should always only be one
 	TArray<AActor*> GrapplingHooks;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), BP_GrapplingHookHead, GrapplingHooks);
 	GrapplingHookRef = Cast<AGrapplingHookHead>(GrapplingHooks[0]);
@@ -340,8 +332,8 @@ void APlayerCharacter::GrapplePullUpdate()
 	if (GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached)
 	{
 		FVector PullVector = GetVectorBetweenTwoPoints
-			(GetActorLocation(),
-		GrapplingHookRef->GetActorLocation());
+		(GetActorLocation(),
+			GrapplingHookRef->GetActorLocation());
 
 		GetCharacterMovement()->AddImpulse(PullVector * PullStrenght);
 	}
@@ -364,7 +356,6 @@ void APlayerCharacter::DetectIfCanGrapple()
 		PlayerOverlay->EnableGrapplingCrosshair(false);
 		InGrappleRange = false;
 	}
-
 }
 
 void APlayerCharacter::DespawnGrappleIfAtTeatherMax()
@@ -457,3 +448,10 @@ void APlayerCharacter::TimerInit()
 	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountSeconds, 1.f, true);
 }
 
+/**
+ * Dash Functions
+ */
+//void APlayerCharacter::PlayerDash()
+//{
+//	UGameplayStatics::PlaySound2D(this, );
+//}
