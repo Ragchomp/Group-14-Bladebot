@@ -29,8 +29,9 @@ APlayerCharacter::APlayerCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
+
+	CharacterMovementComponent->bOrientRotationToMovement = true;
+	CharacterMovementComponent->RotationRate = FRotator(0.f, 400.f, 0.f);
 
 	// Mesh Init
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
@@ -473,6 +474,9 @@ void APlayerCharacter::TimerInit()
  */
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
+	APlayerCameraManager* camManager = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+	FVector camLocation = camManager->GetCameraLocation();
+	FVector camForward = camManager->GetCameraRotation().Vector();
 	UGameplayStatics::PlaySound2D(this, DashSound);
-	GetMesh()->USkeletalMeshComponent::AddRadialForce(FVector::ForwardVector, 300.f, 300.f, RIF_Linear, false);
+	this->LaunchCharacter(camForward * 100.f * DashSpeed, true, true);
 }

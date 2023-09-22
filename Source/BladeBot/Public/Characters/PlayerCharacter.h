@@ -59,6 +59,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashSpeed = 1.f;
+
 protected:
 	virtual void BeginPlay() override;
 	/** Input Functions */
@@ -148,6 +151,8 @@ private:
 	virtual void Die() override;
 
 	virtual void LineTrace(FHitResult& OutHit) override;
+
+	TObjectPtr<UCharacterMovementComponent> CharacterMovementComponent = GetCharacterMovement();;
 
 	UFUNCTION(BlueprintCallable)
 	void TimeManager();
