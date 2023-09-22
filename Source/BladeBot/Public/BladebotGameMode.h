@@ -28,6 +28,7 @@ protected:
 	virtual void BeginPlay() override;
 
 	//Called when player died
+	UFUNCTION()
 	virtual void PlayerDeath(ACharacter* PlayerCharacter);
 
 	//Signature to bind the delegate
