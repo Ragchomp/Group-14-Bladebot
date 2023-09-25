@@ -49,6 +49,9 @@ protected:
 
 	// VFX ------------------------------
 
+		UFUNCTION(BlueprintCallable)
+	virtual void UpdateVFXLocationRotation();
+
 		// ----
 		// Spawns a Niagara system at inputs location
 		// ----
@@ -121,6 +124,7 @@ private:
 	UPROPERTY(EditAnywhere)
 		class UAttributeComponent* Attributes;
 
+
 	// Audio ------------------------------
 	UPROPERTY(EditAnywhere, Category = "Audio")
 		class USoundBase* GetHitSound;
@@ -135,7 +139,8 @@ private:
 		class USoundBase* CoolDownSound;
 
 	// VFX ------------------------------
-	UPROPERTY()
+
+	UPROPERTY(EditAnywhere)
 		class UNiagaraComponent* NiagaraComp;
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
@@ -173,5 +178,6 @@ public:
 	// ----
 	UFUNCTION(BlueprintCallable)
 		virtual	float GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
+
 
 };

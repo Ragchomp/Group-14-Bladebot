@@ -7,24 +7,27 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
-//#include "GameFramework/CharacterMovementComponent.h"
 
 AMineEnemy::AMineEnemy()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// Mesh Init
-	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -30.f));
+	// When making a new Mine BP remember to set the gravity scale constant to 0
 
 	// Capsule Init
 	GetCapsuleComponent()->SetCapsuleHalfHeight(75);
 	GetCapsuleComponent()->SetCapsuleRadius(75);
-	RootComponent = GetCapsuleComponent();
+
+	// Mesh Init
+	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -30.f));
+	GetMesh()->SetRelativeRotation(FRotator(0.f, 180.f, -30.f));
+	GetMesh()->SetupAttachment(GetRootComponent());
+
 
 	// Detection sphere init
 	DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
-	DetectionSphere->SetupAttachment(GetRootComponent());
 	DetectionSphere->SetSphereRadius(DetectionRange);
+	DetectionSphere->SetupAttachment(GetRootComponent());
 
 	// Detection sphere Collisions
 	DetectionSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
@@ -78,23 +81,34 @@ void AMineEnemy::Die()
 
 AActor* AMineEnemy::ChoosePatrolTarget()
 {
-	// Finds all patrol targets that are valid (not currently at)
-	TArray<AActor*> ValidTargets;
-	for (AActor* Target : PatrolTargets)
+
+	//Choose random patrol point
+	if (RandomPatrolPointSelection == true)
 	{
-		if (Target != PatrolTarget)
+		Targets.Empty();
+		for (AActor* Target : PatrolTargets)
 		{
-			ValidTargets.AddUnique(Target);
+			if (Target != PatrolTarget)
+			{
+				Targets.AddUnique(Target);
+			}
+		}
+
+		const int32 NumPatrolTargets = Targets.Num();
+		if (NumPatrolTargets > 0)
+		{
+			const int32 TargetSelection = FMath::RandRange(0, NumPatrolTargets - 1);
+			return Targets[TargetSelection];
 		}
 	}
-
-	// Setts a random destination based on the array of valid targets
-	const int32 NumPatroltargets = ValidTargets.Num();
-	if (NumPatroltargets > 0)
+	else // Choose next patrol point in array
 	{
-		const int32 TargetSelection = FMath::RandRange(0, NumPatroltargets - 1);
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Choosen new target"));
-		return ValidTargets[TargetSelection];
+		const int32 NumPatrolTargets = PatrolTargets.Num();
+		if (NumPatrolTargets > 0)
+		{
+			CurrentTargetIndex = (CurrentTargetIndex + 1) % NumPatrolTargets;
+			return PatrolTargets[CurrentTargetIndex];
+		}
 	}
 
 	return nullptr;
@@ -118,18 +132,47 @@ void AMineEnemy::PatrolTimerFinished()
 	CanMove = true;
 }
 
+bool AMineEnemy::RotateToFace(float DeltaTime, FVector Direction)
+{
+
+	FRotator StartRoatation = GetActorRotation();
+	FRotator EndRoatation = Direction.Rotation();
+	float Alpha = 1.f;
+
+	FRotator InterpolatedRotation = FMath::Lerp(StartRoatation, EndRoatation, Alpha);
+	SetActorRotation(InterpolatedRotation * DeltaTime);
+
+	if(InterpolatedRotation == EndRoatation)
+	{
+		return true;
+	}
+
+	return false;
+}
+
 void AMineEnemy::MoveToTarget(float DeltaTime)
 {
 	if(PatrolTarget)
 	{
+		
 		FVector Point1 = GetActorLocation();
 		FVector Point2 = PatrolTarget->GetActorLocation();
 		FVector MovementVector = GetVectorBetweenTwoPoints(Point1, Point2);
 
-		FVector NewLocation = GetActorLocation();
-		NewLocation += MovementVector * MovementSpeed * DeltaTime;
-		SetActorLocation(NewLocation);
-		//GEngine->AddOnScreenDebugMessage(1, 5.f, FColor::Yellow, TEXT("Moveing"));
+		FRotator CurrentRotation = GetActorRotation();
+		FRotator TargetRotation = MovementVector.Rotation();
+
+		FRotator NewRotation = FMath::Lerp(CurrentRotation, TargetRotation, RotationSpeed);
+		SetActorRotation(NewRotation);
+
+		if(CurrentRotation.Equals(TargetRotation, 5.f))
+		{
+			FVector NewLocation = GetActorLocation();
+			NewLocation += MovementVector * MovementSpeed * DeltaTime;
+
+			SetActorLocation(NewLocation);
+		}
+
 	}
 }
 
