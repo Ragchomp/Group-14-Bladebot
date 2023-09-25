@@ -33,11 +33,18 @@ protected:
 	void MoveToTargetPosition();
 
 	// Combat ----------
+public:
+	UFUNCTION(BlueprintCallable)
 	void SeenAnEnemy();
+	UFUNCTION(BlueprintCallable)
 	void SetTarget();
+	UFUNCTION(BlueprintCallable)
 	void LaserChargeUpComplete();
+	UFUNCTION(BlueprintCallable)
 	void LaserCoolDownComplete();
+	UFUNCTION(BlueprintCallable)
 	void EnemyLeft();
+protected:
 
 	// Other ----------
 	
@@ -73,45 +80,46 @@ private:
 
 	FTimerHandle LaserCoolDownTimer;
 
-	// ------------- Constants ------------
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float LaserMaxRange = 3000.f;
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float LaserRadius = 30.f;
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float ChargupUntilSetTargetTimer = 2.f;
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float ChargupAfterTargetSetTimer = 1.f;
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float CooldownTimer = 5.f;
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float WaitAtLocaionMin = 2.f;
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float WaitAtLocaionMax = 5.f;
-
-	UPROPERTY(VisibleInstanceOnly)
-	FVector MovementTarget = FVector(0,0,0);
-
-	UPROPERTY()
-	FVector LaserTargetPosition = FVector(0, 0, 0);
-
-	UPROPERTY(EditAnywhere, Category = "Constants")
-	float MovementRange = 3000.f;
-
-	float AcceptanceRange = 20.f;
-
 	// ------------- Bools ------------
 
 	bool NavWorked = false;
 
 public:
+
+	// ------------- Constants ------------
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float LaserMaxRange = 3000.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float LaserRadius = 30.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float ChargupUntilSetTargetTimer = 2.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float ChargupAfterTargetSetTimer = 1.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float CooldownTimer = 5.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float WaitAtLocaionMin = 2.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float WaitAtLocaionMax = 5.f;
+
+	UPROPERTY(VisibleInstanceOnly)
+		FVector MovementTarget = FVector(0, 0, 0);
+
+	UPROPERTY(BlueprintReadWrite)
+		FVector LaserTargetPosition = FVector(0, 0, 0);
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float MovementRange = 3000.f;
+
+	float AcceptanceRange = 20.f;
+
 	// ------------- Getters and Setters ------------
 
 		// Gets the AI state from the state controller

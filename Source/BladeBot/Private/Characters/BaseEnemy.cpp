@@ -4,11 +4,14 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
-
+#include "Components/CapsuleComponent.h"
 
 ABaseEnemy::ABaseEnemy()
 {
 	PrimaryActorTick.bCanEverTick = true;
+
+	RootComponent = GetCapsuleComponent();
+
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("Attributes"));
 
 	GetMesh()->SetGenerateOverlapEvents(true);
@@ -16,18 +19,21 @@ ABaseEnemy::ABaseEnemy()
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 
+	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
+	NiagaraComp->SetupAttachment(GetRootComponent());
 }
 
 void ABaseEnemy::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	
+
 }
 
 void ABaseEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+
+	UpdateVFXLocationRotation();
 
 }
 
@@ -73,9 +79,20 @@ bool ABaseEnemy::InTargetRange(const FVector& Location, const float Radius)
 
 // ------------- VFX ------------
 
+void ABaseEnemy::UpdateVFXLocationRotation()
+{
+	if (NiagaraComp)
+	{
+		NiagaraComp->SetWorldLocation(GetActorLocation());
+		NiagaraComp->SetWorldRotation(GetActorRotation());
+	}
+}
+
 void ABaseEnemy::PlayVFXChargeUp(const FVector& PlayLocation)
 {
-	if (VFXChargeUp) {
+	if (VFXChargeUp && NiagaraComp) {
+		NiagaraComp->SetAsset(VFXChargeUp);
+
 		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			this,
 			VFXChargeUp,
@@ -91,7 +108,9 @@ void ABaseEnemy::PlayVFXChargeUp(const FVector& PlayLocation)
 
 void ABaseEnemy::PlayVFXCoolDown(const FVector& PlayLocation)
 {
-	if (VFXCoolDown) {
+	if (VFXCoolDown && NiagaraComp) {
+		NiagaraComp->SetAsset(VFXCoolDown);
+
 		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			this,
 			VFXCoolDown,
@@ -107,7 +126,9 @@ void ABaseEnemy::PlayVFXCoolDown(const FVector& PlayLocation)
 
 void ABaseEnemy::PlayVFXAttack(const FVector& PlayLocation)
 {
-	if (VFXAttack) {
+	if (VFXAttack && NiagaraComp) {
+		NiagaraComp->SetAsset(VFXAttack);
+
 		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
 			this,
 			VFXAttack,
@@ -234,5 +255,3 @@ float ABaseEnemy::GetDistanceBetweenTwoPoints(const FVector& Point1, const FVect
 
 	return DistanceToTarget;
 }
-
-

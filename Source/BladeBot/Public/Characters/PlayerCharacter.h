@@ -52,13 +52,15 @@ public:
 	/**
 	 * Dash Function
 	 */
-	//UFUNCTION()
-	//void PlayerDash(const FInputActionValue& Value);
+	UFUNCTION()
+	void PlayerDashAttack(const FInputActionValue& Value);
 
 	////SlowdownSounds
-	//UPROPERTY()
-	//TObjectPtr<USoundBase> DashSound;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	TObjectPtr<USoundBase> DashSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashSpeed = 1.f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -99,7 +101,10 @@ protected:
 	class UInputAction* IA_Attack;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
-	class UInputAction* IA_Dash;
+	class UInputAction* IA_DashAttack;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
+	class UInputAction* IA_RespawnButton;
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere)
@@ -137,11 +142,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float DisplayMinutes = 0.f;
 
+	/** Respawning Player **/
+	virtual void Destroyed() override;
+	//virtual void BeginDestroy() override;
+	void CallRestartPlayer();
 
 private:
 	virtual void Die() override;
 
 	virtual void LineTrace(FHitResult& OutHit) override;
+
+	TObjectPtr<UCharacterMovementComponent> CharacterMovementComponent = GetCharacterMovement();;
 
 	UFUNCTION(BlueprintCallable)
 	void TimeManager();

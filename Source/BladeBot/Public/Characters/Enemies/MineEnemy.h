@@ -31,6 +31,7 @@ protected:
 	AActor* ChoosePatrolTarget();
 	void CheckPatrolTarget();
 	void PatrolTimerFinished();
+	bool RotateToFace(float DeltaTime, FVector Direction);
 	void MoveToTarget(float DeltaTime);
 
 	// Combat ----------
@@ -57,10 +58,11 @@ private:
 	UPROPERTY(VisibleAnywhere)
 		class AActor* PatrolTarget;
 
-	UPROPERTY(EditInstanceOnly, Category = "Patrol")
+	UPROPERTY(EditAnywhere, Category = "Patrol")
 		TArray<AActor*> PatrolTargets;
 
-
+	UPROPERTY()
+		TArray<AActor*> Targets;
 	// ------------- Components ------------
 	UPROPERTY(VisibleAnywhere)
 		class USphereComponent* DetectionSphere;
@@ -74,38 +76,51 @@ private:
 
 	FTimerHandle DischargeCoolDownTimer;
 
+
+public:
+
 	// ------------- Constants ------------
 
-	UPROPERTY(EditAnywhere, Category = "Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float DischargeMaxRange = 1500.f;
 
-	UPROPERTY(EditAnywhere, Category = "Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float DischargeChargeRate = 3.f;
 
-	UPROPERTY(EditAnywhere, Category = "Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float DischargeCooldownRate = 3.f;
 
 	UPROPERTY()
 		float DetectionRange = 2000.f;
 
-	// Radius of operation
-	UPROPERTY(EditAnywhere, Category = "Constants")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		double PatrolRadius = 100.f;
 
-	UPROPERTY(EditAnywhere, Category = "Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float MovementSpeed = 200.f;
 
 	// Timer Delays
-	UPROPERTY(EditAnywhere, Category = "Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float PatrolDelayMin = 1.f;
 
-	UPROPERTY(EditAnywhere, Category = "Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float PatrolDelayMax = 5.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+		float RotationSpeed = 0.02f;
+
+	UPROPERTY()
+	int32 CurrentTargetIndex = -1;
+
 	// ------------- Bools ------------
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools")
 	bool CanMove = true;
 
-public:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools")
+	bool RandomPatrolPointSelection = true;
+
 	// ------------- Getters and Setters ------------
 
 		// Gets the AI state from the state controller
