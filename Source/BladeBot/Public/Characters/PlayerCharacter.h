@@ -59,6 +59,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashSpeed = 1.f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -101,6 +103,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_DashAttack;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
+	class UInputAction* IA_RespawnButton;
+
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere)
 	class UCameraComponent* Camera;
@@ -137,11 +142,17 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float DisplayMinutes = 0.f;
 
+	/** Respawning Player **/
+	virtual void Destroyed() override;
+	//virtual void BeginDestroy() override;
+	void CallRestartPlayer();
 
 private:
 	virtual void Die() override;
 
 	virtual void LineTrace(FHitResult& OutHit) override;
+
+	TObjectPtr<UCharacterMovementComponent> CharacterMovementComponent = GetCharacterMovement();;
 
 	UFUNCTION(BlueprintCallable)
 	void TimeManager();

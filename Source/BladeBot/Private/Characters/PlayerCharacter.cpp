@@ -17,6 +17,9 @@
 #include "Controllers/BladebotPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include <EnhancedInputSubsystems.h>
+#include "BladebotGameMode.h"
+
+#include "K2Node_SpawnActorFromClass.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -26,8 +29,9 @@ APlayerCharacter::APlayerCharacter()
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
+
+	CharacterMovementComponent->bOrientRotationToMovement = true;
+	CharacterMovementComponent->RotationRate = FRotator(0.f, 400.f, 0.f);
 
 	// Mesh Init
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
@@ -116,6 +120,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
+		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
 	}
 }
 
@@ -206,6 +211,38 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 		// UDamageType::StaticClass()
 		//);
 	}
+}
+
+void APlayerCharacter::Destroyed()
+{
+	Super::Destroyed();
+
+	if (TObjectPtr<UWorld> World = GetWorld())
+	{
+		if (TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
+		{
+			GameMode->GetOnPlayerDeath().Broadcast(this);
+		}
+	}
+}
+
+void APlayerCharacter::CallRestartPlayer()
+{
+	//Getting Pawn Controller reference
+	TObjectPtr<AController> ControllerReference = GetController();
+
+	//Destroying Player
+	Destroyed();
+
+	//Getting the World and GameMode in the world to invoke the restart player function
+	if (TObjectPtr<UWorld> World = GetWorld())
+	{
+		if (TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
+		{
+			GameMode->RestartPlayer(ControllerReference);
+		}
+	}
+	Destroy();
 }
 
 // Player Spesific Functions
@@ -437,6 +474,9 @@ void APlayerCharacter::TimerInit()
  */
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
+	APlayerCameraManager* camManager = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
+	FVector camLocation = camManager->GetCameraLocation();
+	FVector camForward = camManager->GetCameraRotation().Vector();
 	UGameplayStatics::PlaySound2D(this, DashSound);
-	GetMesh()->USkeletalMeshComponent::AddRadialForce(FVector::ForwardVector, 300.f, 300.f, RIF_Linear, false);
+	this->LaunchCharacter(camForward * 100.f * DashSpeed, true, true);
 }
