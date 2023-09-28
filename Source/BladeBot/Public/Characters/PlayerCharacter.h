@@ -6,6 +6,7 @@
 #include "PlayerCharacter.generated.h"
 
 struct FInputActionValue;
+class UCameraArmComponent;
 
 UCLASS()
 class BLADEBOT_API APlayerCharacter : public ABaseCharacter
@@ -111,7 +112,7 @@ protected:
 	class UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere)
-	class USpringArmComponent* SpringArm;
+	class UCameraArmComponent* SpringArm;
 
 	class UCableComponent* CableComponent;
 

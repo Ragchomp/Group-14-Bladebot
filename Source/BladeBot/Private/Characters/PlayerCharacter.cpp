@@ -1,4 +1,3 @@
-//Main
 #include "Characters/PlayerCharacter.h"
 #include "GrapplingHook/GrapplingHookHead.h"
 #include "Components/AttributeComponent.h"
@@ -20,6 +19,7 @@
 #include "BladebotGameMode.h"
 
 #include "K2Node_SpawnActorFromClass.h"
+#include "Components/CameraArmComponent.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -42,7 +42,7 @@ APlayerCharacter::APlayerCharacter()
 	GetCapsuleComponent()->SetCapsuleRadius(10);
 
 	// Spring-Arm Init
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
+	SpringArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("SpringArm"));
 	SpringArm->SetupAttachment(GetMesh());
 	SpringArm->SetRelativeLocation(FVector(0.f, 10.f, 90.f));
 	SpringArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
@@ -68,9 +68,10 @@ APlayerCharacter::APlayerCharacter()
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
 }
 
-float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (Attributes && PlayerOverlay) {
+	if (Attributes && PlayerOverlay)
+	{
 		Attributes->ReciveDamage(DamageAmount);
 		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 	}
@@ -354,7 +355,7 @@ void APlayerCharacter::GrapplePullUpdate()
 	{
 		FVector PullVector = GetVectorBetweenTwoPoints
 		(GetActorLocation(),
-			GrapplingHookRef->GetActorLocation());
+		 GrapplingHookRef->GetActorLocation());
 
 		GetCharacterMovement()->AddImpulse(PullVector * PullStrenght);
 	}
@@ -410,7 +411,7 @@ void APlayerCharacter::LineTrace(FHitResult& OutHit)
 		this,
 		Start,
 		End,
-		ETraceTypeQuery::TraceTypeQuery1,
+		TraceTypeQuery1,
 		false,
 		ActorsToIgnore,
 		EDrawDebugTrace::None,
