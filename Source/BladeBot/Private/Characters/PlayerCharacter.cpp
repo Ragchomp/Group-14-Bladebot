@@ -79,6 +79,11 @@ float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& Damag
 	return DamageAmount;
 }
 
+UPlayerOverlay* APlayerCharacter::GetPlayerOverlay()
+{
+	return PlayerOverlay;
+}
+
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();

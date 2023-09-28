@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "StateControl.h"
 #include "BaseCharacter.h"
+#include "Components/PlayerMovementComponent.h"
 #include "PlayerCharacter.generated.h"
 
 struct FInputActionValue;
@@ -20,6 +21,7 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	UPlayerOverlay* GetPlayerOverlay();
 
 	/** Timer Manager  */
 	FTimerHandle Seconds;
