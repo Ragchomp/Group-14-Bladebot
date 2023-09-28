@@ -26,7 +26,19 @@ void UCameraArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	if (bDoLocationLag)
 	{
 		//get the owner of the component's velocity
-		float OwnerSpeed = GetOwner()->GetVelocity().Length();
+		float OwnerSpeed;
+
+		//check if bIgnoreZVelocity is true
+		if (bIgnoreZVelocity)
+		{
+			//set the owner speed to the owner speed without the z component
+			OwnerSpeed = GetOwner()->GetVelocity().Size2D();
+		}
+		else
+		{
+			//set the owner speed to the owner speed with the z velocity
+			OwnerSpeed = GetOwner()->GetVelocity().Length();
+		}
 
 		//setup the lag min velocity
 		float LagMinVelocity;

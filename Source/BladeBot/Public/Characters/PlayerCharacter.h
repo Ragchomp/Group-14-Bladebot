@@ -14,7 +14,8 @@ class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 	GENERATED_BODY()
 
 public:
-	APlayerCharacter();
+	//constructor with objectinitializer to override the movement component class
+	explicit APlayerCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -112,7 +113,7 @@ protected:
 	class UCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere)
-	class UCameraArmComponent* SpringArm;
+	class UCameraArmComponent* CameraArm;
 
 	class UCableComponent* CableComponent;
 

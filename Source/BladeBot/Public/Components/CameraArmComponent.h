@@ -41,8 +41,11 @@ public:
 	float CameraLagMinVelocity;
 
 	//the maximum amount that the target arm length can be changed by per second by the camera lag
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings, DisplayName="Camera Lag Speed", meta=(ClampMin = 0.0f))
 	float CustomCameraLagSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
+	bool bIgnoreZVelocity = true;
 
 	//the previous alpha value used for the camera lag
 	float OldLerpAlpha = 0;

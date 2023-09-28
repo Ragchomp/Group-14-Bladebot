@@ -20,11 +20,11 @@
 
 #include "K2Node_SpawnActorFromClass.h"
 #include "Components/CameraArmComponent.h"
+#include "Components/PlayerMovementComponent.h"
 
-APlayerCharacter::APlayerCharacter()
+APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
 {
 	PrimaryActorTick.bCanEverTick = true;
-
 	// Orientation Init
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
@@ -42,17 +42,17 @@ APlayerCharacter::APlayerCharacter()
 	GetCapsuleComponent()->SetCapsuleRadius(10);
 
 	// Spring-Arm Init
-	SpringArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("SpringArm"));
-	SpringArm->SetupAttachment(GetMesh());
-	SpringArm->SetRelativeLocation(FVector(0.f, 10.f, 90.f));
-	SpringArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
-	SpringArm->TargetArmLength = 400.f;
-	SpringArm->bEnableCameraLag = true;
-	SpringArm->CameraLagSpeed = 20.f;
+	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
+	CameraArm->SetupAttachment(GetMesh());
+	CameraArm->SetRelativeLocation(FVector(0.f, 10.f, 90.f));
+	CameraArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	CameraArm->TargetArmLength = 400.f;
+	CameraArm->bEnableCameraLag = true;
+	CameraArm->CameraLagSpeed = 20.f;
 
 	// Camera Init
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-	Camera->SetupAttachment(SpringArm);
+	Camera->SetupAttachment(CameraArm);
 
 	// Attribute Component
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
