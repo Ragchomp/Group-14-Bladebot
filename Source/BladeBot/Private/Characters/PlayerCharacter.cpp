@@ -20,6 +20,7 @@
 #include "BladebotGameMode.h"
 
 #include "K2Node_SpawnActorFromClass.h"
+#include "Engine/DamageEvents.h"
 
 APlayerCharacter::APlayerCharacter()
 {
@@ -70,18 +71,24 @@ APlayerCharacter::APlayerCharacter()
 
 float APlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (Attributes && PlayerOverlay) {
-		Attributes->ReciveDamage(DamageAmount);
+	if (Attributes && PlayerOverlay)
+	{
+		Attributes->ReceiveDamage(DamageAmount);
 		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+		if (Attributes->IsNotAlive())
+		{
+			Die();
+		}
 	}
 
-	return DamageAmount;
+	return 0.0f;
 }
 
 void APlayerCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	Inits();
+	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
 }
 
 void APlayerCharacter::Tick(float DeltaTime)
@@ -106,6 +113,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 		float Distance = GetDistanceBetweenTwoPoints(GetActorLocation(), GrapplingHookRef->GetActorLocation());
 		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Distance from Grapple : %f"), Distance));
 	}
+	GEngine->AddOnScreenDebugMessage(15, 1, FColor::Purple, FString::Printf(TEXT("Current movementspeed : %f"), GetVelocity().Size()));
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -248,13 +256,10 @@ void APlayerCharacter::CallRestartPlayer()
 // Player Spesific Functions
 void APlayerCharacter::Die()
 {
-	Super::Die();
-
 	if (CanDie == false) return;
-	CharacterState = ECharacterState::ECS_Dead;
 
-	if (DebugMode == true)
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Dead"));
+	CharacterState = ECharacterState::ECS_Dead;
+	GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, TEXT("Dead"));
 }
 
 // Tick Managers
@@ -467,6 +472,16 @@ void APlayerCharacter::OverlayInit()
 void APlayerCharacter::TimerInit()
 {
 	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountSeconds, 1.f, true);
+}
+
+void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill && OtherComponent->GetCollisionObjectType() != ECollisionChannel::ECC_WorldDynamic)
+	{
+		//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Killed em")));
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
+	}
 }
 
 /**

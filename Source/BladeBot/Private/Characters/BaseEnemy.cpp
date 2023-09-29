@@ -37,13 +37,27 @@ void ABaseEnemy::Tick(float DeltaTime)
 
 }
 
+float ABaseEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if(Attributes)
+	{
+		Attributes->ReceiveDamage(DamageAmount);
+
+		if (Attributes->IsNotAlive())
+		{
+			Die();
+		}
+	}
+	return 0.0f;
+}
+
 // ------------- Health ------------
 
 void ABaseEnemy::HandleDamage(const float& DamageAmount)
 {
 	if (Attributes)
 	{
-		Attributes->ReciveDamage(DamageAmount);
+		Attributes->ReceiveDamage(DamageAmount);
 
 		if(Attributes->IsNotAlive())
 		{
@@ -54,6 +68,8 @@ void ABaseEnemy::HandleDamage(const float& DamageAmount)
 
 void ABaseEnemy::Die()
 {
+	if (CanDie == false) return;
+
 	Tags.Add(FName("Dead"));
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
@@ -202,24 +218,6 @@ void ABaseEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 void ABaseEnemy::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                             UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
-}
-
-void ABaseEnemy::SphereTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation, const float& traceRadius)
-{
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this);
-
-	UKismetSystemLibrary::SphereTraceSingle(
-		this,
-		StartLocation,
-		EndLocation,
-		traceRadius,
-		ETraceTypeQuery::TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForDuration,
-		OutHit,
-		true);
 }
 
 // ------------- Getters and Setters ------------

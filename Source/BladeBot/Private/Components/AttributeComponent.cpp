@@ -20,7 +20,7 @@ void UAttributeComponent::TickComponent(float DeltaTime, ELevelTick TickType, FA
 }
 
 
-void UAttributeComponent::ReciveDamage(float damage)
+void UAttributeComponent::ReceiveDamage(float damage)
 {
 	CurrentHealth = FMath::Clamp(CurrentHealth - damage, 0.f, MaxHealth);
 
