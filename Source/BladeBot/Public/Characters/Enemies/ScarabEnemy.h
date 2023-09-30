@@ -44,6 +44,8 @@ public:
 	void LaserCoolDownComplete();
 	UFUNCTION(BlueprintCallable)
 	void EnemyLeft();
+	void SphereTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation, const float& traceRadius);
+
 protected:
 
 	// Other ----------
@@ -117,6 +119,9 @@ public:
 
 	UPROPERTY(EditAnywhere, Category = "Constants")
 		float MovementRange = 3000.f;
+
+	UPROPERTY(EditAnywhere, Category = "Constants")
+		float Damage = 1.f;
 
 	float AcceptanceRange = 20.f;
 

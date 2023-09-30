@@ -26,7 +26,7 @@ private:
 
 public: // Getters and setters
 	
-	void ReciveDamage(float damage);
+	void ReceiveDamage(float damage);
 	float GetHealthPercent();
 	bool IsNotAlive();
 	void SetMaxHealth(const float& h);

@@ -7,6 +7,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 
 AMineEnemy::AMineEnemy()
 {
@@ -49,7 +50,7 @@ void AMineEnemy::BeginPlay()
 	EnemyState = EEnemyState::EES_Patroling;
 	GunState = ESGunState::ESGS_Idle;
 
-	Tags.Add(FName("AIMine"));
+	Tags.Add(FName("Enemy"));
 
 	DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMineEnemy::OnOverlap);
 	DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &AMineEnemy::EndOverlap);
@@ -200,12 +201,16 @@ void AMineEnemy::DischargeChargeUpComplete()
 	if (GunState != ESGunState::ESGS_Chargeing) return;
 
 	GunState = ESGunState::ESGS_Shooting;
-	if (InTargetRange(CombatTarget, DischargeMaxRange))
+	if (CombatTarget && InTargetRange(CombatTarget, DischargeMaxRange))
 	{
-		// Player Takes damage here
+		if (CombatTarget->ActorHasTag("Player"))
+			UGameplayStatics::ApplyDamage(CombatTarget, Damage, GetController(), this, UDamageType::StaticClass());
+		/*GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Orange, FString::Printf(TEXT("Mine attack")));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, FString::Printf(TEXT("Distance between %f"), GetDistanceBetweenTwoPoints(GetActorLocation(), CombatTarget->GetActorLocation())));
+		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, FString::Printf(TEXT("Max range %f"), DamageRange));*/
+
 		PlayVFXAttack(GetActorLocation());
 		PlayAudioAttack(GetActorLocation());
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player Take Damage"));
 	}
 
 	GunState = ESGunState::ESGS_Cooling;
