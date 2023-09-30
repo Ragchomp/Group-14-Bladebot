@@ -142,6 +142,12 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float DisplayMinutes = 0.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	float MovementSpeedToKill = 4000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	float Damage = 1.f;
+
 	/** Respawning Player **/
 	virtual void Destroyed() override;
 	//virtual void BeginDestroy() override;
@@ -171,6 +177,9 @@ private:
 	void OverlayInit();
 	void TimerInit();
 	void GenerateNoise();
+
+	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;
