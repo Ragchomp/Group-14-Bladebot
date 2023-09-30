@@ -9,6 +9,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Navigation/PathFollowingComponent.h"
 
 AScarabEnemy::AScarabEnemy()
@@ -53,7 +54,7 @@ void AScarabEnemy::BeginPlay()
 	GunState = ESGunState::ESGS_Idle;
 	MovementTarget = GetActorLocation();
 
-	Tags.Add(FName("AI"));
+	Tags.Add(FName("Enemy"));
 
 	DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AScarabEnemy::OnOverlap);
 	DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &AScarabEnemy::EndOverlap);
@@ -161,8 +162,10 @@ void AScarabEnemy::LaserChargeUpComplete()
 	if (GunState != ESGunState::ESGS_Chargeing) return;
 
 	GunState = ESGunState::ESGS_Shooting;
+
 	FHitResult OutHit;
 	SphereTrace(OutHit,GetActorLocation(),LaserTargetPosition,LaserRadius);
+
 	PlayVFXAttack(GetActorLocation());
 	PlayAudioAttack(GetActorLocation());
 
@@ -201,6 +204,31 @@ void AScarabEnemy::EnemyLeft()
 	GetWorldTimerManager().SetTimer(MoveToNewLocation, this, &AScarabEnemy::MoveToTargetPosition, WaitTime);
 	//GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Red, TEXT("No longer an attacktarget"));
 	CombatTarget = nullptr;
+}
+
+void AScarabEnemy::SphereTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation,
+	const float& traceRadius)
+{
+	TArray<AActor*> ActorsToIgnore;
+	ActorsToIgnore.Add(this);
+
+	UKismetSystemLibrary::SphereTraceSingle(
+		this,
+		StartLocation,
+		EndLocation,
+		traceRadius,
+		ETraceTypeQuery::TraceTypeQuery1,
+		false,
+		ActorsToIgnore,
+		EDrawDebugTrace::ForDuration,
+		OutHit,
+		true);
+
+	if (OutHit.GetActor())
+	{
+		//should be outHit.GetActor() insted of combat target but that does not work?
+		UGameplayStatics::ApplyDamage(OutHit.GetActor(), Damage, GetController(), this, UDamageType::StaticClass());
+	}
 }
 
 // Other --------------------
