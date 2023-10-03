@@ -174,10 +174,20 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 
 void AGrapplingRopeActor::Stop()
 {
+	//set Dotick to false
+	bDoTick = false;
 }
 
 void AGrapplingRopeActor::Restart()
 {
+	//set Dotick to true
+	bDoTick = true;
+
+	//empty the collision points array
+	CollisionPoints.Empty();
+
+	//reinitialize the collision points array
+	CollisionPoints.Init(FVector(), 2);
 }
 
 void AGrapplingRopeActor::DrawDebugRope()
@@ -187,12 +197,6 @@ void AGrapplingRopeActor::DrawDebugRope()
 	{
 		case InfiniteRopeLength:
 		{
-			//draw from the owner to the start of the rope
-			DrawDebugLine(GetWorld(), Owner->GetActorLocation(), CollisionPoints[0], FColor::Red, false, 0, 0, 3);
-
-			//draw from the end of the rope to the other actor
-			DrawDebugLine(GetWorld(), GetInstigator()->GetActorLocation(), CollisionPoints.Last(), FColor::Red, false, 0, 0, 3);
-
 			//draw all the parts of the rope in between
 			for (int i = 0; i < CollisionPoints.Num() - 1; i++)
 			{

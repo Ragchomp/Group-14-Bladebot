@@ -18,11 +18,14 @@ class BLADEBOT_API UCameraArmComponent : public USpringArmComponent
 
 public:
 
+	//constructor
+	explicit UCameraArmComponent(FObjectInitializer const& ObjectInitializer);
+
 	//Custom Camera Lag variables
 
 	//the maximum distance the camera can lag behind the player
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings, meta = (ClampMin = 0.0f, displayname = "Camera Lag Max Distance"))
-	float CustomCameraLagMaxDistance = 1800;
+	float CustomCameraLagMaxDistance = 800;
 
 	//the minimum distance the camera can lag behind the player
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
@@ -38,7 +41,7 @@ public:
 
 	//the minimum velocity the player must be moving at for the camera to start to lag behind them
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings, meta = (ClampMin = 0.0f, editcondition = "bUseCharacterWalkingSpeed == false", editconditionHides))
-	float CameraLagMinVelocity;
+	float CameraLagMinVelocity = 600;
 
 	//the maximum amount that the target arm length can be changed by per second by the camera lag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings, DisplayName="Camera Lag Speed", meta=(ClampMin = 0.0f))
@@ -52,7 +55,7 @@ public:
 
 	//reference to the character owner of this component
 	UPROPERTY()
-	ACharacter* CharacterOwner;
+	ACharacter* CharacterOwner = nullptr;
 
 	//overrides
 	virtual void BeginPlay() override;
