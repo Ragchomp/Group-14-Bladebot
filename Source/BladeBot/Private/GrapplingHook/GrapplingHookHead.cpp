@@ -92,7 +92,7 @@ void AGrapplingHookHead::Despawn()
 	GrappleState = EGrappleState::EGS_Retracted;
 
 	//hide this actor
-	SetActorHiddenInGame(true);
+	Mesh->SetVisibility(false);
 
 	//disable collision
 	SetActorEnableCollision(false);
@@ -103,6 +103,8 @@ void AGrapplingHookHead::Despawn()
 
 	//set can move to false
 	ProjectileMovementComponent->bCanMove = false;
+
+	RopeActor->Stop();
 }
 
 void AGrapplingHookHead::Reactivate(const FVector NewVelocity)
@@ -114,7 +116,7 @@ void AGrapplingHookHead::Reactivate(const FVector NewVelocity)
 	GrappleState = EGrappleState::EGS_InAir;
 
 	//show this actor
-	SetActorHiddenInGame(false);
+	Mesh->SetVisibility(true);
 
 	//enable collision
 	SetActorEnableCollision(true);
@@ -123,6 +125,7 @@ void AGrapplingHookHead::Reactivate(const FVector NewVelocity)
 	ProjectileMovementComponent->bDoTick = true;
 	RopeActor->bDoTick = true;
 
+	//restart the rope actor
 	RopeActor->Restart();
 
 	//set the projectile movement component's properties

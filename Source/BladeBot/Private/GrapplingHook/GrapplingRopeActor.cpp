@@ -172,6 +172,10 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 	}
 }
 
+void AGrapplingRopeActor::Stop()
+{
+}
+
 void AGrapplingRopeActor::Restart()
 {
 }

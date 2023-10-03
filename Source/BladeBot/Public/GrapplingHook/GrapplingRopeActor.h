@@ -113,7 +113,10 @@ public:
 	//sets the collision points for the rope to the current location of the actors we're attached to
 	void SetAttachedRopePointPositions(bool FixedLength = false);
 
-	//restarts the rope
+	//stops the rope simulation
+	void Stop();
+
+	//restarts the rope simulation
 	void Restart();
 
 	//draws debug lines for the rope
