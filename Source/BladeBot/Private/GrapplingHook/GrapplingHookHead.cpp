@@ -97,13 +97,10 @@ void AGrapplingHookHead::Despawn()
 	//disable collision
 	SetActorEnableCollision(false);
 
-	//disable tick
+	//disable tick for the projectile movement component
 	ProjectileMovementComponent->bDoTick = false;
-	RopeActor->bDoTick = false;
 
-	//set can move to false
-	ProjectileMovementComponent->bCanMove = false;
-
+	//stop the rope actor
 	RopeActor->Stop();
 }
 
@@ -123,7 +120,6 @@ void AGrapplingHookHead::Reactivate(const FVector NewVelocity)
 
 	//reenable tick for the projectile movement component and the rope actor
 	ProjectileMovementComponent->bDoTick = true;
-	RopeActor->bDoTick = true;
 
 	//restart the rope actor
 	RopeActor->Restart();

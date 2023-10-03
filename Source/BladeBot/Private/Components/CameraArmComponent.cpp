@@ -2,6 +2,10 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
+UCameraArmComponent::UCameraArmComponent(const FObjectInitializer& ObjectInitializer)
+{
+}
+
 void UCameraArmComponent::BeginPlay()
 {
 	//call the parent implementation
