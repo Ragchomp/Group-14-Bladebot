@@ -123,6 +123,8 @@ void AGrapplingHookHead::Reactivate(const FVector NewVelocity)
 	ProjectileMovementComponent->bDoTick = true;
 	RopeActor->bDoTick = true;
 
+	RopeActor->Restart();
+
 	//set the projectile movement component's properties
 	ProjectileMovementComponent->SetDistanceCheckLocation(GetInstigator()->GetActorLocation());
 	ProjectileMovementComponent->Velocity = NewVelocity;

@@ -172,6 +172,10 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 	}
 }
 
+void AGrapplingRopeActor::Restart()
+{
+}
+
 void AGrapplingRopeActor::DrawDebugRope()
 {
 	//check which rope mode we're in
