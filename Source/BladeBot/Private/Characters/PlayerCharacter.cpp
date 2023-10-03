@@ -19,8 +19,7 @@
 #include "BladebotGameMode.h"
 #include "Components/CameraArmComponent.h"
 #include "Components/PlayerMovementComponent.h"
-
-
+#include "GameFramework/CharacterMovementComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
 {
@@ -126,7 +125,6 @@ void APlayerCharacter::BeginPlay()
 	CharacterState = ECharacterState::ECS_Idle;
 
 	DebugPrint(this, 15, 1, FColor::Purple, FString::Printf(TEXT("Current movementspeed : %f"), GetVelocity().Size()));
-
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -159,7 +157,6 @@ void APlayerCharacter::InputDebugMessage(const UInputAction* InputAction, const 
 {
 	//check if debug mode is on
 	DefaultDebugPrint(this, InputAction->GetName().Append(" " + DebugMessage));
-	
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -256,7 +253,7 @@ void APlayerCharacter::DespawnGrapple(const FInputActionValue& Value)
 
 			//print debug message
 			InputDebugMessage(IA_DespawnGrapple);
-		}	
+		}
 	}
 }
 
@@ -297,8 +294,24 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 		UGameplayStatics::PlaySound2D(this, DashSound);
 
 		//launch the character
-		this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+		//this->LaunchCharacter(CamForwardVec * 10.f * DashSpeed, true, true);
+		//this->PlayerMovementComponent->bIsDashing = true;
+		PlayerMovementComponent->Velocity += CamForwardVec * DashSpeed;
+		GetWorldTimerManager().ClearTimer(PlayerMovementComponent->DashTimeHandler);
+		GetWorldTimerManager().SetTimer(PlayerMovementComponent->DashTimeHandler, this, &APlayerCharacter::DashCheck, PlayerMovementComponent->DashTime, false);
 	}
+}
+
+void APlayerCharacter::DashCheck()
+{
+	//bIsDashing = false;
+			//get the camera manager
+	const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->PlayerCameraManager;
+
+	//get the camera forward vector
+	const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+
+	PlayerMovementComponent->Velocity -= CamForwardVec * DashSpeed;
 }
 
 void APlayerCharacter::Destroyed()
@@ -394,7 +407,7 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 		//set the Instigator of the grappling hook head to this actor
 		SpawnParameters.Instigator = this;
-		
+
 		//get the spawn rotation
 		const FRotator SpawnRotation = GetActorRotation();
 
@@ -477,7 +490,7 @@ void APlayerCharacter::TimerInit()
 }
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                 UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
 	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill && OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
 	{

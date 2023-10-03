@@ -66,6 +66,7 @@ public:
 	//override functions
 	virtual void BeginPlay() override;
 	virtual void PhysCustom(float DeltaTime, int32 Iterations) override;
+	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
 	//grappling functions
 
@@ -89,4 +90,24 @@ public:
 
 	//get centrifugal force
 	FVector GetCentrifugalForce(FVector InVelocity, FVector InGrappleLocation, FVector InGrappleHitLocation);
+
+	//bool checking if the player is dashing
+	bool bIsDashing = false;
+
+	//float checking time dashing
+	UPROPERTY(EditAnywhere, Category = "DashAttack")
+	float DashTime = 5.f;
+
+	//dash deceleration
+	UPROPERTY(EditAnywhere, Category = "DashAttack")
+	float DashBreaking = 10.f;
+	float TempDashBreaking;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashFriction = 100.f;
+	float TempDashFriction;
+
+	//Timehandler
+	FTimerHandle DashTimeHandler;
+	void DashCheck();
 };

@@ -23,7 +23,6 @@ public:
 	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
-	
 	FTimerHandle Seconds;
 	void CountTime();
 
@@ -39,18 +38,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools|Others")
 	bool CanDie = true;
 
-	/**
-	 * Dash Function
-	 */
-	UFUNCTION()
-	void PlayerDashAttack(const FInputActionValue& Value);
-
-	////SlowdownSounds
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	TObjectPtr<USoundBase> DashSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashSpeed = 1.f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -114,6 +101,21 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_RespawnButton;
+
+	/**
+	 * Dash Function
+	 */
+	UFUNCTION()
+	void PlayerDashAttack(const FInputActionValue& Value);
+
+	////SlowdownSounds
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	TObjectPtr<USoundBase> DashSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashSpeed = 1.f;
+
+	void DashCheck();
 
 public:
 

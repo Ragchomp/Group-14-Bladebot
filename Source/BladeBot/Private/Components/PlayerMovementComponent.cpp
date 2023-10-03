@@ -26,11 +26,21 @@ void UPlayerMovementComponent::PhysCustom(float DeltaTime, int32 Iterations)
 	//call the appropriate physics function depending on the custom movement mode
 	switch (CustomMovementMode)
 	{
-		case CCM_Grappling:
-			PhysGrappling(DeltaTime, Iterations);
-			break;
-		default: ;
+	case CCM_Grappling:
+		PhysGrappling(DeltaTime, Iterations);
+		break;
+	default:;
 	}
+}
+
+void UPlayerMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+{
+	if (bIsDashing)
+	{
+		BrakingDeceleration = DashBreaking;
+		Friction = DashFriction;
+	}
+	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
 }
 
 void UPlayerMovementComponent::StartGrapple(AActor* GrappleRope)
@@ -94,7 +104,6 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit)
 	//get the camera location and rotation
 	FVector CameraLocation;
 	FRotator CameraRotation;
-
 
 	//get the player controller
 	const APlayerController* PC = GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld());
@@ -164,4 +173,9 @@ FVector UPlayerMovementComponent::GetCentrifugalForce(FVector InVelocity, FVecto
 	FVector CentrifugalForce = AngularVelocity * AngularVelocity.Size() * Radius;
 
 	return CentrifugalForce;
+}
+
+void UPlayerMovementComponent::DashCheck()
+{
+	//bIsDashing = false;
 }
