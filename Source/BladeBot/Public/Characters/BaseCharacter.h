@@ -14,6 +14,7 @@ class BLADEBOT_API ABaseCharacter : public ACharacter, public IHitInterface
 
 public:
 	ABaseCharacter();
+	explicit ABaseCharacter(const FObjectInitializer& ObjectInitializer);
 	virtual void Tick(float DeltaTime) override;
 	UFUNCTION(BlueprintCallable)
 	virtual void Die();
