@@ -90,6 +90,12 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 
 	//add the player tag
 	Tags.Add(FName("Player"));
+
+	//Airdash construct
+	bCanAirDash = true;
+	AirDashTime = 0.0f;
+	AirDashDuration = 0.5f; // 0.5 seconds, adjust as needed
+	DashSpeed = 1000.f; // adjust as needed
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -125,6 +131,21 @@ void APlayerCharacter::BeginPlay()
 	CharacterState = ECharacterState::ECS_Idle;
 
 	DebugPrint(this, 15, 1, FColor::Purple, FString::Printf(TEXT("Current movementspeed : %f"), GetVelocity().Size()));
+}
+
+void APlayerCharacter::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (!bCanAirDash)
+	{
+		AirDashTime += DeltaSeconds;
+		if (AirDashTime >= AirDashDuration)
+		{
+			// Stop the dash (e.g., by applying braking or resetting the velocity)
+			GetCharacterMovement()->StopMovementImmediately();
+		}
+	}
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -293,12 +314,11 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 		//play the dash sound
 		UGameplayStatics::PlaySound2D(this, DashSound);
 
-		//launch the character
-		//this->LaunchCharacter(CamForwardVec * 10.f * DashSpeed, true, true);
-		//this->PlayerMovementComponent->bIsDashing = true;
-		PlayerMovementComponent->Velocity += CamForwardVec * DashSpeed;
-		GetWorldTimerManager().ClearTimer(PlayerMovementComponent->DashTimeHandler);
-		GetWorldTimerManager().SetTimer(PlayerMovementComponent->DashTimeHandler, this, &APlayerCharacter::DashCheck, PlayerMovementComponent->DashTime, false);
+		//Dashing
+		GetCharacterMovement()->Velocity = CamForwardVec * DashSpeed;
+
+		//GetWorldTimerManager().ClearTimer(PlayerMovementComponent->DashTimeHandler);
+		//GetWorldTimerManager().SetTimer(PlayerMovementComponent->DashTimeHandler, this, &APlayerCharacter::DashCheck, PlayerMovementComponent->DashTime, false);
 	}
 }
 

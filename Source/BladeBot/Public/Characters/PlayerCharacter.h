@@ -38,9 +38,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools|Others")
 	bool CanDie = true;
 
-
 protected:
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 	/** Input Functions */
 
 	//function to check if the player can use input
@@ -113,9 +113,19 @@ protected:
 	TObjectPtr<USoundBase> DashSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashSpeed = 1.f;
+	float DashSpeed = 1000.f;
 
 	void DashCheck();
+
+	// Determines if the character can dash
+	bool bCanAirDash;
+
+	// Time since the dash was initiated
+	float AirDashTime;
+
+	// Duration of the dash
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float AirDashDuration;
 
 public:
 
