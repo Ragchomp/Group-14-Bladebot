@@ -92,10 +92,12 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	Tags.Add(FName("Player"));
 
 	//Airdash construct
-	bCanAirDash = true;
-	AirDashTime = 0.0f;
-	AirDashDuration = 0.5f; // 0.5 seconds, adjust as needed
-	DashSpeed = 1000.f; // adjust as needed
+	bIsDashing = false;
+	AirDashTime = 0.f;
+	DashDuration = 1.f;
+	DashSpeed = 1000.f;
+	DashDecelerationTime = 0.2f;
+	DashDecelerationRate = 2000.0f;
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -130,6 +132,8 @@ void APlayerCharacter::BeginPlay()
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
 
+	GetForwardCameraVector();
+
 	DebugPrint(this, 15, 1, FColor::Purple, FString::Printf(TEXT("Current movementspeed : %f"), GetVelocity().Size()));
 }
 
@@ -137,14 +141,32 @@ void APlayerCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (!bCanAirDash)
+	AirDashTime += DeltaSeconds;
+	if (bIsDashing)
 	{
-		AirDashTime += DeltaSeconds;
-		if (AirDashTime >= AirDashDuration)
+		//if (AirDashTime >= DashDuration)
+		//{
+		//	// Stop the dash (e.g., by applying braking or resetting the velocity)
+		//	GetCharacterMovement()->StopMovementImmediately();
+		//	bIsDashing = false;
+		//}
+
+		// Start deceleration when nearing the end of the dash
+		if (AirDashTime >= DashDuration - DashDecelerationTime && AirDashTime < DashDuration)
 		{
-			// Stop the dash (e.g., by applying braking or resetting the velocity)
-			GetCharacterMovement()->StopMovementImmediately();
+			// Calculate deceleration based on remaining time and rate.
+			float Deceleration = DashDecelerationRate * (DashDuration - AirDashTime) / DashDecelerationTime;
+
+			// Apply the deceleration to the character's velocity
+			FVector NewVelocity = GetCharacterMovement()->Velocity - CamForwardVector * Deceleration * DeltaSeconds
+			;
+			GetCharacterMovement()->Velocity = NewVelocity;
 		}
+		else if (AirDashTime >= DashDuration)
+		{
+			GetCharacterMovement()->StopMovementImmediately();
+			bIsDashing = false;
+		}	
 	}
 }
 
@@ -297,6 +319,13 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	}
 }
 
+void APlayerCharacter::GetForwardCameraVector()
+{
+	//get the camera manager
+	const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->PlayerCameraManager;
+	CamForwardVector = CamManager->GetCameraRotation().Vector();
+}
+
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
 	//check if we can use the input
@@ -305,33 +334,21 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 		//print debug message
 		InputDebugMessage(IA_DashAttack);
 
-		//get the camera manager
-		const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->PlayerCameraManager;
-
-		//get the camera forward vector
-		const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+		
+		GetForwardCameraVector();
 
 		//play the dash sound
 		UGameplayStatics::PlaySound2D(this, DashSound);
 
 		//Dashing
-		GetCharacterMovement()->Velocity = CamForwardVec * DashSpeed;
+		AirDashTime = 0.f;
+		bIsDashing = true;
+
+		GetCharacterMovement()->Velocity = CamForwardVector * DashSpeed;
 
 		//GetWorldTimerManager().ClearTimer(PlayerMovementComponent->DashTimeHandler);
 		//GetWorldTimerManager().SetTimer(PlayerMovementComponent->DashTimeHandler, this, &APlayerCharacter::DashCheck, PlayerMovementComponent->DashTime, false);
 	}
-}
-
-void APlayerCharacter::DashCheck()
-{
-	//bIsDashing = false;
-			//get the camera manager
-	const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->PlayerCameraManager;
-
-	//get the camera forward vector
-	const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
-
-	PlayerMovementComponent->Velocity -= CamForwardVec * DashSpeed;
 }
 
 void APlayerCharacter::Destroyed()

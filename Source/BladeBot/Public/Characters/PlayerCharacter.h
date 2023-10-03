@@ -73,6 +73,8 @@ protected:
 
 	UFUNCTION()
 	void Attack(const FInputActionValue& Value);
+	void GetForwardCameraVector();
+	FVector CamForwardVector;
 
 	/** Input Calls */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|IMC")
@@ -115,18 +117,23 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	float DashSpeed = 1000.f;
 
-	void DashCheck();
+	// Duration of the dash
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDuration;
+
+	// How much time before the end of the dash to start decelerating.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDecelerationTime;
+
+	// The rate of deceleration.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDecelerationRate;
 
 	// Determines if the character can dash
-	bool bCanAirDash;
+	bool bIsDashing;
 
 	// Time since the dash was initiated
 	float AirDashTime;
-
-	// Duration of the dash
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float AirDashDuration;
-
 public:
 
 	/** Class Components  */
