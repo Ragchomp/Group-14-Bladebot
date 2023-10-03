@@ -3,6 +3,7 @@
 #include "Components/AttributeComponent.h"
 #include "HUD/MainHUD.h"
 #include "HUD/PlayerOverlay.h"
+#include "Engine/DamageEvents.h"
 
 //Components
 #include "Camera/CameraComponent.h"
@@ -18,6 +19,8 @@
 #include "BladebotGameMode.h"
 #include "Components/CameraArmComponent.h"
 #include "Components/PlayerMovementComponent.h"
+
+
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
 {
@@ -96,14 +99,19 @@ float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& Damag
 	if (Attributes && PlayerOverlay)
 	{
 		//call the attribute component's receive damage function
-		Attributes->ReciveDamage(DamageAmount);
+		Attributes->ReceiveDamage(DamageAmount);
 
 		//update the health bar
 		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
-	}
 
-	//return the damage amount
-	return DamageAmount;
+		//check if the player is dead
+		if (Attributes->IsNotAlive())
+		{
+			//die
+			Die();
+		}
+	}
+	return 0.0f;
 }
 
 void APlayerCharacter::BeginPlay()
@@ -111,41 +119,14 @@ void APlayerCharacter::BeginPlay()
 	//call the parent implementation
 	Super::BeginPlay();
 
-	//get the player controller and check if it is valid
-	if (const APlayerController* PlayerController = GetNetOwningPlayer()->GetPlayerController(GetWorld()))
-	{
-		//get the enhanced input local player subsystem and check if it is valid
-		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
-		{
-			//add the mapping context
-			Subsystem->AddMappingContext(IMC, 0);
-		}
-
-		//get the main hud and check if it is valid
-		if (AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD()))
-		{
-			//get the player overlay and check if the player overlay is valid
-			if (UPlayerOverlay* LocPlayerOverlay = MainHUD->GetMainOverlay(); LocPlayerOverlay && Attributes)
-			{
-				//set the player overlay
-				PlayerOverlay = LocPlayerOverlay;
-
-				//set the health bar percent, seconds, and minutes
-				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
-				PlayerOverlay->SetSeconds(DisplaySeconds);
-				PlayerOverlay->SetMinutes(DisplayMinutes);
-
-				//enable the grappling crosshair of the player overlay (with false as the starting value)
-				PlayerOverlay->EnableGrapplingCrosshair(false);
-
-				//set a timer to count seconds
-				GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountTime, 1.f, true);
-			}
-		}
-	}
+	Inits();
+	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
 
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
+
+	DebugPrint(this, 15, 1, FColor::Purple, FString::Printf(TEXT("Current movementspeed : %f"), GetVelocity().Size()));
+
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -442,5 +423,65 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 		//finish spawning the grappling hook head
 		GrapplingHookRef->FinishSpawning(FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)));
+	}
+}
+
+// Inits
+
+void APlayerCharacter::Inits()
+{
+	OverlayInit();
+	TimerInit();
+	InputInit();
+	CharacterState = ECharacterState::ECS_Idle;
+	Tags.Add(FName("Player"));
+}
+
+void APlayerCharacter::InputInit()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+	if (PlayerController)
+	{
+		// Input system
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
+	}
+}
+
+void APlayerCharacter::OverlayInit()
+{
+	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+
+	if (PlayerController)
+	{
+		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
+
+		if (MainHUD)
+		{
+			PlayerOverlay = MainHUD->GetMainOverlay();
+
+			if (PlayerOverlay && Attributes)
+			{
+				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+				PlayerOverlay->SetSeconds(DisplaySeconds);
+				PlayerOverlay->SetMinutes(DisplayMinutes);
+				PlayerOverlay->EnableGrapplingCrosshair(false);
+			}
+		}
+	}
+}
+
+void APlayerCharacter::TimerInit()
+{
+	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountTime, 1.f, true);
+}
+
+void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+                                 UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill && OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
+	{
+		//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Killed em")));
+		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
 	}
 }

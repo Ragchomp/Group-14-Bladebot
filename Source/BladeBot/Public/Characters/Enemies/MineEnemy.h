@@ -93,6 +93,12 @@ public:
 	UPROPERTY()
 		float DetectionRange = 2000.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+		double Damage = 1.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+		double DamageRange = 2000.f;
+	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		double PatrolRadius = 100.f;

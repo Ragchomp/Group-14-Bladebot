@@ -14,7 +14,7 @@ public:
 	ABaseEnemy();
 	virtual void Tick(float DeltaTime) override;
 
-
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 protected:
 	virtual void BeginPlay() override;
@@ -110,14 +110,6 @@ protected:
 		virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 			UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
-		// ----
-		// A Sphere trace from input startlocation to input endlocation with input radius
-		// ----
-	UFUNCTION()
-		virtual void SphereTrace(FHitResult& OutHit, const FVector& StartLocation, const FVector& EndLocation, const float& traceRadius);
-
-
-
 private:	
 
 	// ------------- Components ------------
@@ -151,7 +143,13 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
 		class UNiagaraSystem* VFXAttack;
+
 public:
+
+	// Bools ------------------------------
+
+	UPROPERTY(EditAnywhere,BlueprintReadWrite, Category = "Bool")
+		bool CanDie = true;
 
 	// ------------- Getters and Setters ------------
 

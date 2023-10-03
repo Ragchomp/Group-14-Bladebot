@@ -29,6 +29,9 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
+	void TimerInit();
+	void InputInit();
+	void Inits();
 
 	/** Bools */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Bools")
@@ -150,6 +153,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	float GrappleSpeed = 1000;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	float MovementSpeedToKill = 4000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	float Damage = 1.f;
+
 	/** Respawning Player **/
 	virtual void Destroyed() override;
 	//virtual void BeginDestroy() override;
@@ -157,6 +166,8 @@ public:
 
 private:
 	virtual void Die() override;
+	void OverlayInit();
+	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;
