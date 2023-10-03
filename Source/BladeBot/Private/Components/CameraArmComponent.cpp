@@ -32,7 +32,7 @@ void UCameraArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 		if (bIgnoreZVelocity)
 		{
 			//set the owner speed to the owner speed without the z component
-			OwnerSpeed = GetOwner()->GetVelocity().Size2D();
+			OwnerSpeed = FVector(GetOwner()->GetVelocity().X, GetOwner()->GetVelocity().Y, 0).Length();
 		}
 		else
 		{

@@ -9,7 +9,6 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
-#include "CableComponent.h"
 
 //Gameplay Statics
 #include "EnhancedInputComponent.h"
@@ -17,133 +16,188 @@
 #include "Kismet/GameplayStatics.h"
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
-
-#include "K2Node_SpawnActorFromClass.h"
 #include "Components/CameraArmComponent.h"
 #include "Components/PlayerMovementComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
 {
+	//Enable ticking
 	PrimaryActorTick.bCanEverTick = true;
-	// Orientation Init
+
+	//Detach rotation from controller
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
 
-	CharacterMovementComponent->bOrientRotationToMovement = true;
-	CharacterMovementComponent->RotationRate = FRotator(0.f, 400.f, 0.f);
+	//detach rotation from movement and set rotation rate
+	GetCharacterMovement()->bOrientRotationToMovement = true;
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
 
-	// Mesh Init
+	//get a reference to the movement component as a player movement component
+	PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
+
+	//set relative location and rotation for the mesh
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
 
-	// Capsule Init
+	//set the capsule component's default size
 	GetCapsuleComponent()->SetCapsuleHalfHeight(60);
 	GetCapsuleComponent()->SetCapsuleRadius(10);
 
-	// Spring-Arm Init
+	//create the camera arm
 	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
-	CameraArm->SetupAttachment(GetMesh());
+
+	//attach it to the root component
+	CameraArm->SetupAttachment(GetRootComponent());
+
+	//set the camera arm's relative location to be above the character and a little behind
 	CameraArm->SetRelativeLocation(FVector(0.f, 10.f, 90.f));
-	CameraArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+
+	////set the camera arm's relative rotation to be facing the character
+	//CameraArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+
+	//set the target arm length
 	CameraArm->TargetArmLength = 400.f;
+
+	//enable camera lag
 	CameraArm->bEnableCameraLag = true;
+
+	//set the camera lag speed
 	CameraArm->CameraLagSpeed = 20.f;
 
-	// Camera Init
+	//make the camera follow the controller's rotation (so it uses the rotation input from the mouse)
+	CameraArm->bUsePawnControlRotation = true;
+
+	//create the camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+
+	//attach it to the camera arm
 	Camera->SetupAttachment(CameraArm);
 
-	// Attribute Component
+	//detach the camera's rotation from the controller's rotation
+	Camera->bUsePawnControlRotation = false;
+
+	//create the attribute component
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
 
-	//CableInit
-	CableComponent = CreateDefaultSubobject<UCableComponent>(TEXT("CableComponent"));
-	CableComponent->SetupAttachment(GetRootComponent());
+	////spawn the grappling hook head
+	//GrapplingHookRef = CreateDefaultSubobject<AGrapplingHookHead>(TEXT("GrapplingHookRef"));
 
-	// GrapplingHook Init
-	GrapplingHookRef = CreateDefaultSubobject<AGrapplingHookHead>(TEXT("GrapplingHookRef"));
-
-	// Player Possession
+	//default to automatically possessing the player
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
+
+	//add the player tag
+	Tags.Add(FName("Player"));
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	//check if we have a valid attribute component and player overlay
 	if (Attributes && PlayerOverlay)
 	{
+		//call the attribute component's receive damage function
 		Attributes->ReciveDamage(DamageAmount);
+
+		//update the health bar
 		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 	}
 
+	//return the damage amount
 	return DamageAmount;
-}
-
-UPlayerOverlay* APlayerCharacter::GetPlayerOverlay()
-{
-	return PlayerOverlay;
 }
 
 void APlayerCharacter::BeginPlay()
 {
+	//call the parent implementation
 	Super::BeginPlay();
-	Inits();
-}
 
-void APlayerCharacter::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-
-	DespawnGrappleIfAtTeatherMax();
-	GrapplePhysicsUpdate();
-	DetectIfCanGrapple();
-
-	TimeManager();
-	CableManager();
-
-	GrappleReel();
-
-	//Makes sure grapplePhysics don't apply when not reeling
-	TryingTooReel = false;
-
-	//Debug tool for Distance
-	if (DebugMode == true && GrapplingHookRef)
+	//get the player controller and check if it is valid
+	if (const APlayerController* PlayerController = GetNetOwningPlayer()->GetPlayerController(GetWorld()))
 	{
-		float Distance = GetDistanceBetweenTwoPoints(GetActorLocation(), GrapplingHookRef->GetActorLocation());
-		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Distance from Grapple : %f"), Distance));
+		//get the enhanced input local player subsystem and check if it is valid
+		if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer()))
+		{
+			//add the mapping context
+			Subsystem->AddMappingContext(IMC, 0);
+		}
+
+		//get the main hud and check if it is valid
+		if (AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD()))
+		{
+			//get the player overlay and check if the player overlay is valid
+			if (UPlayerOverlay* LocPlayerOverlay = MainHUD->GetMainOverlay(); LocPlayerOverlay && Attributes)
+			{
+				//set the player overlay
+				PlayerOverlay = LocPlayerOverlay;
+
+				//set the health bar percent, seconds, and minutes
+				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+				PlayerOverlay->SetSeconds(DisplaySeconds);
+				PlayerOverlay->SetMinutes(DisplayMinutes);
+
+				//enable the grappling crosshair of the player overlay (with false as the starting value)
+				PlayerOverlay->EnableGrapplingCrosshair(false);
+
+				//set a timer to count seconds
+				GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountTime, 1.f, true);
+			}
+		}
 	}
+
+	//set the character state to idle
+	CharacterState = ECharacterState::ECS_Idle;
 }
 
-void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
 {
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
+	//call the parent implementation
+	Super::SetupPlayerInputComponent(InInputComponent);
 
-	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(PlayerInputComponent))
+	//cast the player input component to an enhanced input component and check if the cast was successful
+	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InInputComponent))
 	{
+		//bind the input actions
 		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::GroundMovement);
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
+		EnhancedInputComponent->BindAction(IA_DespawnGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::DespawnGrapple);
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
 	}
 }
 
-// Input Functions
+bool APlayerCharacter::CanUseInput(const FInputActionValue& Value)
+{
+	//check if the input is used and if the character is not dead
+	return Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead;
+}
+
+void APlayerCharacter::InputDebugMessage(const UInputAction* InputAction, const FString& DebugMessage)
+{
+	//check if debug mode is on
+	DefaultDebugPrint(this, InputAction->GetName().Append(" " + DebugMessage));
+	
+}
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
+	//check if we can use the input
+	if (CanUseInput(Value))
 	{
-		FVector2D VectorDirection = Value.Get<FVector2D>();
+		//get the vector direction from the input value
+		const FVector2D VectorDirection = Value.Get<FVector2D>();
 
+		//get the control rotation and set the pitch and roll to zero
 		const FRotator ControlPlayerRotationYaw = GetControlRotation();
 		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
 
+		//get the forward and right vectors from the control rotation
 		const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
 		const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
 
+		//add movement input
 		AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
 		AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 	}
@@ -151,9 +205,16 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 
 void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
+	//check if we can use the input
+	if (CanUseInput(Value))
 	{
-		FVector2D LookAxisInput = Value.Get<FVector2D>();
+		//print debug message
+		InputDebugMessage(IA_CameraMovement);
+
+		//get the look axis input
+		const FVector2D LookAxisInput = Value.Get<FVector2D>();
+
+		//add controller yaw and pitch input
 		AddControllerYawInput(LookAxisInput.X);
 		AddControllerPitchInput(-LookAxisInput.Y);
 	}
@@ -161,52 +222,70 @@ void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 
 void APlayerCharacter::DoJump(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
+	//check if we can use the input
+	if (CanUseInput(Value))
 	{
+		//call the jump function
 		Jump();
+
+		//print debug message
+		InputDebugMessage(IA_DoJump);
 	}
 }
 
 void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero() && IsRetracted == true && CharacterState != ECharacterState::ECS_Dead)
+	//check if the input is used and if the character is not dead
+	if (CanUseInput(Value))
 	{
-		SpawnGrappleProjectile();
-
-		GetGrapplingHookRef();
-
-		IsRetracted = false;
-	}
-	else if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
-	{
+		//check if there is an existing grappling hook
 		if (GrapplingHookRef)
 		{
-			GrapplingHookRef->Despawn();
-			GEngine->AddOnScreenDebugMessage(0, 0.5, FColor::Red, GrapplingHookRef->GetName() + TEXT(" Deleted"));
-			GrapplingHookRef = nullptr;
-		}
+			//reactivate the grappling hook
+			GrapplingHookRef->Reactivate(Camera->GetForwardVector() * GrappleSpeed);
 
-		IsRetracted = true;
+			//print debug message
+			InputDebugMessage(IA_ShootGrapple, TEXT("Reactivated"));
+		}
+		//there is no existing grappling hook
+		else
+		{
+			//spawn the grappling hook
+			SpawnGrappleProjectile();
+
+			//immediately reactivate the grappling hook
+			GrapplingHookRef->Reactivate(Camera->GetForwardVector() * GrappleSpeed);
+
+			//print debug message
+			InputDebugMessage(IA_ShootGrapple, TEXT("Spawned"));
+		}
 	}
 }
 
-void APlayerCharacter::GrappleReel()
+void APlayerCharacter::DespawnGrapple(const FInputActionValue& Value)
 {
-	if (GrapplingHookRef && GrapplingHookRef->GetGrappleState() != EGrappleState::EGS_Retracted
-		&& CharacterState != ECharacterState::ECS_Dead)
+	//check if we can use the input
+	if (CanUseInput(Value))
 	{
-		TryingTooReel = true;
-		// delete this grapple pull update when called in grappeling hook head
-		GrapplePullUpdate();
+		//check if there is an existing grappling hook
+		if (GrapplingHookRef)
+		{
+			//despawn the grappling hook
+			GrapplingHookRef->Despawn();
+
+			//print debug message
+			InputDebugMessage(IA_DespawnGrapple);
+		}	
 	}
 }
 
 void APlayerCharacter::Attack(const FInputActionValue& Value)
 {
-	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
+	//check if we can use the input
+	if (CanUseInput(Value))
 	{
-		if (DebugMode == true)
-			GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Yellow, TEXT("Attack"));
+		//print debug message
+		InputDebugMessage(IA_Attack);
 
 		// Apply damage function through gameplaystatics funciton
 		//UGameplayStatics::ApplyDamage(
@@ -219,14 +298,40 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 	}
 }
 
+void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
+{
+	//check if we can use the input
+	if (CanUseInput(Value))
+	{
+		//print debug message
+		InputDebugMessage(IA_DashAttack);
+
+		//get the camera manager
+		const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->PlayerCameraManager;
+
+		//get the camera forward vector
+		const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+
+		//play the dash sound
+		UGameplayStatics::PlaySound2D(this, DashSound);
+
+		//launch the character
+		this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+	}
+}
+
 void APlayerCharacter::Destroyed()
 {
+	//call the parent implementation
 	Super::Destroyed();
 
-	if (TObjectPtr<UWorld> World = GetWorld())
+	//check if the world is valid
+	if (GetWorld())
 	{
-		if (TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
+		//get the game mode and check if it is valid
+		if (const TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(GetWorld()->GetAuthGameMode()))
 		{
+			//broadcast the on player death event
 			GameMode->GetOnPlayerDeath().Broadcast(this);
 		}
 	}
@@ -235,15 +340,15 @@ void APlayerCharacter::Destroyed()
 void APlayerCharacter::CallRestartPlayer()
 {
 	//Getting Pawn Controller reference
-	TObjectPtr<AController> ControllerReference = GetController();
+	const TObjectPtr<AController> ControllerReference = GetController();
 
 	//Destroying Player
 	Destroyed();
 
 	//Getting the World and GameMode in the world to invoke the restart player function
-	if (TObjectPtr<UWorld> World = GetWorld())
+	if (const TObjectPtr<UWorld> World = GetWorld())
 	{
-		if (TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
+		if (const TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
 		{
 			GameMode->RestartPlayer(ControllerReference);
 		}
@@ -254,235 +359,88 @@ void APlayerCharacter::CallRestartPlayer()
 // Player Spesific Functions
 void APlayerCharacter::Die()
 {
+	//call the parent implementation
 	Super::Die();
 
-	if (CanDie == false) return;
+	//if we can't die, don't do anything
+	if (CanDie == false)
+	{
+		return;
+	}
+
+	//set the character state to dead
 	CharacterState = ECharacterState::ECS_Dead;
 
-	if (DebugMode == true)
-		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, TEXT("Dead"));
+	//print debug message
+	DebugPrint(this, -1, 1, FColor::Red, TEXT("Dead"));
 }
 
-// Tick Managers
-
-void APlayerCharacter::TimeManager()
+void APlayerCharacter::CountTime()
 {
-	if (TimerShouldTick == false) return;
+	//should use timespan instead of int probably
 
+	//if the timer shouldn't tick, don't do anything
+	if (TimerShouldTick == false)
+	{
+		return;
+	}
+
+	//increment the seconds
+	DisplaySeconds++;
+
+	//convert seconds to minutes
 	if (DisplaySeconds > 60)
 	{
 		DisplayMinutes++;
 		DisplaySeconds = 0;
 	}
 
+	//set the seconds and minutes on the player overlay
 	PlayerOverlay->SetSeconds(DisplaySeconds);
 	PlayerOverlay->SetMinutes(DisplayMinutes);
 }
 
-void APlayerCharacter::CountSeconds()
-{
-	DisplaySeconds++;
-}
-
-void APlayerCharacter::CableManager()
-{
-	// Set Collision enabled for cable in bp, as code is still experimental
-	if (GrapplingHookRef && (GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached || GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_InAir))
-	{
-		CableComponent->SetVisibility(true);
-		// for moving the cable end position with the grappling hook
-		CableComponent->SetAttachEndToComponent(GrapplingHookRef->GetRootComponent(), NAME_None);
-		// for moving the cable start position down to the main body
-		FTransform InitialTransform;
-		InitialTransform.SetLocation(GetActorLocation() + FVector(0.f, 0.f, -40.f));
-		CableComponent->SetWorldTransform(InitialTransform);
-	}
-	else
-	{
-		CableComponent->SetVisibility(false);
-	}
-}
-
-// Grappling Logic
-
-void APlayerCharacter::GetGrapplingHookRef()
-{
-	// Creating a class reference to all Grappling hooks in case of duplicates,
-	// Uses slot 0 or first shot. Should always only be one
-	TArray<AActor*> GrapplingHooks;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), BP_GrapplingHookHead, GrapplingHooks);
-	GrapplingHookRef = Cast<AGrapplingHookHead>(GrapplingHooks[0]);
-	if (GrapplingHookRef && DebugMode == true)
-	{
-		GEngine->AddOnScreenDebugMessage(0, 10, FColor::Yellow, GrapplingHookRef->GetName());
-	}
-}
-
 void APlayerCharacter::SpawnGrappleProjectile()
 {
-	const FRotator SpawnRotation = FRotator(GetControlRotation().Pitch - 90, GetControlRotation().Yaw, GetControlRotation().Roll);
-	const FVector SpownLocation = FVector(GetActorLocation().X, GetActorLocation().Y, GetActorLocation().Z - 10);
-
-	if (BP_GrapplingHookHead)
-		GetWorld()->SpawnActor<AGrapplingHookHead>(BP_GrapplingHookHead, SpownLocation, SpawnRotation);
-}
-
-void APlayerCharacter::GrapplePhysicsUpdate()
-{
-	if (IsMaxTeather == false) return;
-
-	if (GrapplingHookRef && GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached)
+	//check if we have a valid grappling hook head class
+	if (GrappleHookHeadClass)
 	{
-		const float Distance = GetDistanceBetweenTwoPoints(GrapplingHookRef->GetActorLocation(), GetActorLocation());
+		//spawn parameters for the grappling hook head
+		FActorSpawnParameters SpawnParameters;
 
-		FVector AnchorPoint = GrapplingHookRef->GetActorLocation();
+		//set the owner of the grappling hook head to this actor
+		SpawnParameters.Owner = this;
 
-		// Calculate the vector between the character's current location and the anchor point
-		FVector CharacterToAnchor = GetActorLocation() - AnchorPoint;
+		//set the Instigator of the grappling hook head to this actor
+		SpawnParameters.Instigator = this;
+		
+		//get the spawn rotation
+		const FRotator SpawnRotation = GetActorRotation();
 
-		// Clamp the distance vector to the maximum allowed distance
-		FVector ClampedVector = CharacterToAnchor.GetClampedToMaxSize(GrappleMaxDistance);
+		//get the camera forward vector
+		FVector CameraForwardVector = Camera->GetForwardVector();
 
-		// Set the character's new location after applying the constraint
-		SetActorLocation(AnchorPoint + ClampedVector);
+		//get the spawn location
+		const FVector SpawnLocation = GetActorLocation() * CameraForwardVector * GrappleSpawnDist;
 
-		if (Distance >= GrappleMaxDistance && TryingTooReel == true)
-		{
-			SetActorLocation(AnchorPoint + ClampedVector);
-			GetCharacterMovement()->Velocity = FVector::ZeroVector;
-		}
+		//assign the grappling hook head reference to the spawned grappling hook head
+		GrapplingHookRef = GetWorld()->SpawnActorDeferred<AGrapplingHookHead>(
+			GrappleHookHeadClass,
+			FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)),
+			this,
+			this,
+			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+
+		//set the spawn distance to use in reactivation later
+		GrapplingHookRef->SpawnDistance = GrappleSpawnDist;
+
+		//set the velocity to the camera forward vector
+		GrapplingHookRef->InitialVelocity = Camera->GetForwardVector() * GrappleSpeed;
+
+		//set the player movement component
+		GrapplingHookRef->PlayerMovementComponent = PlayerMovementComponent;
+
+		//finish spawning the grappling hook head
+		GrapplingHookRef->FinishSpawning(FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)));
 	}
-}
-
-void APlayerCharacter::GrapplePullUpdate()
-{
-	if (GrapplingHookRef->GetGrappleState() == EGrappleState::EGS_Attached)
-	{
-		FVector PullVector = GetVectorBetweenTwoPoints
-		(GetActorLocation(),
-		 GrapplingHookRef->GetActorLocation());
-
-		GetCharacterMovement()->AddImpulse(PullVector * PullStrenght);
-	}
-}
-
-void APlayerCharacter::DetectIfCanGrapple()
-{
-	if (PlayerOverlay == nullptr) return;
-
-	FHitResult OutHit;
-	LineTrace(OutHit);
-
-	if (OutHit.bBlockingHit)
-	{
-		PlayerOverlay->EnableGrapplingCrosshair(true);
-		InGrappleRange = true;
-	}
-	else
-	{
-		PlayerOverlay->EnableGrapplingCrosshair(false);
-		InGrappleRange = false;
-	}
-}
-
-void APlayerCharacter::DespawnGrappleIfAtTeatherMax()
-{
-	if (IsMaxTeather == false) return;
-
-	if (GrapplingHookRef)
-	{
-		if (GetDistanceBetweenTwoPoints(GrapplingHookRef->GetActorLocation(), GetActorLocation()) > GrappleMaxDistance
-			&& GrapplingHookRef->GetGrappleState() != EGrappleState::EGS_Attached)
-		{
-			GrapplingHookRef->Despawn();
-			IsRetracted = true;
-		}
-	}
-}
-
-// Tracers
-void APlayerCharacter::LineTrace(FHitResult& OutHit)
-{
-	// Trace Information
-	const FVector Start = GetActorLocation();
-	const FVector End = GetPointWithRotator(Start, GetControlRotation(), GrappleMaxDistance);
-	bool bTraceComplex = false;
-	FHitResult LineHit;
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this);
-
-	// The Trace
-	UKismetSystemLibrary::LineTraceSingle(
-		this,
-		Start,
-		End,
-		TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		EDrawDebugTrace::None,
-		OutHit,
-		true
-	);
-}
-
-// Inits
-
-void APlayerCharacter::Inits()
-{
-	OverlayInit();
-	TimerInit();
-	InputInit();
-	CharacterState = ECharacterState::ECS_Idle;
-	Tags.Add(FName("Player"));
-}
-
-void APlayerCharacter::InputInit()
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-	if (PlayerController)
-	{
-		// Input system
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
-		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
-	}
-}
-
-void APlayerCharacter::OverlayInit()
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-
-	if (PlayerController)
-	{
-		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
-
-		if (MainHUD)
-		{
-			PlayerOverlay = MainHUD->GetMainOverlay();
-
-			if (PlayerOverlay && Attributes)
-			{
-				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
-				PlayerOverlay->SetSeconds(DisplaySeconds);
-				PlayerOverlay->SetMinutes(DisplayMinutes);
-				PlayerOverlay->EnableGrapplingCrosshair(false);
-			}
-		}
-	}
-}
-
-void APlayerCharacter::TimerInit()
-{
-	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountSeconds, 1.f, true);
-}
-
-/**
- * Dash Functions
- */
-void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
-{
-	APlayerCameraManager* camManager = GetWorld()->GetFirstPlayerController()->PlayerCameraManager;
-	FVector camLocation = camManager->GetCameraLocation();
-	FVector camForward = camManager->GetCameraRotation().Vector();
-	UGameplayStatics::PlaySound2D(this, DashSound);
-	this->LaunchCharacter(camForward * 100.f * DashSpeed, true, true);
 }

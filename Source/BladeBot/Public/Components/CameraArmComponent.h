@@ -22,15 +22,15 @@ public:
 
 	//the maximum distance the camera can lag behind the player
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings, meta = (ClampMin = 0.0f, displayname = "Camera Lag Max Distance"))
-	float CustomCameraLagMaxDistance;
+	float CustomCameraLagMaxDistance = 1800;
 
 	//the minimum distance the camera can lag behind the player
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
-	float CameraLagMinDistance;
+	float CameraLagMinDistance = 400;
 
 	//the velocity at which the camera will be at its maximum distance from the player
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
-	float CameraLagMaxVelocity;
+	float CameraLagMaxVelocity = 1200;
 
 	//whether to use the character's walking speed as the minimum velocity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
@@ -42,7 +42,7 @@ public:
 
 	//the maximum amount that the target arm length can be changed by per second by the camera lag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings, DisplayName="Camera Lag Speed", meta=(ClampMin = 0.0f))
-	float CustomCameraLagSpeed;
+	float CustomCameraLagSpeed = 3;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = CameraSettings)
 	bool bIgnoreZVelocity = true;

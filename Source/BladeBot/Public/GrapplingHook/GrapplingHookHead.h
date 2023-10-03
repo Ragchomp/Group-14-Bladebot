@@ -10,42 +10,64 @@ class BLADEBOT_API AGrapplingHookHead : public AActor
 {
 	GENERATED_BODY()
 	
-public:	
-	AGrapplingHookHead();
-	virtual void Tick(float DeltaTime) override;
+public:
 
-	UFUNCTION(BlueprintCallable)
-		void Despawn();
-protected:
+	//constructor
+	AGrapplingHookHead();
+
+	//the rope actor class to spawn with this grappling hook head
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TSubclassOf<class AGrapplingRopeActor> RopeActorClass;
+
+	//the default distance away from the instigator to spawn the grappling hook head
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float SpawnDistance = 100.f;
+
+	//the hitbox for the grappling hook head
+	UPROPERTY(VisibleAnywhere)
+	class USphereComponent* Hitbox;
+
+	//the mesh for the grappling hook head
+	UPROPERTY(VisibleAnywhere)
+	class UStaticMeshComponent* Mesh;
+
+	//the projectile movement component for the grappling hook head
+	UPROPERTY(VisibleAnywhere)
+	class UCustomProjectileMovementComponent* ProjectileMovementComponent;
+
+	//the current state of the grappling hook head
+	UPROPERTY(BlueprintReadOnly)
+	EGrappleState GrappleState = EGrappleState::EGS_InAir;
+
+	//the rope actor that this grappling hook head is attached to
+	UPROPERTY(BlueprintReadOnly)
+	class AGrapplingRopeActor* RopeActor;
+
+	//the initial velocity of the grappling hook head
+	FVector InitialVelocity;
+
+	//reference to the instigator's movement component
+	UPROPERTY(BlueprintReadOnly)
+	class UPlayerMovementComponent* PlayerMovementComponent;
+
+	//overrides
 	virtual void BeginPlay() override;
 
-	/** Class Components  */
-	UPROPERTY(VisibleAnywhere)
-		class UStaticMeshComponent* Mesh;
-
-	/** Class Functions  */
-	void Move(float DeltaTime);
-
+	//the function that's called when the grappling hook head overlaps something
+	UFUNCTION()
+	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION()
-		void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-						UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, 
-						bool bFromSweep, const FHitResult& SweepResult);
+	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
-	/** Class Constants  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "3-Constants")
-	float ProjectileSpeed = 4000.f;
+	//despawns/deactivates the grappling hook head
+	UFUNCTION(BlueprintCallable)
+	void Despawn();
 
-	/** Bools  */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "4-Bools")
-		bool CanMove = true;
+	//reactivates the grappling hook head
+	UFUNCTION(BlueprintCallable)
+	void Reactivate(FVector NewVelocity);
 
-private:
-
-	/** State Control  */
-	EGrappleState GrappleState = EGrappleState::EGS_Retracted;
-
-public:	
-	FORCEINLINE EGrappleState
-	GetGrappleState() const { return GrappleState; }
+	//get the current state of the grappling hook head
+	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }
 };

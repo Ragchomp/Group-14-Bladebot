@@ -4,50 +4,33 @@
 #include "StateControl.h"
 #include "BaseCharacter.h"
 #include "Components/PlayerMovementComponent.h"
+#include "Interface/DebugInterface.h"
 #include "PlayerCharacter.generated.h"
 
 struct FInputActionValue;
 class UCameraArmComponent;
 
 UCLASS()
-class BLADEBOT_API APlayerCharacter : public ABaseCharacter
+class BLADEBOT_API APlayerCharacter : public ABaseCharacter, public IDebugInterface
 {
 	GENERATED_BODY()
 
 public:
 	//constructor with objectinitializer to override the movement component class
 	explicit APlayerCharacter(const FObjectInitializer& ObjectInitializer);
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	//overrides
+	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-	UPlayerOverlay* GetPlayerOverlay();
 
-	/** Timer Manager  */
+	
 	FTimerHandle Seconds;
-	FTimerHandle NoiseTimer;
-	void CountSeconds();
-	void CableManager();
-
-	void GetGrapplingHookRef();
-
-	UFUNCTION(BlueprintCallable)
-	void GrapplePullUpdate();
+	void CountTime();
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
 
 	/** Bools */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "GrappleHook|Bools")
-	bool IsRetracted = true;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "GrappleHook|Bools")
-	bool TryingTooReel = false;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "GrappleHook|Bools")
-	bool InGrappleRange = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GrappleHook|Bools")
-	bool DebugMode = false;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GrappleHook|Bools")
-	bool IsMaxTeather = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Bools")
 	bool TimerShouldTick = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools|Others")
@@ -69,16 +52,35 @@ public:
 protected:
 	virtual void BeginPlay() override;
 	/** Input Functions */
+
+	//function to check if the player can use input
+	UFUNCTION(blueprintCallable)
+	bool CanUseInput(const FInputActionValue& Value);
+
+	//function for input debug messages
+	void InputDebugMessage(const class UInputAction* InputAction, const FString& DebugMessage = "Input Received");
+
 	UFUNCTION()
 	void GroundMovement(const FInputActionValue& Value);
+
 	UFUNCTION()
 	void CameraMovement(const FInputActionValue& Value);
+
 	UFUNCTION()
 	void DoJump(const FInputActionValue& Value);
+
 	UFUNCTION()
 	void ShootGrapple(const FInputActionValue& Value);
+
 	UFUNCTION()
-	void GrappleReel();
+	void DespawnGrapple(const FInputActionValue& Value);
+
+	//UFUNCTION()
+	//void GrappleReel(const FInputActionValue& Value);
+
+	//UFUNCTION()
+	//void StopGrappleReel(const FInputActionValue& Value);
+
 	UFUNCTION()
 	void Attack(const FInputActionValue& Value);
 
@@ -98,8 +100,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_ShootGrapple;
 
-	//UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
-	//class UInputAction* IA_GrappleReel;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
+	class UInputAction* IA_DespawnGrapple;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_Attack;
@@ -110,6 +112,8 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_RespawnButton;
 
+public:
+
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere)
 	class UCameraComponent* Camera;
@@ -117,11 +121,9 @@ protected:
 	UPROPERTY(VisibleAnywhere)
 	class UCameraArmComponent* CameraArm;
 
-	class UCableComponent* CableComponent;
-
 	/** Subclasses */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Subclasses")
-	TSubclassOf<class AGrapplingHookHead> BP_GrapplingHookHead;
+	TSubclassOf<class AGrapplingHookHead> GrappleHookHeadClass;
 
 	UPROPERTY()
 	class AGrapplingHookHead* GrapplingHookRef{ nullptr };
@@ -129,22 +131,24 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class UAttributeComponent* Attributes;
 
+	UPROPERTY()
+	UPlayerMovementComponent* PlayerMovementComponent;
+
 	/** HUD */
 	UPROPERTY()
 	class UPlayerOverlay* PlayerOverlay;
-
-	/** Constants */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GrappleHook|Constants")
-	float GrappleMaxDistance = 3000.f;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GrappleHook|Constants")
-	float PullStrenght = 5000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float DisplaySeconds = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float DisplayMinutes = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
+	float GrappleSpawnDist = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
+	float GrappleSpeed = 1000;
 
 	/** Respawning Player **/
 	virtual void Destroyed() override;
@@ -153,28 +157,6 @@ protected:
 
 private:
 	virtual void Die() override;
-
-	virtual void LineTrace(FHitResult& OutHit) override;
-
-	TObjectPtr<UCharacterMovementComponent> CharacterMovementComponent = GetCharacterMovement();;
-
-	UFUNCTION(BlueprintCallable)
-	void TimeManager();
-
-	UFUNCTION(BlueprintCallable)
-	void GrapplePhysicsUpdate();
-
-	UFUNCTION(BlueprintCallable)
-	void DetectIfCanGrapple();
-
-	UFUNCTION(BlueprintCallable)
-	void DespawnGrappleIfAtTeatherMax();
-
-	void Inits();
-	void InputInit();
-	void OverlayInit();
-	void TimerInit();
-	void GenerateNoise();
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;
