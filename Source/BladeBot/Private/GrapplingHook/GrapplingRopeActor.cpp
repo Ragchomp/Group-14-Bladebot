@@ -7,17 +7,12 @@ AGrapplingRopeActor::AGrapplingRopeActor()
 
 	//initialize the collision points array
 	CollisionPoints.Init(FVector(), 2);
-
-	bDebugMode = true;
 }
 
 void AGrapplingRopeActor::BeginPlay()
 {
 	//call the parent implementation
 	Super::BeginPlay();
-
-	//print debug message
-	DefaultDebugPrint(this, "AGrapplingRopeActor BeginPlay");
 
 	//check if the owner and instigator are valid
 	if (Owner && GetInstigator())
@@ -58,7 +53,7 @@ void AGrapplingRopeActor::BeginPlay()
 	else
 	{
 		//print an error message
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Owner or Instigator is invalid for GrapplingRopeActor")));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Owner or Instigator is invalid for GrapplingRopeActor"));
 
 		//destroy the rope
 		Destroy();
@@ -67,11 +62,6 @@ void AGrapplingRopeActor::BeginPlay()
 
 void AGrapplingRopeActor::Tick(float DeltaTime)
 {
-	//if Dotick is false, don't tick
-	if (!bDoTick)
-	{
-		return;
-	}
 	//call the parent implementation
 	Super::Tick(DeltaTime);
 
@@ -172,24 +162,6 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 	}
 }
 
-void AGrapplingRopeActor::Stop()
-{
-	//set Dotick to false
-	bDoTick = false;
-}
-
-void AGrapplingRopeActor::Restart()
-{
-	//set Dotick to true
-	bDoTick = true;
-
-	//empty the collision points array
-	CollisionPoints.Empty();
-
-	//reinitialize the collision points array
-	CollisionPoints.Init(FVector(), 2);
-}
-
 void AGrapplingRopeActor::DrawDebugRope()
 {
 	//check which rope mode we're in
@@ -204,7 +176,7 @@ void AGrapplingRopeActor::DrawDebugRope()
 			}
 			break;
 		}
-		case SetRopeLength:
+		case FixedLength:
 		{
 			//draw all the hitboxes
 			for (int i = 0; i < Hitboxes.Num() - 1; i++)
@@ -355,14 +327,19 @@ void AGrapplingRopeActor::SetRopeMode(const ERopeMode NewRopeMode)
 			Hitboxes[Index]->SetMassOverrideInKg(NAME_None, 100 / (Index + 1), true); //Mass = 1 / [Index + 1
 		}
 	}
+
+	//set the rope mode
 	RopeMode = NewRopeMode;
 }
 
 void AGrapplingRopeActor::OnOwnerDestroyed(AActor* DestroyedActor)
 {
+	//break all the physics constraints
 	for (UPhysicsConstraintComponent* PhysicsConstraint : PhysicsConstraints)
 	{
 		PhysicsConstraint->BreakConstraint();
 	}
+
+	//destroy ourselves
 	Destroy();
 }

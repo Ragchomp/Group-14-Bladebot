@@ -124,9 +124,6 @@ void APlayerCharacter::BeginPlay()
 
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
-
-	DebugPrint(this, 15, 1, FColor::Purple, FString::Printf(TEXT("Current movementspeed : %f"), GetVelocity().Size()));
-
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -142,10 +139,28 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
-		EnhancedInputComponent->BindAction(IA_DespawnGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::DespawnGrapple);
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
+	}
+}
+
+void APlayerCharacter::Tick(float DeltaTime)
+{
+	//call the parent implementation
+	Super::Tick(DeltaTime);
+
+	//update the player overlay's crosshair
+	//check if we have a grappling hook reference
+	if (GrapplingHookRef)
+	{
+		//update the crosshair
+		UpdateCrosshair();
+	}
+	else
+	{
+		//disable the crosshair
+		PlayerOverlay->EnableGrapplingCrosshair(false);
 	}
 }
 
@@ -158,8 +173,11 @@ bool APlayerCharacter::CanUseInput(const FInputActionValue& Value)
 void APlayerCharacter::InputDebugMessage(const UInputAction* InputAction, const FString& DebugMessage)
 {
 	//check if debug mode is on
-	DefaultDebugPrint(this, InputAction->GetName().Append(" " + DebugMessage));
-	
+	if (bDebugMode == true)
+	{
+		//print the debug message
+		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, InputAction->GetName().Append(DebugMessage));
+	}
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -223,40 +241,13 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 		if (GrapplingHookRef)
 		{
 			//reactivate the grappling hook
-			GrapplingHookRef->Reactivate(Camera->GetForwardVector() * GrappleSpeed);
+			GrapplingHookRef->Destroy();
 
 			//print debug message
-			InputDebugMessage(IA_ShootGrapple, TEXT("Reactivated"));
+			InputDebugMessage(IA_ShootGrapple, TEXT(" Destroyed"));
 		}
-		//there is no existing grappling hook
-		else
-		{
-			//spawn the grappling hook
-			SpawnGrappleProjectile();
-
-			//immediately reactivate the grappling hook
-			GrapplingHookRef->Reactivate(Camera->GetForwardVector() * GrappleSpeed);
-
-			//print debug message
-			InputDebugMessage(IA_ShootGrapple, TEXT("Spawned"));
-		}
-	}
-}
-
-void APlayerCharacter::DespawnGrapple(const FInputActionValue& Value)
-{
-	//check if we can use the input
-	if (CanUseInput(Value))
-	{
-		//check if there is an existing grappling hook
-		if (GrapplingHookRef)
-		{
-			//despawn the grappling hook
-			GrapplingHookRef->Despawn();
-
-			//print debug message
-			InputDebugMessage(IA_DespawnGrapple);
-		}	
+		//spawn the grappling hook
+		SpawnGrappleProjectile();
 	}
 }
 
@@ -353,7 +344,10 @@ void APlayerCharacter::Die()
 	CharacterState = ECharacterState::ECS_Dead;
 
 	//print debug message
-	DebugPrint(this, -1, 1, FColor::Red, TEXT("Dead"));
+	if (bDebugMode == true)
+	{
+		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, TEXT("Dead"));
+	}
 }
 
 void APlayerCharacter::CountTime()
@@ -402,7 +396,7 @@ void APlayerCharacter::SpawnGrappleProjectile()
 		FVector CameraForwardVector = Camera->GetForwardVector();
 
 		//get the spawn location
-		const FVector SpawnLocation = GetActorLocation() * CameraForwardVector * GrappleSpawnDist;
+		const FVector SpawnLocation = GetActorLocation() + CameraForwardVector * GrappleSpawnDist;
 
 		//assign the grappling hook head reference to the spawned grappling hook head
 		GrapplingHookRef = GetWorld()->SpawnActorDeferred<AGrapplingHookHead>(
@@ -412,9 +406,6 @@ void APlayerCharacter::SpawnGrappleProjectile()
 			this,
 			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
-		//set the spawn distance to use in reactivation later
-		GrapplingHookRef->SpawnDistance = GrappleSpawnDist;
-
 		//set the velocity to the camera forward vector
 		GrapplingHookRef->InitialVelocity = Camera->GetForwardVector() * GrappleSpeed;
 
@@ -423,6 +414,24 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 		//finish spawning the grappling hook head
 		GrapplingHookRef->FinishSpawning(FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)));
+
+		//stop the player grapple
+		PlayerMovementComponent->StopGrapple();
+	}
+}
+
+void APlayerCharacter::UpdateCrosshair()
+{
+	//check if the grappling hook is retracted
+	if (PlayerMovementComponent->GrappleState != EGrappleState::EGS_Retracted)
+	{
+		//set the grappling crosshair to false
+		PlayerOverlay->EnableGrapplingCrosshair(false);
+	}
+	else
+	{
+		//update the grappling crosshair
+		PlayerOverlay->EnableGrapplingCrosshair(PlayerMovementComponent->CanGrapple());
 	}
 }
 

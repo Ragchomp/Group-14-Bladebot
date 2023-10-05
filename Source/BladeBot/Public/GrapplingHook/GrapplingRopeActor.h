@@ -6,7 +6,6 @@
 #include "GameFramework/Actor.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Engine/Classes/Components/SphereComponent.h"
-#include "Interface/DebugInterface.h"
 #include "GrapplingRopeActor.generated.h"
 
 
@@ -23,7 +22,6 @@ class IGrappleRopeInterface
 
 public:
 	virtual FVector GetGrapplePoint(AActor* TravelingActor) const{return FVector::ZeroVector;}
-	virtual FVector GetRopeEnd() const{return FVector::ZeroVector;}
 };
 
 //enum for the rope mode
@@ -34,13 +32,13 @@ enum ERopeMode
 	InfiniteRopeLength UMETA(DisplayName = "InfiniteLength"),
 
 	//rope is a set length
-	SetRopeLength UMETA(DisplayName = "SetLength"),
+	FixedLength UMETA(DisplayName = "FixedLength"),
 
 };
 
 //maybe make this a base class for niagara particle system for rope
 UCLASS()
-class AGrapplingRopeActor : public AActor, public IGrappleRopeInterface, public IDebugInterface
+class AGrapplingRopeActor : public AActor, public IGrappleRopeInterface
 {
 	GENERATED_BODY()
 	
@@ -48,14 +46,6 @@ public:
 
 	//constructor
 	AGrapplingRopeActor();
-
-	//whether we should draw debug lines for the rope
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	bool bDrawDebugRope = false;
-
-	//whether we should draw the physics constraints in the fixed length rope mode (only works if bDrawDebugRope is true)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug|FixedLength", meta = (EditCondition = "bDrawDebugRope", EditConditionHides))
-	bool bDrawPhysicsConstraints = false;
 
 	//the radius of the rope
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope")
@@ -65,25 +55,25 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rope")
 	TEnumAsByte<ERopeMode> RopeMode = InfiniteRopeLength;
 
-	//the extra space between hitboxes spawned when constructing the physics constraints in the fixed length rope mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|FixedLength")
-	float HitboxSpacing = 25.f;
+	//whether we should draw debug lines for the rope
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Debug")
+	bool bDrawDebugRope = false;
+
+	//whether we should draw the physics constraints in the fixed length rope mode (only works if bDrawDebugRope is true)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Debug", meta = (EditCondition = "RopeMode == ERopeMode::FixedLength && bDrawDebugRope == true", EditConditionHides))
+	bool bDrawPhysicsConstraints = false;
 
 	//the minimum spacing between new and old collision points in the infinite length rope mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|InfiniteLength")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|InfiniteLength", meta = (editcondition = "RopeMode == ERopeMode::InfiniteRopeLength", editconditionHides))
 	float MinCollisionPointSpacing = 20.f;
-
-	//whether or not to use a socket on the instigator pawn to attach the rope to
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Sockets|Instigator")
-	bool UseSocketOnInstigator = false;
-
-	//the socket name to use when attaching the rope to the instigator pawn (uses the first mesh with a socket name with the given name)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Sockets|Instigator", meta = (EditCondition = "UseSocketOnInstigator", EditConditionHides))
-	FName InstigatorSocketName;
 
 	//array of collision points used when the rope is infinite length
 	UPROPERTY(BlueprintReadOnly, Category = "Rope|InfiniteLength")
 	TArray<FVector> CollisionPoints;
+
+	//the extra space between hitboxes spawned when constructing the physics constraints in the fixed length rope mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|FixedLength", meta = (editcondition = "RopeMode == ERopeMode::FixedLength", editconditionHides))
+	float HitboxSpacing = 25.f;
 
 	//the Sphere collisions that are used when in the fixed length rope mode
 	UPROPERTY(BlueprintReadOnly, category = "Rope|FixedLength")
@@ -93,12 +83,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, category = "Rope|FixedLength")
 	TArray<UPhysicsConstraintComponent*> PhysicsConstraints;
 
-	//reference to the socket mesh to use when attaching the rope to the instigator pawn
-	UPROPERTY(BlueprintReadWrite, meta = (EditCondition = "UseSocketOnInstigator", EditConditionHides))
-	UStaticMeshComponent* InstigatorMesh = nullptr;
+	//whether or not to use a socket on the instigator pawn to attach the rope to
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rope|Sockets|Instigator")
+	bool UseSocketOnInstigator = false;
 
-	//whether or not we should tick
-	bool bDoTick = true;
+	//the socket name to use when attaching the rope to the instigator pawn (uses the first mesh with a socket name with the given name)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Sockets|Instigator", meta = (EditCondition = "UseSocketOnInstigator == true", EditConditionHides))
+	FName InstigatorSocketName;
+
+	//reference to the socket mesh to use when attaching the rope to the instigator pawn
+	UPROPERTY(BlueprintReadOnly, Category= "Rope|Sockets|Instigator", meta = (EditCondition = "UseSocketOnInstigator == true", EditConditionHides))
+	UStaticMeshComponent* InstigatorMesh = nullptr;
 
 	//actor overrides
 	virtual void BeginPlay() override;

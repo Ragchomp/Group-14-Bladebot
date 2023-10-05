@@ -16,12 +16,25 @@ public:
 	AGrapplingHookHead();
 
 	//the rope actor class to spawn with this grappling hook head
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope")
 	TSubclassOf<class AGrapplingRopeActor> RopeActorClass;
 
-	//the default distance away from the instigator to spawn the grappling hook head
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float SpawnDistance = 100.f;
+
+	//whether or not to use a max distance for the projectile
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance")
+	bool bUseMaxDistance = false;
+
+	//whether or not to set the distance check location to the projectile's location when the projectile is spawned
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance", meta = (EditCondition = "bUseMaxDistance == true", editconditionHides))
+	bool bUseSpawnForDistanceCheck = true;
+
+	//the max distance the projectile can travel
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance", meta = (EditCondition = "bUseMaxDistance == true", editconditionHides))
+	float MaxDistance = 10000.f;
+
+	//the location to use when checking if we've reached the max distance
+	UPROPERTY(BlueprintReadOnly, Category = "MaxDistance")
+	FVector DistanceCheckLocation;
 
 	//the hitbox for the grappling hook head
 	UPROPERTY(VisibleAnywhere)
@@ -33,25 +46,26 @@ public:
 
 	//the projectile movement component for the grappling hook head
 	UPROPERTY(VisibleAnywhere)
-	class UCustomProjectileMovementComponent* ProjectileMovementComponent;
+	class UProjectileMovementComponent* ProjectileMovementComponent;
 
 	//the current state of the grappling hook head
 	UPROPERTY(BlueprintReadOnly)
 	EGrappleState GrappleState = EGrappleState::EGS_InAir;
 
+	//reference to the instigator's movement component
+	UPROPERTY()
+	class UPlayerMovementComponent* PlayerMovementComponent;
+
 	//the rope actor that this grappling hook head is attached to
-	UPROPERTY(BlueprintReadOnly)
+	UPROPERTY()
 	class AGrapplingRopeActor* RopeActor;
 
 	//the initial velocity of the grappling hook head
 	FVector InitialVelocity;
 
-	//reference to the instigator's movement component
-	UPROPERTY(BlueprintReadOnly)
-	class UPlayerMovementComponent* PlayerMovementComponent;
-
 	//overrides
 	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaTime) override;
 
 	//the function that's called when the grappling hook head overlaps something
 	UFUNCTION()
@@ -60,14 +74,17 @@ public:
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
-	//despawns/deactivates the grappling hook head
-	UFUNCTION(BlueprintCallable)
-	void Despawn();
+	////despawns/deactivates the grappling hook head (doesn't work)
+	//UFUNCTION(BlueprintCallable)
+	//void Despawn();
 
-	//reactivates the grappling hook head
-	UFUNCTION(BlueprintCallable)
-	void Reactivate(FVector NewVelocity);
+	////reactivates the grappling hook head (doesn't work)
+	//UFUNCTION(BlueprintCallable)
+	//void Reactivate(FVector NewVelocity);
 
 	//get the current state of the grappling hook head
 	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }
+
+	//set the current state of the grappling hook head
+	void SetGrappleState(EGrappleState NewState);
 };

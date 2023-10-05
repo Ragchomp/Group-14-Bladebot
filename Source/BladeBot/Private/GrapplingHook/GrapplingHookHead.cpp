@@ -3,9 +3,9 @@
 #include "GrapplingHook/GrapplingHookHead.h"
 
 //Components
-#include "Components/CustomProjectileMovementComponent.h"
 #include "Components/PlayerMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 #include "GrapplingHook/GrapplingRopeActor.h"
 
 AGrapplingHookHead::AGrapplingHookHead()
@@ -14,7 +14,7 @@ AGrapplingHookHead::AGrapplingHookHead()
 
 	//initialize root component and projectile movement component
 	Hitbox = CreateDefaultSubobject<USphereComponent>(TEXT("Hitbox"));
-	ProjectileMovementComponent = CreateDefaultSubobject<UCustomProjectileMovementComponent>(TEXT("CustomProjectileMovementComponent"));
+	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("CustomProjectileMovementComponent"));
 
 	//set the root component
 	SetRootComponent(Hitbox);
@@ -32,17 +32,8 @@ AGrapplingHookHead::AGrapplingHookHead()
 	Hitbox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 	Hitbox->SetCollisionProfileName("PhysicsActor");
 
-	//set default max distance
-	ProjectileMovementComponent->MaxDistance = 3000.f;
-
-	//enable checking for max distance
-	ProjectileMovementComponent->bUseMaxDistance = true;
-
-	//set use spawn as distance check location to true
-	ProjectileMovementComponent->bSetDistanceCheckLocationOnSpawn = true;
-
 	//default to fixed speed
-	ProjectileMovementComponent->bFixedSpeed = true;
+	ProjectileMovementComponent->ProjectileGravityScale = 0;
 }
 
 void AGrapplingHookHead::BeginPlay()
@@ -56,19 +47,8 @@ void AGrapplingHookHead::BeginPlay()
 	//bind the onoverlap function to the Hitbox's overlap event
 	Hitbox->OnComponentBeginOverlap.AddDynamic(this, &AGrapplingHookHead::OnOverlap);
 
-	//check if we should use max distance
-	if (ProjectileMovementComponent->bUseMaxDistance)
-	{
-		//bind the OnMaxDistReached delegate to the Despawn function
-		ProjectileMovementComponent->OnMaxDistReached.BindUObject(this, &AGrapplingHookHead::Despawn);
-	}
-
-	//set the projectile movement component's properties
-	ProjectileMovementComponent->MaxSpeed = InitialVelocity.Size();
-	ProjectileMovementComponent->Velocity = InitialVelocity;
-
 	//set the grapple state to in air
-	GrappleState = EGrappleState::EGS_InAir;
+	SetGrappleState(EGrappleState::EGS_InAir);
 
 	//spawn parameters for the rope actor
 	FActorSpawnParameters SpawnParameters;
@@ -81,81 +61,77 @@ void AGrapplingHookHead::BeginPlay()
 
 	//spawn the rope actor
 	RopeActor = GetWorld()->SpawnActor<AGrapplingRopeActor>(RopeActorClass, GetActorLocation(), GetActorRotation(), SpawnParameters);
+
+	if (InitialVelocity != FVector::ZeroVector)
+	{
+		ProjectileMovementComponent->InitialSpeed = InitialVelocity.Size();
+		ProjectileMovementComponent->MaxSpeed = InitialVelocity.Size();
+		ProjectileMovementComponent->Velocity = InitialVelocity;
+	}
+
+	//check if we should use the distance check function and whether we should use the spawn locaion for the distance checks
+	if (bUseMaxDistance && bUseSpawnForDistanceCheck)
+	{
+		//set the distance check location to the spawn location
+		DistanceCheckLocation = GetInstigator()->GetActorLocation();
+	}
 }
 
-void AGrapplingHookHead::Despawn()
+void AGrapplingHookHead::Tick(float DeltaTime)
 {
-	//attach the grappling hook head to the player
-	this->AttachToActor(GetInstigator(), FAttachmentTransformRules::SnapToTargetNotIncludingScale);
+	//call the parent implementation
+	Super::Tick(DeltaTime);
 
-	//set the grapple state to retracted
-	GrappleState = EGrappleState::EGS_Retracted;
-
-	//hide this actor
-	Mesh->SetVisibility(false);
-
-	//disable collision
-	SetActorEnableCollision(false);
-
-	//disable tick for the projectile movement component
-	ProjectileMovementComponent->bDoTick = false;
-
-	//stop the rope actor
-	RopeActor->Stop();
-}
-
-void AGrapplingHookHead::Reactivate(const FVector NewVelocity)
-{
-	//detach the grappling hook head from the player
-	this->DetachFromActor(FDetachmentTransformRules::KeepWorldTransform);
-
-	//set the grapple state to in air
-	GrappleState = EGrappleState::EGS_InAir;
-
-	//show this actor
-	Mesh->SetVisibility(true);
-
-	//enable collision
-	SetActorEnableCollision(true);
-
-	//reenable tick for the projectile movement component and the rope actor
-	ProjectileMovementComponent->bDoTick = true;
-
-	//restart the rope actor
-	RopeActor->Restart();
-
-	//set the projectile movement component's properties
-	ProjectileMovementComponent->SetDistanceCheckLocation(GetInstigator()->GetActorLocation());
-	ProjectileMovementComponent->Velocity = NewVelocity;
-	ProjectileMovementComponent->InitialSpeed = NewVelocity.Size();
-	ProjectileMovementComponent->MaxSpeed = NewVelocity.Size();
-	ProjectileMovementComponent->bCanMove = true;
-
-	//get the instigator's location
-	FVector InstigatorLocation = GetInstigator()->GetActorLocation();
-
-	//set the location of the grappling hook head to the instigator's location
-	this->SetActorLocation(InstigatorLocation + NewVelocity.GetSafeNormal() * SpawnDistance);
+	//check if we should check max distance
+	if (bUseMaxDistance)
+	{
+		//check if we've reached the max distance
+		if (FVector::Dist(DistanceCheckLocation, GetInstigator()->GetActorLocation()) >= MaxDistance)
+		{
+			//destroy ourselves
+			Destroy();
+		}
+	}
 }
 
 void AGrapplingHookHead::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	//de-spawn the grappling hook head
-	Despawn();
+	//check if we have a player movement component
+	if (PlayerMovementComponent)
+	{
+		//stop the player grapple
+		PlayerMovementComponent->StopGrapple();
+
+		//set the grapple state to retracted
+		SetGrappleState(EGrappleState::EGS_Retracted);
+	}
+
+	//destroy ourselves
+	Destroy();
 }
 
 void AGrapplingHookHead::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	//set the grapple state to attached
-	GrappleState = EGrappleState::EGS_Attached;
-
-	//disable movement
-	ProjectileMovementComponent->bCanMove = false;
+	SetGrappleState(EGrappleState::EGS_Attached);
 
 	//check if we have a player movement component
 	if (PlayerMovementComponent)
 	{
 		//start player grapple
 		PlayerMovementComponent->StartGrapple(RopeActor);
+	}
+}
+
+void AGrapplingHookHead::SetGrappleState(EGrappleState NewState)
+{
+	//set the grapple state
+	GrappleState = NewState;
+
+	//check if we have a player movement component
+	if (PlayerMovementComponent)
+	{
+		//update the grapple state of the player movement component
+		PlayerMovementComponent->GrappleState = NewState;
 	}
 }

@@ -4,14 +4,13 @@
 #include "StateControl.h"
 #include "BaseCharacter.h"
 #include "Components/PlayerMovementComponent.h"
-#include "Interface/DebugInterface.h"
 #include "PlayerCharacter.generated.h"
 
 struct FInputActionValue;
 class UCameraArmComponent;
 
 UCLASS()
-class BLADEBOT_API APlayerCharacter : public ABaseCharacter, public IDebugInterface
+class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
 	GENERATED_BODY()
 
@@ -21,14 +20,19 @@ public:
 
 	//overrides
 	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
+	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	
 	FTimerHandle Seconds;
+	bool bDebugMode = false;
 	void CountTime();
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
+
+	UFUNCTION(BlueprintCallable)
+	void UpdateCrosshair();
 	void TimerInit();
 	void InputInit();
 	void Inits();
@@ -75,9 +79,6 @@ protected:
 	UFUNCTION()
 	void ShootGrapple(const FInputActionValue& Value);
 
-	UFUNCTION()
-	void DespawnGrapple(const FInputActionValue& Value);
-
 	//UFUNCTION()
 	//void GrappleReel(const FInputActionValue& Value);
 
@@ -102,9 +103,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_ShootGrapple;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
-	class UInputAction* IA_DespawnGrapple;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_Attack;

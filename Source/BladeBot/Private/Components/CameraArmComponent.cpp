@@ -2,8 +2,10 @@
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
-UCameraArmComponent::UCameraArmComponent(const FObjectInitializer& ObjectInitializer)
+UCameraArmComponent::UCameraArmComponent(const FObjectInitializer& ObjectInitializer): OldTargetArmLength(0)
 {
+	//set the default values
+	CameraLagMaxDistance = 800;
 }
 
 void UCameraArmComponent::BeginPlay()
@@ -29,54 +31,73 @@ void UCameraArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 	//check if bDoLocationLag is true
 	if (bDoLocationLag)
 	{
-		//get the owner of the component's velocity
-		float OwnerSpeed;
+		//the minimum speed to use for the camera lag
+		float MinSpeed;
 
-		//check if bIgnoreZVelocity is true
+		//check if bUseCharacterWalkingSpeed is true and if the character owner is valid
+		if (bUseCharWalkSpeed && CharacterOwner)
+		{
+			//set the minimum speed to the character's walking speed
+			MinSpeed = CharacterOwner->GetCharacterMovement()->MaxWalkSpeed;
+		}
+		else
+		{
+			//set the minimum speed to the CameraOwnerMinSpeed
+			MinSpeed = CameraOwnerMinSpeed;
+		}
+
+		//the speed of movement
+		float Speed;
+
+		//check if we should ignore the z axis
 		if (bIgnoreZVelocity)
 		{
-			//set the owner speed to the owner speed without the z component
-			OwnerSpeed = FVector(GetOwner()->GetVelocity().X, GetOwner()->GetVelocity().Y, 0).Length();
+			//set the speed while ignoring the z axis
+			Speed = FVector(GetOwner()->GetVelocity().X, GetOwner()->GetVelocity().Y, 0).Length();
 		}
 		else
 		{
-			//set the owner speed to the owner speed with the z velocity
-			OwnerSpeed = GetOwner()->GetVelocity().Length();
+			//set the speed while not ignoring the z axis
+			Speed = GetOwner()->GetVelocity().Length();
 		}
 
-		//setup the lag min velocity
-		float LagMinVelocity;
+		//clamp the speed
+		Speed = FMath::Clamp(Speed, MinSpeed, CameraOwnerMaxSpeed);
 
-		//check if bUseCharacterWalkingSpeed is true
-		if (bUseCharacterWalkingSpeed && CharacterOwner)
+		//the alpha value for the interpolation
+		const float Alpha = FMath::Clamp(Speed / CameraOwnerMaxSpeed, 0, 1);
+
+		//the new target arm length
+		float NewTargetArmLength = Interp<float>(InterpolationType, MinArmLength, MaxArmLength, Alpha, InterpolationControl);
+
+		//check if the old target arm length has been set
+		if (OldTargetArmLength != 0)
 		{
-			//set the lag min velocity to the character's walking speed
-			LagMinVelocity = CharacterOwner->GetCharacterMovement()->MaxWalkSpeed;
+			//check if the difference between the new target arm length and the old target arm length is greater than the max lag speed
+			if (FMath::Abs(NewTargetArmLength - OldTargetArmLength) > MaxLagSpeed)
+			{
+				//the max speed the camera can lag behind the player with delta time applied
+				const float LocMaxLagSpeed = MaxLagSpeed * DeltaTime / 1000;
+
+				//check if the new target arm length is greater than the old target arm length
+				if (NewTargetArmLength > OldTargetArmLength)
+				{
+					//set the new target arm length to the old target arm length plus the max lag speed
+					NewTargetArmLength = OldTargetArmLength + LocMaxLagSpeed;
+				}
+				else
+				{
+					//set the new target arm length to the old target arm length minus the max lag speed
+					NewTargetArmLength = OldTargetArmLength - LocMaxLagSpeed;
+				}
+			}
 		}
-		else
-		{
-			//set the lag min velocity to the CameraLagMinVelocity
-			LagMinVelocity = CameraLagMinVelocity;
-		}
 
-		//setup the lerp alpha
-		float LerpAlpha = FMath::GetMappedRangeValueClamped(FVector2D(LagMinVelocity, CameraLagMaxVelocity), FVector2D(0.0f, 1.0f), OwnerSpeed);
+		//set the target arm length
+		TargetArmLength = NewTargetArmLength;
 
-		//check if the lerp alpha has changed too much since the last frame
-		if (FMath::Abs(OldLerpAlpha - LerpAlpha) > CustomCameraLagSpeed * DeltaTime)
-		{
-			//set the lerp alpha to a value between the old lerp alpha and the new lerp alpha
-			LerpAlpha = FMath::Lerp(OldLerpAlpha, LerpAlpha, CustomCameraLagSpeed * DeltaTime);
-		}
-
-		//lerp the camera lag distance between the min and max velocity
-		float LagDistance = FMath::Lerp(CameraLagMinDistance, CustomCameraLagMaxDistance, LerpAlpha);
-
-		//set the target arm length to the lag distance
-		this->TargetArmLength = LagDistance;
-
-		//set the old lerp alpha to the new lerp alpha
-		OldLerpAlpha = LerpAlpha;
+		//update the old target arm length
+		OldTargetArmLength = TargetArmLength;
 	}
 
 	//call the parent implementation
