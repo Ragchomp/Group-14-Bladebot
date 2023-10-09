@@ -477,9 +477,10 @@ void APlayerCharacter::TimerInit()
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
+	GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Should Should do damage")));
 	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill && OtherComponent->GetCollisionObjectType() != ECollisionChannel::ECC_WorldDynamic)
 	{
-		//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Killed em")));
+		GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Should do damage")));
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
 	}
 }

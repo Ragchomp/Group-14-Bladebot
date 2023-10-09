@@ -22,6 +22,7 @@ public:
 
 	// ------------ States ---------------------
 	EEnemyState EnemyState = EEnemyState::EES_Idle;
+	ESGunState GunState = ESGunState::ESGS_Idle;
 
 protected:
 	virtual void BeginPlay() override;
@@ -30,10 +31,13 @@ protected:
 
 	// Health ----------
 
-	// Movements ----------
+	// Movement ----------
 
 	// Combat ----------
 	void SeenAnEnemy();
+	void ShootRocketBarrage();
+	void SpawnRocket();
+	void RocketBarrageCooldown();
 	void EnemyLeft();
 
 	// Other ----------
@@ -51,22 +55,50 @@ private:
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;
 
+	UPROPERTY(EditAnywhere, Category = "Components")
+		TSubclassOf<class AMissleDestructable_Boss> MissleDestuctable_BP;
+
 	// ------------- Components ------------
 	UPROPERTY(VisibleAnywhere)
 		class USphereComponent* DetectionSphere;
 
-
+	// Declare a pointer to the component in your subclass.
+	UPROPERTY(VisibleAnywhere, Category = "Components")
+		class UAttributeComponent* AttributeComponent;
 	// ------------- Timer Handlers ------------
 
+	FTimerHandle RocketBarrageStartupTimer;
 
+	FTimerHandle RocketBarrageNextRocketTimer;
+
+	FTimerHandle RocketBarrageCooldownTimer;
 
 public:
 
 	// ------------- Constants ------------
 	UPROPERTY()
-	float DetectionRange = 5000.f;
+		float DetectionRange = 5000.f;
 
-	// Timer Delays
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float CurrentHealthOverride = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MaxHealthOverride = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float RocketBarrageStartupTime = 2.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float NextRocketIntervalTime = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float RocketBarrageCooldownTime = 3.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		int RocketsToShoot = 5;
+
+	UPROPERTY()
+		int RocketsShoot = 0;
 
 
 	// ------------- Bools ------------
@@ -81,5 +113,5 @@ public:
 
 		// Gets the AI state from the state controller
 	FORCEINLINE EEnemyState GetAIState() const { return EnemyState; }
-
+	FORCEINLINE ESGunState GetGunState() const { return GunState; }
 };
