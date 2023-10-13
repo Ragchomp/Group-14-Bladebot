@@ -1,5 +1,3 @@
-
-
 #include "Characters/BaseCharacter.h"
 
 
@@ -10,32 +8,29 @@
 ABaseCharacter::ABaseCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
+}
 
-
-
+ABaseCharacter::ABaseCharacter(const FObjectInitializer& ObjectInitializer)
+{
+	PrimaryActorTick.bCanEverTick = true;
 }
 
 void ABaseCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 void ABaseCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-
 }
 
 void ABaseCharacter::Die()
 {
-
 }
 
 void ABaseCharacter::LineTrace(FHitResult& OutHit)
 {
-
 }
 
 void ABaseCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
