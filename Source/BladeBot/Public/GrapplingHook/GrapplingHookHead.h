@@ -19,7 +19,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope")
 	TSubclassOf<class AGrapplingRopeActor> RopeActorClass;
 
-
 	//whether or not to use a max distance for the projectile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance")
 	bool bUseMaxDistance = false;
@@ -30,7 +29,7 @@ public:
 
 	//the max distance the projectile can travel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance", meta = (EditCondition = "bUseMaxDistance == true", editconditionHides))
-	float MaxDistance = 10000.f;
+	float MaxDistance = 3000.f;
 
 	//the location to use when checking if we've reached the max distance
 	UPROPERTY(BlueprintReadOnly, Category = "MaxDistance")
@@ -60,9 +59,6 @@ public:
 	UPROPERTY()
 	class AGrapplingRopeActor* RopeActor;
 
-	//the initial velocity of the grappling hook head
-	FVector InitialVelocity;
-
 	//overrides
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -84,7 +80,4 @@ public:
 
 	//get the current state of the grappling hook head
 	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }
-
-	//set the current state of the grappling hook head
-	void SetGrappleState(EGrappleState NewState);
 };

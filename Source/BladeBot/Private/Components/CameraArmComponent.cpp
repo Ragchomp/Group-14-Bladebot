@@ -1,8 +1,8 @@
 #include "Components/CameraArmComponent.h"
 #include "GameFramework/Character.h"
-#include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/KismetMathLibrary.h"
 
-UCameraArmComponent::UCameraArmComponent(const FObjectInitializer& ObjectInitializer): OldTargetArmLength(0)
+UCameraArmComponent::UCameraArmComponent(const FObjectInitializer& ObjectInitializer)
 {
 	//set the default values
 	CameraLagMaxDistance = 800;
@@ -24,82 +24,122 @@ void UCameraArmComponent::BeginPlay()
 		//print an error message
 		UE_LOG(LogTemp, Error, TEXT("The owner of the CameraArmComponent is not a character!"));
 	}
+
+	//set default target offset
+	DefaultTargetOffset = TargetOffset;
+
+	//check if we smooth cameramovement when crouching
+	if (bSmoothCrouch)
+	{
+		//set the timer handle
+		GetWorld()->GetTimerManager().SetTimer(CrouchLerpTimerHandle, this, &UCameraArmComponent::LerpCameraOffset, CrouchLerpTime, true);
+	}
+
+	//check if we use camera zoom
+	if (bUseCameraZoom)
+	{
+		//check if camera lerps is empty
+		if (CamZoomInterps.IsEmpty())
+		{
+			//add a default value to the map
+			CamZoomInterps.Add(FCameraZoomStruct());
+
+			//print a warning
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("The LerpArray in the CameraArmComponent is empty!"));
+		}
+
+		//set the timer handle
+		GetWorld()->GetTimerManager().SetTimer(ZoomInterpTimerHandle, this, &UCameraArmComponent::InterpCameraZoom, CameraZoomUpdateSpeed, true);
+	}
 }
 
 void UCameraArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocationLag, bool bDoRotationLag, float DeltaTime)
 {
-	//check if bDoLocationLag is true
-	if (bDoLocationLag)
+	//check if we should apply camera offset and if the character owner is valid
+	if (bApplyCameraOffset && CharacterOwner)
 	{
-		//the minimum speed to use for the camera lag
-		float MinSpeed;
+		//get the controller rotation
+		FRotator ControllerRotation = CharacterOwner->GetControlRotation();
 
-		//check if bUseCharacterWalkingSpeed is true and if the character owner is valid
-		if (bUseCharWalkSpeed && CharacterOwner)
-		{
-			//set the minimum speed to the character's walking speed
-			MinSpeed = CharacterOwner->GetCharacterMovement()->MaxWalkSpeed;
-		}
-		else
-		{
-			//set the minimum speed to the CameraOwnerMinSpeed
-			MinSpeed = CameraOwnerMinSpeed;
-		}
+		//remove the pitch from the controller rotation
+		ControllerRotation.Pitch = 0;
 
-		//the speed of movement
-		float Speed;
+		//get the camera offset
+		const FVector CamSocketOffset = UKismetMathLibrary::GetRightVector(ControllerRotation);
 
-		//check if we should ignore the z axis
-		if (bIgnoreZVelocity)
-		{
-			//set the speed while ignoring the z axis
-			Speed = FVector(GetOwner()->GetVelocity().X, GetOwner()->GetVelocity().Y, 0).Length();
-		}
-		else
-		{
-			//set the speed while not ignoring the z axis
-			Speed = GetOwner()->GetVelocity().Length();
-		}
-
-		//clamp the speed
-		Speed = FMath::Clamp(Speed, MinSpeed, CameraOwnerMaxSpeed);
-
-		//the alpha value for the interpolation
-		const float Alpha = FMath::Clamp(Speed / CameraOwnerMaxSpeed, 0, 1);
-
-		//the new target arm length
-		float NewTargetArmLength = Interp<float>(InterpolationType, MinArmLength, MaxArmLength, Alpha, InterpolationControl);
-
-		//check if the old target arm length has been set
-		if (OldTargetArmLength != 0)
-		{
-			//check if the difference between the new target arm length and the old target arm length is greater than the max lag speed
-			if (FMath::Abs(NewTargetArmLength - OldTargetArmLength) > MaxLagSpeed)
-			{
-				//the max speed the camera can lag behind the player with delta time applied
-				const float LocMaxLagSpeed = MaxLagSpeed * DeltaTime / 1000;
-
-				//check if the new target arm length is greater than the old target arm length
-				if (NewTargetArmLength > OldTargetArmLength)
-				{
-					//set the new target arm length to the old target arm length plus the max lag speed
-					NewTargetArmLength = OldTargetArmLength + LocMaxLagSpeed;
-				}
-				else
-				{
-					//set the new target arm length to the old target arm length minus the max lag speed
-					NewTargetArmLength = OldTargetArmLength - LocMaxLagSpeed;
-				}
-			}
-		}
-
-		//set the target arm length
-		TargetArmLength = NewTargetArmLength;
-
-		//update the old target arm length
-		OldTargetArmLength = TargetArmLength;
+		//set the socket offset
+		SocketOffset = CamSocketOffset * CameraOffsetAmount;
 	}
 
 	//call the parent implementation
 	Super::UpdateDesiredArmLocation(bDoTrace, bDoLocationLag, bDoRotationLag, DeltaTime);
+}
+
+void UCameraArmComponent::InterpCameraZoom()
+{
+	//the speed of movement
+	float Speed;
+
+	//check if we should ignore the z axis
+	if (bIgnoreZVelocity)
+	{
+		//set the speed in 2d
+		Speed = GetOwner()->GetVelocity().Size2D();
+	}
+	else
+	{
+		//set the speed regularly
+		Speed = GetOwner()->GetVelocity().Length();
+	}
+
+	//check if current interp index is above 0
+	if (CurrentInterpIndex > 0)
+	{
+		//check if the speed is below the current interp's speed threshold
+		if (Speed < CamZoomInterps[CurrentInterpIndex].SpeedThreshold)
+		{
+			//decrease the current interp index
+			CurrentInterpIndex--;
+		}
+	}
+
+	//check if current interp index is below the max index
+	if (CurrentInterpIndex < CamZoomInterps.Num() - 1)
+	{
+		//check if the speed is above the current interp's speed threshold
+		if (Speed > CamZoomInterps[CurrentInterpIndex].SpeedThreshold)
+		{
+			//increase the current interp index
+			CurrentInterpIndex++;
+		}
+	}
+	//get the world delta time
+	const float WorldDeltaTime = GetWorld()->GetDeltaSeconds();
+
+	//get the new target arm length
+	const float NewTargetArmLength = InterpToTarget<float>(CamZoomInterps[CurrentInterpIndex].InterpType, TargetArmLength, CamZoomInterps[CurrentInterpIndex].TargetArmLength, WorldDeltaTime, CamZoomInterps[CurrentInterpIndex].InterpSpeed);
+
+	//apply the new target arm length
+	TargetArmLength = NewTargetArmLength;
+}
+
+void UCameraArmComponent::OnStartCrouch(const float ScaledHalfHeightAdjust)
+{
+	//set the target offset's z value
+	TargetOffset.Z = DefaultTargetOffset.Z + ScaledHalfHeightAdjust;
+}
+
+void UCameraArmComponent::OnEndCrouch(const float ScaledHalfHeightAdjust)
+{
+	//set the target offset's z value
+	TargetOffset.Z = DefaultTargetOffset.Z - ScaledHalfHeightAdjust;
+}
+
+void UCameraArmComponent::LerpCameraOffset()
+{
+	//get the world delta time
+	const float DeltaTime = GetWorld()->GetDeltaSeconds();
+
+	//lerp the target offset
+	TargetOffset.Z = UKismetMathLibrary::FInterpTo(TargetOffset.Z, DefaultTargetOffset.Z, DeltaTime, CrouchLerpSpeed);
 }

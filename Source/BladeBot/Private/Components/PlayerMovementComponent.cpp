@@ -7,15 +7,6 @@ UPlayerMovementComponent::UPlayerMovementComponent()
 {
 }
 
-void UPlayerMovementComponent::BeginPlay()
-{
-	//call the parent implementation
-	Super::BeginPlay();
-
-	//get the player character
-	PlayerCharacter = Cast<APlayerCharacter>(GetOwner());
-}
-
 void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	//call the parent implementation
@@ -29,6 +20,25 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	}
 }
 
+void UPlayerMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
+{
+	//store the analog input modifier
+	const float OldAnalogInputModifier = AnalogInputModifier;
+
+	//check if the player is grappling
+	if (bIsGrappling)
+	{
+		//disable input
+		AnalogInputModifier = 0;
+	}
+
+	//call the parent implementation
+	Super::PhysFlying(deltaTime, Iterations);
+
+	//restore the analog input modifier
+	AnalogInputModifier = OldAnalogInputModifier;
+}
+
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 {
 	//check if the player is already grappling
@@ -39,9 +49,12 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 
 		//set the grapple object
 		GrappleObject = GrappleRope;
-		
-		//vlerp the characters velocity to the vector applied by grappling so as to help improve game feel
-		//UKismetMathLibrary::VLerp()
+
+		//set the movement mode to flying so we don't get stuck on the floor
+		SetMovementMode(MOVE_Flying);
+
+		//set the grapple state to attached
+		GrappleState = EGrappleState::EGS_Attached;
 	}
 }
 
@@ -54,18 +67,29 @@ void UPlayerMovementComponent::StopGrapple()
 
 		//set the grapple object to null
 		GrappleObject = nullptr;
+
+		//set the movement mode to walking to prevent the character from actually flying
+		SetMovementMode(MOVE_Falling);
+
+		//set the grapple state to retracted
+		GrappleState = EGrappleState::EGS_Retracted;
 	}
 }
 
 bool UPlayerMovementComponent::CanGrapple(float MaxDistance)
 {
-	//do a line trace to see if the player is aiming at something within grapple range
-	GrappleLineTrace(GrappleHit, MaxDistance);
-
-	//if the line trace hit something, return true
-	if (GrappleHit.bBlockingHit)
+	//check if the hook isn't already attached to something or if the player is already grappling
+	if (GrappleState == EGrappleState::EGS_Retracted)
 	{
-		return true;
+		//do a line trace to see if the player is aiming at something within grapple range
+		FHitResult GrappleHit;
+		GrappleLineTrace(GrappleHit, MaxDistance);
+
+		//if the line trace hit something, return true
+		if (GrappleHit.bBlockingHit)
+		{
+			return true;
+		}	
 	}
 
 	return false;
@@ -105,10 +129,10 @@ void UPlayerMovementComponent::SetGrappleVelocity(float DeltaTime)
 	const FVector GrapplePoint = GrappleObject->GetGrapplePoint(GetCharacterOwner());
 
 	//get the vector from the character to the grapple point
-	const FVector GrappleVector = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
+	GrappleVelocity = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
 
 	//apply the grapple vector to the character's velocity
-	Velocity = GrappleVector * PullStrenght;
+	Velocity += GrappleVelocity * PullStrenght * DeltaTime;
 
 	//update the character's velocity
 	UpdateComponentVelocity();

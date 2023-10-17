@@ -31,8 +31,6 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
 
-	UFUNCTION(BlueprintCallable)
-	void UpdateCrosshair();
 	void TimerInit();
 	void InputInit();
 	void Inits();
@@ -79,12 +77,6 @@ protected:
 	UFUNCTION()
 	void ShootGrapple(const FInputActionValue& Value);
 
-	//UFUNCTION()
-	//void GrappleReel(const FInputActionValue& Value);
-
-	//UFUNCTION()
-	//void StopGrappleReel(const FInputActionValue& Value);
-
 	UFUNCTION()
 	void Attack(const FInputActionValue& Value);
 
@@ -116,10 +108,10 @@ protected:
 public:
 
 	/** Class Components  */
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UCameraComponent* Camera;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UCameraArmComponent* CameraArm;
 
 	/** Subclasses */
@@ -148,14 +140,15 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	float GrappleSpawnDist = 100;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
-	float GrappleSpeed = 1000;
-
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float MovementSpeedToKill = 4000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float Damage = 1.f;
+
+	//the max distance the Grappling hook can travel
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance")
+	float MaxGrappleDistance = 3000.f;
 
 	/** Respawning Player **/
 	virtual void Destroyed() override;

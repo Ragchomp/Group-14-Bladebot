@@ -36,7 +36,6 @@ enum ERopeMode
 
 };
 
-//maybe make this a base class for niagara particle system for rope
 UCLASS()
 class AGrapplingRopeActor : public AActor, public IGrappleRopeInterface
 {
@@ -107,12 +106,6 @@ public:
 
 	//sets the collision points for the rope to the current location of the actors we're attached to
 	void SetAttachedRopePointPositions(bool FixedLength = false);
-
-	//stops the rope simulation
-	void Stop();
-
-	//restarts the rope simulation
-	void Restart();
 
 	//draws debug lines for the rope
 	void DrawDebugRope();

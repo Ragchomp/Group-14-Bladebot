@@ -8,18 +8,17 @@
 //Components
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/CameraArmComponent.h"
+#include "Components/PlayerMovementComponent.h"
+#include "EnhancedInputComponent.h"
+#include "GameFramework/ProjectileMovementComponent.h"
 
 //Gameplay Statics
-#include "EnhancedInputComponent.h"
 #include "Controllers/BladebotPlayerController.h"
 #include "Kismet/GameplayStatics.h"
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
-#include "Components/CameraArmComponent.h"
-#include "Components/PlayerMovementComponent.h"
-
 
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
@@ -32,12 +31,21 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
 
-	//detach rotation from movement and set rotation rate
+	//set rotation to follow movement
 	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 400.f, 0.f);
+	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f);
 
 	//get a reference to the movement component as a player movement component
 	PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
+
+	//create our components
+	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
+	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
+
+	//setup attachments
+	CameraArm->SetupAttachment(GetRootComponent());
+	Camera->SetupAttachment(CameraArm);
 
 	//set relative location and rotation for the mesh
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
@@ -47,44 +55,14 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	GetCapsuleComponent()->SetCapsuleHalfHeight(60);
 	GetCapsuleComponent()->SetCapsuleRadius(10);
 
-	//create the camera arm
-	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
-
-	//attach it to the root component
-	CameraArm->SetupAttachment(GetRootComponent());
-
-	//set the camera arm's relative location to be above the character and a little behind
-	CameraArm->SetRelativeLocation(FVector(0.f, 10.f, 90.f));
-
-	////set the camera arm's relative rotation to be facing the character
-	//CameraArm->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
-
-	//set the target arm length
-	CameraArm->TargetArmLength = 400.f;
-
-	//enable camera lag
-	CameraArm->bEnableCameraLag = true;
-
-	//set the camera lag speed
-	CameraArm->CameraLagSpeed = 20.f;
+	//set the camera arm's target offset to be above the character and a little behind
+	CameraArm->TargetOffset = FVector(0.f, 10.f, 90.f);
 
 	//make the camera follow the controller's rotation (so it uses the rotation input from the mouse)
 	CameraArm->bUsePawnControlRotation = true;
 
-	//create the camera
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-
-	//attach it to the camera arm
-	Camera->SetupAttachment(CameraArm);
-
-	//detach the camera's rotation from the controller's rotation
+	//disable busepawncontrolrotation on the camera
 	Camera->bUsePawnControlRotation = false;
-
-	//create the attribute component
-	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
-
-	////spawn the grappling hook head
-	//GrapplingHookRef = CreateDefaultSubobject<AGrapplingHookHead>(TEXT("GrapplingHookRef"));
 
 	//default to automatically possessing the player
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
@@ -150,17 +128,11 @@ void APlayerCharacter::Tick(float DeltaTime)
 	//call the parent implementation
 	Super::Tick(DeltaTime);
 
-	//update the player overlay's crosshair
-	//check if we have a grappling hook reference
-	if (GrapplingHookRef)
+	//if PlayerOverlay is valid update the player overlay's crosshair
+	if (PlayerOverlay)
 	{
-		//update the crosshair
-		UpdateCrosshair();
-	}
-	else
-	{
-		//disable the crosshair
-		PlayerOverlay->EnableGrapplingCrosshair(false);
+		//update the grappling crosshair
+		PlayerOverlay->EnableGrapplingCrosshair(PlayerMovementComponent->CanGrapple());
 	}
 }
 
@@ -352,7 +324,7 @@ void APlayerCharacter::Die()
 
 void APlayerCharacter::CountTime()
 {
-	//should use timespan instead of int probably
+	//could use timespan instead of int probably
 
 	//if the timer shouldn't tick, don't do anything
 	if (TimerShouldTick == false)
@@ -380,58 +352,30 @@ void APlayerCharacter::SpawnGrappleProjectile()
 	//check if we have a valid grappling hook head class
 	if (GrappleHookHeadClass)
 	{
-		//spawn parameters for the grappling hook head
-		FActorSpawnParameters SpawnParameters;
+		//get the forward vector of the camera
+		const FVector CamForwardVec = Camera->GetForwardVector();
 
-		//set the owner of the grappling hook head to this actor
-		SpawnParameters.Owner = this;
-
-		//set the Instigator of the grappling hook head to this actor
-		SpawnParameters.Instigator = this;
-		
 		//get the spawn rotation
-		const FRotator SpawnRotation = GetActorRotation();
-
-		//get the camera forward vector
-		FVector CameraForwardVector = Camera->GetForwardVector();
+		const FRotator SpawnRotation = CamForwardVec.Rotation();
 
 		//get the spawn location
-		const FVector SpawnLocation = GetActorLocation() + CameraForwardVector * GrappleSpawnDist;
+		const FVector SpawnLocation = GetActorLocation() + CamForwardVec * GrappleSpawnDist;
 
 		//assign the grappling hook head reference to the spawned grappling hook head
-		GrapplingHookRef = GetWorld()->SpawnActorDeferred<AGrapplingHookHead>(
-			GrappleHookHeadClass,
-			FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)),
-			this,
-			this,
-			ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
+		GrapplingHookRef = GetWorld()->SpawnActorDeferred<AGrapplingHookHead>(GrappleHookHeadClass, FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)), this, this, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 
-		//set the velocity to the camera forward vector
-		GrapplingHookRef->InitialVelocity = Camera->GetForwardVector() * GrappleSpeed;
-
-		//set the player movement component
+		//set properties on the grappling hook head
 		GrapplingHookRef->PlayerMovementComponent = PlayerMovementComponent;
+		GrapplingHookRef->MaxDistance = MaxGrappleDistance;
 
 		//finish spawning the grappling hook head
 		GrapplingHookRef->FinishSpawning(FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)));
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
-	}
-}
 
-void APlayerCharacter::UpdateCrosshair()
-{
-	//check if the grappling hook is retracted
-	if (PlayerMovementComponent->GrappleState != EGrappleState::EGS_Retracted)
-	{
-		//set the grappling crosshair to false
-		PlayerOverlay->EnableGrapplingCrosshair(false);
-	}
-	else
-	{
-		//update the grappling crosshair
-		PlayerOverlay->EnableGrapplingCrosshair(PlayerMovementComponent->CanGrapple());
+		//set the grapple state to in air
+		PlayerMovementComponent->GrappleState = EGrappleState::EGS_InAir;
 	}
 }
 

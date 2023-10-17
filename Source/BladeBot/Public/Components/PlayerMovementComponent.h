@@ -8,14 +8,6 @@
 #include "GrapplingHook/GrapplingRopeActor.h"
 #include "PlayerMovementComponent.generated.h"
 
-//custom movement modes for the player character
-UENUM()
-enum ECustomMovementMode
-{
-	CCM_None UMETA(DisplayName = "None"),
-	CCM_Grappling UMETA(DisplayName = "Grappling")
-};
-
 /**
  * Movement component for the player character that adds grappling
  */
@@ -27,15 +19,9 @@ class BLADEBOT_API UPlayerMovementComponent : public UCharacterMovementComponent
 public:
 	UPlayerMovementComponent();
 
-	//reference variables
-
 	//the strenght of the pull of the grapple hook
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GrappleHook")
-	float PullStrenght = 20.f;
-
-	//reference to the ownercharacter as a playercharacter
-	UPROPERTY(BlueprintReadOnly)
-	class APlayerCharacter* PlayerCharacter = nullptr;
+	float PullStrenght = 2000.f;
 
 	//the object that the character is grappling towards
 	IGrappleRopeInterface* GrappleObject = nullptr;
@@ -43,15 +29,15 @@ public:
 	//the current grapple state of the grappling object
 	EGrappleState GrappleState = EGrappleState::EGS_Retracted;
 
-	//the current grapple hit used for grappling movement
-	FHitResult GrappleHit;
-
 	//whether or not the player is grappling
 	bool bIsGrappling = false;
 
+	//vector pointing in the direction of the grapple
+	FVector GrappleVelocity = FVector::ZeroVector;
+
 	//override functions
-	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual void PhysFlying(float deltaTime, int32 Iterations) override;
 
 	//grappling functions
 
