@@ -120,11 +120,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Subclasses")
 	TSubclassOf<class AGrapplingHookHead> GrappleHookHeadClass;
 
-	UPROPERTY()
+	UPROPERTY(blueprintReadOnly)
 	class AGrapplingHookHead* GrapplingHookRef{ nullptr };
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class UAttributeComponent* Attributes;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UAudioComponent* AudioComponent;
 
 	UPROPERTY()
 	UPlayerMovementComponent* PlayerMovementComponent;
@@ -147,6 +150,10 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float Damage = 1.f;
+
+	/** Audio */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	FName SpeedParameterName = "Speed";
 
 	/** Respawning Player **/
 	virtual void Destroyed() override;
