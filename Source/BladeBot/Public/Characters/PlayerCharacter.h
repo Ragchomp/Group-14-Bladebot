@@ -4,14 +4,13 @@
 #include "StateControl.h"
 #include "BaseCharacter.h"
 #include "Components/PlayerMovementComponent.h"
-#include "Interface/DebugInterface.h"
 #include "PlayerCharacter.generated.h"
 
 struct FInputActionValue;
 class UCameraArmComponent;
 
 UCLASS()
-class BLADEBOT_API APlayerCharacter : public ABaseCharacter, public IDebugInterface
+class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
 	GENERATED_BODY()
 
@@ -21,13 +20,18 @@ public:
 
 	//overrides
 	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
+	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	FTimerHandle Seconds;
+	bool bDebugMode = false;
 	void CountTime();
+	bool CrosshairCheck() const;
+
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
+
 	void TimerInit();
 	void InputInit();
 	void Inits();
@@ -63,15 +67,6 @@ protected:
 	void ShootGrapple(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void DespawnGrapple(const FInputActionValue& Value);
-
-	//UFUNCTION()
-	//void GrappleReel(const FInputActionValue& Value);
-
-	//UFUNCTION()
-	//void StopGrappleReel(const FInputActionValue& Value);
-
-	UFUNCTION()
 	void Attack(const FInputActionValue& Value);
 	void GetForwardCameraVector();
 	FVector CamForwardVector;
@@ -91,9 +86,6 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_ShootGrapple;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
-	class UInputAction* IA_DespawnGrapple;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_Attack;
@@ -137,10 +129,10 @@ protected:
 public:
 
 	/** Class Components  */
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UCameraComponent* Camera;
 
-	UPROPERTY(VisibleAnywhere)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UCameraArmComponent* CameraArm;
 
 	/** Subclasses */
@@ -168,9 +160,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	float GrappleSpawnDist = 100;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
-	float GrappleSpeed = 1000;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float MovementSpeedToKill = 4000.f;
