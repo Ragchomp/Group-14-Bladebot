@@ -23,7 +23,6 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
-	
 	FTimerHandle Seconds;
 	bool bDebugMode = false;
 	void CountTime();
@@ -42,19 +41,6 @@ public:
 	bool TimerShouldTick = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools|Others")
 	bool CanDie = true;
-
-	/**
-	 * Dash Function
-	 */
-	UFUNCTION()
-	void PlayerDashAttack(const FInputActionValue& Value);
-
-	////SlowdownSounds
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	TObjectPtr<USoundBase> DashSound;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashSpeed = 1.f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -81,6 +67,8 @@ protected:
 
 	UFUNCTION()
 	void Attack(const FInputActionValue& Value);
+	void GetForwardCameraVector();
+	FVector CamForwardVector;
 
 	/** Input Calls */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|IMC")
@@ -107,6 +95,39 @@ protected:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_RespawnButton;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
+	class UInputAction* IA_KillSelf;
+
+	/**
+	 * Dash Function
+	 */
+	UFUNCTION()
+	void PlayerDashAttack(const FInputActionValue& Value);
+
+	////SlowdownSounds
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	TObjectPtr<USoundBase> DashSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashSpeed = 1000.f;
+
+	// Duration of the dash
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDuration;
+
+	// How much time before the end of the dash to start decelerating.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDecelerationTime;
+
+	// The rate of deceleration.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDecelerationRate;
+
+	// Determines if the character can dash
+	bool bIsDashing;
+
+	// Time since the dash was initiated
+	float AirDashTime;
 public:
 
 	/** Class Components  */
@@ -120,11 +141,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Subclasses")
 	TSubclassOf<class AGrapplingHookHead> GrappleHookHeadClass;
 
-	UPROPERTY()
+	UPROPERTY(blueprintReadOnly)
 	class AGrapplingHookHead* GrapplingHookRef{ nullptr };
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class UAttributeComponent* Attributes;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	class UAudioComponent* AudioComponent;
 
 	UPROPERTY()
 	UPlayerMovementComponent* PlayerMovementComponent;
@@ -148,12 +172,17 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float Damage = 1.f;
 
+	/** Audio */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	FName SpeedParameterName = "Speed";
+
 	/** Respawning Player **/
 	virtual void Destroyed() override;
 	//virtual void BeginDestroy() override;
 	void CallRestartPlayer();
 
 private:
+	FTimerHandle RespawnTime;
 	virtual void Die() override;
 	void OverlayInit();
 	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
