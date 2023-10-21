@@ -3,11 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NiagaraComponent.h"
 #include "GameFramework/Actor.h"
 #include "PhysicsEngine/PhysicsConstraintComponent.h"
 #include "Engine/Classes/Components/SphereComponent.h"
 #include "GrapplingRopeActor.generated.h"
-
 
 //interface for actors that can be grappled to
 UINTERFACE(MinimalAPI, Blueprintable)
@@ -54,13 +54,37 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rope")
 	TEnumAsByte<ERopeMode> RopeMode = InfiniteRopeLength;
 
+	//the Niagara system used to render the rope
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
+	TObjectPtr<UNiagaraSystem> NiagaraSystem = nullptr;
+
+	//the name of the user parameter for the end of the Niagara ribbons
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
+	FName RibbonEndParameterName = "RopeEnd";
+
+	//whether or not to use the rope radius as the ribbon width
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
+	bool UseRopeRadiusAsRibbonWidth = true;
+
+	//the name of the user parameter for the width of the Niagara ribbons
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering", meta = (EditCondition = "UseRopeRadiusAsRibbonWidth == false", EditConditionHides))
+	FName RibbonWidthParameterName = "RopeWidth";
+
+	//the width of the ribbon used to render the rope(only used if UseRopeRadiusAsRibbonWidth is false)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering", meta = (EditCondition = "UseRopeRadiusAsRibbonWidth == false", EditConditionHides))
+	float RibbonWidth = 10.f;
+
 	//whether we should draw debug lines for the rope
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Debug")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
 	bool bDrawDebugRope = false;
 
 	//whether we should draw the physics constraints in the fixed length rope mode (only works if bDrawDebugRope is true)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Debug", meta = (EditCondition = "RopeMode == ERopeMode::FixedLength && bDrawDebugRope == true", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering", meta = (EditCondition = "RopeMode == ERopeMode::FixedLength && bDrawDebugRope == true", EditConditionHides))
 	bool bDrawPhysicsConstraints = false;
+
+	//array of niagara components used to render the rope
+	UPROPERTY(BlueprintReadOnly, Category = "Rope|Rendering")
+	TArray<UNiagaraComponent*> NiagaraComponents;
 
 	//the minimum spacing between new and old collision points in the infinite length rope mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|InfiniteLength", meta = (editcondition = "RopeMode == ERopeMode::InfiniteRopeLength", editconditionHides))
@@ -97,6 +121,7 @@ public:
 	//actor overrides
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
+	virtual void Destroyed() override;
 
 	//grapple rope interface overrides
 	virtual FVector GetGrapplePoint(AActor* TravelingActor) const override;
@@ -106,6 +131,9 @@ public:
 
 	//sets the collision points for the rope to the current location of the actors we're attached to
 	void SetAttachedRopePointPositions(bool FixedLength = false);
+
+	//renders the rope using the niagara system
+	void RenderRope();
 
 	//draws debug lines for the rope
 	void DrawDebugRope();

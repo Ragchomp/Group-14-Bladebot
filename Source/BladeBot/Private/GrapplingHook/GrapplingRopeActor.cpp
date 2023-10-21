@@ -1,5 +1,8 @@
 #include "GrapplingHook/GrapplingRopeActor.h"
 
+#include "NiagaraFunctionLibrary.h"
+#include "NiagaraSystem.h"
+
 AGrapplingRopeActor::AGrapplingRopeActor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -80,6 +83,41 @@ void AGrapplingRopeActor::Tick(float DeltaTime)
 		//draw the rope
 		DrawDebugRope();
 	}
+	//check if we don't have a valid Niagara system to render
+	else if (NiagaraSystem->IsValidLowLevelFast())
+	{
+		//render the rope
+		RenderRope();
+	}
+	else
+	{
+		//draw debug message
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Draw debug is false, and we don't have a valid niagara system"));
+	}
+}
+
+void AGrapplingRopeActor::Destroyed()
+{
+	//destroy all the physics constraints
+	for (UPhysicsConstraintComponent* PhysicsConstraint : PhysicsConstraints)
+	{
+		PhysicsConstraint->DestroyComponent();
+	}
+
+	//destroy all the hitboxes
+	for (USphereComponent* Hitbox : Hitboxes)
+	{
+		Hitbox->DestroyComponent();
+	}
+
+	//destroy all the niagara components
+	for (UNiagaraComponent* NiagaraComponent : NiagaraComponents)
+	{
+		NiagaraComponent->DestroyComponent();
+	}
+
+	//call the parent implementation
+	Super::Destroyed();
 }
 
 FVector AGrapplingRopeActor::GetGrapplePoint(AActor* TravelingActor) const
@@ -95,23 +133,33 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 	CollisionParams.AddIgnoredActor(Owner);
 
 	//iterate through all the collision points
-	for (int i = 0; i < CollisionPoints.Num() - 1; i++)
+	for (int Index = 0; Index < CollisionPoints.Num() - 1; Index++)
 	{
 		//check if we're not at the first collision point
-		if (i != 0)
+		if (Index != 0)
 		{
-			FHitResult Surrounding;
 			//sweep from the previous collision point to the next collision point
-			GetWorld()->SweepSingleByChannel(Surrounding, CollisionPoints[i - 1], CollisionPoints[i + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
+			FHitResult Surrounding;
+			GetWorld()->SweepSingleByChannel(Surrounding, CollisionPoints[Index - 1], CollisionPoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
 
 			//check if the sweep returned a blocking hit or started inside an object
 			if (!Surrounding.bBlockingHit || Surrounding.bStartPenetrating)
 			{
 				//remove the collision point from the array
-				CollisionPoints.RemoveAt(i);
+				CollisionPoints.RemoveAt(Index);
+
+				//check if we need to remove the niagara component for this collision point
+				if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
+				{
+					//destroy the niagara component
+					NiagaraComponents[Index]->DestroyComponent();
+					
+					//remove the niagara component from the array
+					NiagaraComponents.RemoveAt(Index);
+				}
 
 				//decrement i so we don't skip the next collision point
-				i--;
+				Index--;
 
 				//continue to the next collision point
 				continue;
@@ -120,16 +168,16 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 
 		FHitResult Next;
 		//sweep from the current collision point to the next collision point
-		GetWorld()->SweepSingleByChannel(Next, CollisionPoints[i], CollisionPoints[i + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
+		GetWorld()->SweepSingleByChannel(Next, CollisionPoints[Index], CollisionPoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
 
 		//check for hits
 		if (Next.IsValidBlockingHit())
 		{
 			//if we hit something, add a new collision point at the hit location if we're not too close to the last collision point
-			if (FVector::Dist(CollisionPoints[i], Next.Location) > MinCollisionPointSpacing)
+			if (FVector::Dist(CollisionPoints[Index], Next.Location) > MinCollisionPointSpacing)
 			{
 				//insert the new collision point at the hit location
-				CollisionPoints.Insert(Next.Location + Next.ImpactNormal, i + 1);
+				CollisionPoints.Insert(Next.Location + Next.ImpactNormal, Index + 1);
 			}
 		}
 	}
@@ -159,6 +207,55 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 
 		//set the end of the rope to the owner's location
 		CollisionPoints[CollisionPoints.Num() - 1] = Owner->GetActorLocation();
+	}
+}
+
+void AGrapplingRopeActor::RenderRope()
+{
+	//check if we have a valid Niagara system to render
+	if (NiagaraSystem->IsValidLowLevelFast())
+	{
+		//iterate through all the collision points except the last one
+		for (int Index = 0; Index < CollisionPoints.Num() - 1; ++Index)
+		{
+			//check if we have a valid Niagara component to use or if we need to create a new one
+			if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
+			{
+				//set the start location of the Niagara component
+				NiagaraComponents[Index]->SetWorldLocation(CollisionPoints[Index]);
+
+				//set the end location of the Niagara component
+				NiagaraComponents[Index]->SetVectorParameter(RibbonEndParameterName, CollisionPoints[Index + 1]);
+
+				//check if we should use rope radius
+				if (UseRopeRadiusAsRibbonWidth)
+				{
+					//set the ribbon width to the rope radius
+					NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RopeRadius);
+				}
+				else
+				{
+					//set the ribbon width to the ribbon width
+					NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RibbonWidth);
+				}
+			}
+			else
+			{
+				//create a new Niagara component
+				UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, CollisionPoints[Index]);
+
+				//set the end location of the Niagara component
+				NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, CollisionPoints[Index + 1]);
+
+				//add the new Niagara component to the array
+				NiagaraComponents.Add(NewNiagaraComponent);
+			}
+		}
+	}
+	else
+	{
+		//draw debug message
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RopeRenderer has no valid niagara system"));
 	}
 }
 

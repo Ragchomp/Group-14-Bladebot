@@ -27,6 +27,8 @@ public:
 	FTimerHandle Seconds;
 	bool bDebugMode = false;
 	void CountTime();
+	bool CrosshairCheck() const;
+
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
@@ -145,10 +147,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float Damage = 1.f;
-
-	//the max distance the Grappling hook can travel
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxDistance")
-	float MaxGrappleDistance = 3000.f;
 
 	/** Respawning Player **/
 	virtual void Destroyed() override;

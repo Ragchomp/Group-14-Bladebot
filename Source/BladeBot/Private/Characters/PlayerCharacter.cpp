@@ -128,11 +128,12 @@ void APlayerCharacter::Tick(float DeltaTime)
 	//call the parent implementation
 	Super::Tick(DeltaTime);
 
+	//update the grappling crosshair
 	//if PlayerOverlay is valid update the player overlay's crosshair
 	if (PlayerOverlay)
 	{
 		//update the grappling crosshair
-		PlayerOverlay->EnableGrapplingCrosshair(PlayerMovementComponent->CanGrapple());
+		PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
 	}
 }
 
@@ -202,6 +203,23 @@ void APlayerCharacter::DoJump(const FInputActionValue& Value)
 		//print debug message
 		InputDebugMessage(IA_DoJump);
 	}
+}
+
+bool APlayerCharacter::CrosshairCheck() const
+{
+	//if the player is already grappling return false
+	if (PlayerMovementComponent->bIsGrappling)
+	{
+		return false;
+	}
+
+	//if the player can grapple and there is no grappling hook return true
+	if (PlayerMovementComponent->CanGrapple() && (!GrapplingHookRef || GrapplingHookRef->IsActorBeingDestroyed()))
+	{
+		return true;
+	}
+
+	return false;
 }
 
 void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
@@ -361,21 +379,18 @@ void APlayerCharacter::SpawnGrappleProjectile()
 		//get the spawn location
 		const FVector SpawnLocation = GetActorLocation() + CamForwardVec * GrappleSpawnDist;
 
+		//spawn parameters
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+
 		//assign the grappling hook head reference to the spawned grappling hook head
-		GrapplingHookRef = GetWorld()->SpawnActorDeferred<AGrapplingHookHead>(GrappleHookHeadClass, FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)), this, this, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
-
-		//set properties on the grappling hook head
-		GrapplingHookRef->PlayerMovementComponent = PlayerMovementComponent;
-		GrapplingHookRef->MaxDistance = MaxGrappleDistance;
-
-		//finish spawning the grappling hook head
-		GrapplingHookRef->FinishSpawning(FTransform(SpawnRotation, SpawnLocation, FVector(1, 1, 1)));
+		GrapplingHookRef = GetWorld()->SpawnActor<AGrapplingHookHead>(GrappleHookHeadClass, SpawnLocation, SpawnRotation, SpawnParams);
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
-
-		//set the grapple state to in air
-		PlayerMovementComponent->GrappleState = EGrappleState::EGS_InAir;
 	}
 }
 
