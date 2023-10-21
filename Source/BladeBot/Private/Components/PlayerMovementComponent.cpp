@@ -42,7 +42,7 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		}
 
 		//print debug message
-		GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Floor Distance: %f"), DistanceToFloor));
+		///GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Floor Distance: %f"), DistanceToFloor));
 	}
 }
 
