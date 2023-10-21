@@ -44,7 +44,6 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
-	virtual void Tick(float DeltaSeconds) override;
 	/** Input Functions */
 
 	//function to check if the player can use input
@@ -95,6 +94,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_RespawnButton;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
+	class UInputAction* IA_KillSelf;
 
 	/**
 	 * Dash Function
@@ -173,6 +175,7 @@ public:
 	void CallRestartPlayer();
 
 private:
+	FTimerHandle RespawnTime;
 	virtual void Die() override;
 	void OverlayInit();
 	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

@@ -19,6 +19,8 @@
 #include "Kismet/GameplayStatics.h"
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
+#include "EngineUtils.h"
+#include "BladeBot/Spawning/SpawnPoint.h"
 
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
@@ -102,6 +104,14 @@ void APlayerCharacter::BeginPlay()
 
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
+
+	TActorIterator<ASpawnPoint> SpawnPointIterator(GetWorld());
+	ASpawnPoint* SpawnPoint = SpawnPointIterator ? *SpawnPointIterator : nullptr;
+
+	if (SpawnPoint)
+	{
+		SetActorLocation(SpawnPoint->GetActorLocation());
+	}
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -120,6 +130,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
+		//EnhancedInputComponent->BindAction(IA_KillSelf, ETriggerEvent::Triggered, this, &APlayerCharacter::Destroyed);
 	}
 }
 
@@ -295,6 +306,7 @@ void APlayerCharacter::Destroyed()
 		{
 			//broadcast the on player death event
 			GameMode->GetOnPlayerDeath().Broadcast(this);
+			GetWorld()->GetTimerManager().SetTimer(RespawnTime, this, &APlayerCharacter::CallRestartPlayer, 3.f, false);
 		}
 	}
 }
