@@ -15,9 +15,9 @@ public:
 	AMissleDestructable_Boss();
 	virtual void Tick(float DeltaTime) override;
 
-	UFUNCTION(BlueprintCallable)
-		virtual void HandleDamage(const float& DamageAmount);
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	void SetCombatTarget(AActor* CombatTargetInn);
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -25,7 +25,22 @@ private:
 
 	// ------------- Functions ------------
 
+	// Health -----------
 	void Die();
+
+	// Movement ----------
+	void Rotate(FVector Target, float DeltaTime);
+	void Move(float DeltaTime);
+
+	bool CheckSight();
+	// line trace
+	// line trace fracture
+	// repath
+
+	void LineTrace(FVector Target, FHitResult& OutHit);
+
+	// Combat ----------
+
 
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
@@ -43,6 +58,14 @@ private:
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 		class UAttributeComponent* AttributeComponent;
 
+public:
+	UPROPERTY(VisibleAnywhere, Category = "Constants")
+		float MovementSpeed = 800.f;
 
+	UPROPERTY(VisibleAnywhere, Category = "Constants")
+		float RotationSpeed = 1.0f;
+
+	UFUNCTION(BlueprintCallable)
+		FVector GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
 
 };

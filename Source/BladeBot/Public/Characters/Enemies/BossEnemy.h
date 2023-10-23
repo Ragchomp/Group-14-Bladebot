@@ -36,7 +36,11 @@ protected:
 	// Combat ----------
 	void SeenAnEnemy();
 	void ShootRocketBarrage();
+	// Spawning ----------
+	FVector MissleSpawnLocation();
+	FRotator MissleSpawnRotation();
 	void SpawnRocket();
+	// /Spawning ----------
 	void RocketBarrageCooldown();
 	void EnemyLeft();
 
@@ -89,18 +93,53 @@ public:
 		float RocketBarrageStartupTime = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
-		float NextRocketIntervalTime = 0.5f;
+		float NextRocketIntervalTime = 0.3f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
 		float RocketBarrageCooldownTime = 3.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
-		int RocketsToShoot = 5;
+		int RocketsToShoot = 10;
 
 	UPROPERTY()
 		int RocketsShoot = 0;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwRotatinoffSettMinPitch = -45.f;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwRotatinoffSettMaxPitch = 45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwRotatinoffSettMinYaw = -45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwRotatinoffSettMaxYaw = 45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwRotatinoffSettMinRoll = -45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwRotatinoffSettMaxRoll = 45.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwLocationoffSettMinX = -1000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwLocationoffSettMaxX = -1500.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwLocationoffSettMinY = -1000.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwLocationoffSettMaxY = 1000.f;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwLocationoffSettMinZ = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float MissleSpanwLocationoffSettMaxZ = 400.f;
+	
 	// ------------- Bools ------------
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools")
@@ -114,4 +153,5 @@ public:
 		// Gets the AI state from the state controller
 	FORCEINLINE EEnemyState GetAIState() const { return EnemyState; }
 	FORCEINLINE ESGunState GetGunState() const { return GunState; }
+	FORCEINLINE AActor* GetCombatTarget() const { return CombatTarget; }
 };

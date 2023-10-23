@@ -118,23 +118,45 @@ void ABossEnemy::ShootRocketBarrage()
 
 }
 
+FVector ABossEnemy::MissleSpawnLocation()
+{
+	FVector SpawnLocation = GetActorLocation();
+	FVector SpawnLocationOffSet(FMath::RandRange(MissleSpanwLocationoffSettMinX, MissleSpanwLocationoffSettMaxX),
+		FMath::RandRange(MissleSpanwLocationoffSettMinY, MissleSpanwLocationoffSettMaxY),
+		FMath::RandRange(MissleSpanwLocationoffSettMinZ, MissleSpanwLocationoffSettMaxZ));
+	FVector SpawnLocationBaseOffSet = FVector(500.f,500.f,500.f);
+	SpawnLocation = SpawnLocation + SpawnLocationOffSet + SpawnLocationBaseOffSet;
+
+	return SpawnLocation;
+}
+
+FRotator ABossEnemy::MissleSpawnRotation()
+{
+	FRotator SpawnRotation = GetActorRotation();
+	FRotator SpawnRotationOffSet(FMath::RandRange(MissleSpanwRotatinoffSettMinPitch, MissleSpanwRotatinoffSettMaxPitch),
+									FMath::RandRange(MissleSpanwRotatinoffSettMinYaw, MissleSpanwRotatinoffSettMaxYaw), 
+									FMath::RandRange(MissleSpanwRotatinoffSettMinRoll, MissleSpanwRotatinoffSettMaxRoll));
+	SpawnRotation = SpawnRotation + SpawnRotationOffSet;
+
+	return SpawnRotation;
+}
+
 void ABossEnemy::SpawnRocket()
 {
 	//VFX and Audio
 	PlayVFXAttack(GetActorLocation());
 	PlayAudioAttack(GetActorLocation());
-	GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Shot a rocket"));
+	//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Shot a rocket"));
 
 	// Spawn rocket
 	if(MissleDestuctable_BP)
 	{
-		FVector SpawnLocation = GetActorLocation() + FVector(-100.f,0.f,1000.f);
-		//SpawnLocation + FVector(500.f, 500.f, 500.f);
-		//SpawnLocation + FVector(FMath::RandRange(10, 100), FMath::RandRange(10, 100), FMath::RandRange(10, 100));
+		AMissleDestructable_Boss* NewMissle = GetWorld()->SpawnActor<AMissleDestructable_Boss>(MissleDestuctable_BP, MissleSpawnLocation(), MissleSpawnRotation());
+		if(NewMissle && CombatTarget)
+		{
+			NewMissle->SetCombatTarget(CombatTarget);
+		}
 
-		FRotator SpawnRotation = GetActorRotation();
-
-		GetWorld()->SpawnActor<AMissleDestructable_Boss>(MissleDestuctable_BP, SpawnLocation, GetActorRotation());
 		ShootRocketBarrage();
 	}
 }
@@ -152,7 +174,7 @@ void ABossEnemy::RocketBarrageCooldown()
 
 void ABossEnemy::EnemyLeft()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Enemy left"));
+	//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Enemy left"));
 	CombatTarget = nullptr;
 	EnemyState = EEnemyState::EES_Idle;
 
