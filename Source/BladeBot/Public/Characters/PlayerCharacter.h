@@ -172,6 +172,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	float GrappleSpawnDist = 100;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
+	bool AddVelocityToGrappleHook = true;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float MovementSpeedToKill = 4000.f;
 

@@ -33,7 +33,7 @@ public:
 
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	TEnumAsByte<EGrapplingMode> GrappleMode = InterpToGrapple;
+	TEnumAsByte<EGrapplingMode> GrappleMode = SetVelocity;
 
 	//the grappling speed in set velocity mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::SetVelocity", EditConditionHides))
