@@ -7,9 +7,18 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GrapplingHook/GrapplingRopeActor.h"
 #include "CollisionShape.h"
+#include "Math/InterpShorthand.h"
 #include "PlayerMovementComponent.generated.h"
 
 class AGrapplingHookHead;
+
+UENUM(BlueprintType)
+enum EGrapplingMode
+{
+	SetVelocity,
+	AddToVelocity,
+	InterpToGrapple,
+};
 
 /**
  * Movement component for the player character that adds grappling
@@ -24,15 +33,31 @@ public:
 
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	bool bSetVelocity = true;
+	TEnumAsByte<EGrapplingMode> GrappleMode = SetVelocity;
 
 	//the grappling speed in set velocity mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bSetVelocity == true"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::SetVelocity", EditConditionHides))
 	float SetGrappleSpeed = 2000.f;
 
 	//the grappling speed in add velocity mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bSetVelocity == false"))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::AddToVelocity", EditConditionHides))
 	float AddGrappleSpeed = 4000.f;
+
+	//the grappling speed in add velocity mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::InterpToGrapple", EditConditionHides))
+	float InterpGrappleSpeed = 2000.f;
+
+	//the interp function to use when using the InterpToGrapple mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::InterpToGrapple", EditConditionHides))
+	TEnumAsByte<EInterpToTargetType> GrappleInterpType = InterpTo;
+
+	//the interpolation speed when using the InterpToGrapple mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::InterpToGrapple", EditConditionHides))
+	float GrappleInterpSpeed = 2.5f;
+
+	//whether or not the player is grappling
+	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
+	bool bIsGrappling = false;
 
 	//the grappling hook that the player is using
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling|GrappleHook")
@@ -51,9 +76,6 @@ public:
 
 	//the object that the character is grappling towards
 	IGrappleRopeInterface* GrappleObject = nullptr;
-
-	//whether or not the player is grappling
-	bool bIsGrappling = false;
 
 	//vector pointing in the direction of the grapple
 	FVector GrappleVelocity = FVector::ZeroVector;

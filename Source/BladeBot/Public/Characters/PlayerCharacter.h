@@ -66,6 +66,9 @@ protected:
 	void ShootGrapple(const FInputActionValue& Value);
 
 	UFUNCTION()
+	void StopGrapple(const FInputActionValue& Value);
+
+	UFUNCTION()
 	void Attack(const FInputActionValue& Value);
 	void GetForwardCameraVector();
 	FVector CamForwardVector;
@@ -85,6 +88,9 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_ShootGrapple;
+
+	UPROPERTY(editDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
+	class UInputAction* IA_StopGrapple;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_Attack;
@@ -165,6 +171,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	float GrappleSpawnDist = 100;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
+	bool AddVelocityToGrappleHook = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float MovementSpeedToKill = 4000.f;
