@@ -19,7 +19,8 @@
 #include "Kismet/GameplayStatics.h"
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
-#include "Components/AudioComponent.h"
+#include "EngineUtils.h"
+#include "BladeBot/Spawning/SpawnPoint.h"
 
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
@@ -43,12 +44,10 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
-	AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
 
 	//setup attachments
 	CameraArm->SetupAttachment(GetRootComponent());
 	Camera->SetupAttachment(CameraArm);
-	AudioComponent->SetupAttachment(GetRootComponent());
 
 	//set relative location and rotation for the mesh
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
@@ -105,6 +104,14 @@ void APlayerCharacter::BeginPlay()
 
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
+
+	TActorIterator<ASpawnPoint> SpawnPointIterator(GetWorld());
+	ASpawnPoint* SpawnPoint = SpawnPointIterator ? *SpawnPointIterator : nullptr;
+
+	if (SpawnPoint)
+	{
+		SetActorLocation(SpawnPoint->GetActorLocation());
+	}
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -123,6 +130,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
+		//EnhancedInputComponent->BindAction(IA_KillSelf, ETriggerEvent::Triggered, this, &APlayerCharacter::Destroyed);
 	}
 }
 
@@ -131,18 +139,12 @@ void APlayerCharacter::Tick(float DeltaTime)
 	//call the parent implementation
 	Super::Tick(DeltaTime);
 
-	//check if PlayerOverlay is valid update the player overlay's crosshair
+	//update the grappling crosshair
+	//if PlayerOverlay is valid update the player overlay's crosshair
 	if (PlayerOverlay)
 	{
 		//update the grappling crosshair
 		PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
-	}
-
-	//check if the audio component has a valid sound
-	if (AudioComponent->Sound->IsValidLowLevel())
-	{
-		//update the speed parameter
-		AudioComponent->SetFloatParameter(SpeedParameterName, GetVelocity().Length());
 	}
 }
 
@@ -304,6 +306,7 @@ void APlayerCharacter::Destroyed()
 		{
 			//broadcast the on player death event
 			GameMode->GetOnPlayerDeath().Broadcast(this);
+			GetWorld()->GetTimerManager().SetTimer(RespawnTime, this, &APlayerCharacter::CallRestartPlayer, 3.f, false);
 		}
 	}
 }
