@@ -37,6 +37,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
+
 	//get a reference to the movement component as a player movement component
 	PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
 
@@ -62,6 +63,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 
 	//make the camera follow the controller's rotation (so it uses the rotation input from the mouse)
 	CameraArm->bUsePawnControlRotation = true;
+
+	//disable busepawncontrolrotation on the camera
+	Camera->bUsePawnControlRotation = false;
 
 	//default to automatically possessing the player
 	AutoPossessPlayer = EAutoReceiveInput::Player0;
