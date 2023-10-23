@@ -24,12 +24,6 @@ protected:
 	// Health ------------------------------
 
 		// ----
-		// Calls recive Damage on attribute component and checks if damage killed self
-		// ----
-	UFUNCTION(BlueprintCallable)
-		virtual void HandleDamage(const float& DamageAmount);
-
-		// ----
 		// Removes entity from game and disables collision
 		// ----
 	UFUNCTION(BlueprintCallable)
@@ -176,6 +170,5 @@ public:
 	// ----
 	UFUNCTION(BlueprintCallable)
 		virtual	float GetDistanceBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
-
 
 };
