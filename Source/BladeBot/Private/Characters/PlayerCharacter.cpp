@@ -268,6 +268,7 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 			}
 			else
 			{
+				//set the grappling hook to destroy on impact
 				GrapplingHookRef->bDestroyOnImpact = true;
 			}
 		}
