@@ -156,7 +156,7 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	class UAudioComponent* AudioComponent;
 
-	UPROPERTY()
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UPlayerMovementComponent* PlayerMovementComponent;
 
 	/** HUD */
