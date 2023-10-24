@@ -37,7 +37,6 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
-
 	//get a reference to the movement component as a player movement component
 	PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
 
