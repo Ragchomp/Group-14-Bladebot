@@ -256,11 +256,20 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 {
 	if (CharacterState != ECharacterState::ECS_Dead){
+
 		//check if there is an existing grappling hook
 		if (GrapplingHookRef)
 		{
-			//reactivate the grappling hook
-			GrapplingHookRef->Destroy();
+			//check if we should destroy the hook immediately
+			if (DestroyHookImmediately)
+			{
+				//destroy the grappling hook
+				GrapplingHookRef->Destroy();	
+			}
+			else
+			{
+				GrapplingHookRef->bDestroyOnImpact = true;
+			}
 		}
 
 		//print debug message

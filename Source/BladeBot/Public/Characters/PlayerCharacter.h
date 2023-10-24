@@ -175,6 +175,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	bool AddVelocityToGrappleHook = true;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
+	bool DestroyHookImmediately = false;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float MovementSpeedToKill = 4000.f;
 

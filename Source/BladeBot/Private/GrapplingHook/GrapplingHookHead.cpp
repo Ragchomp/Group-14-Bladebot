@@ -175,4 +175,33 @@ void AGrapplingHookHead::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 		//start player grapple
 		PlayerMovementComponent->StartGrapple(RopeActor);
 	}
+
+	//check if we should destroy on impact
+	if (bDestroyOnImpact)
+	{
+		//check if we shouldn't destroy ourselves immediately
+		if (DestroyDelay != 0)
+		{
+			//set the timer to destroy ourselves
+			GetWorld()->GetTimerManager().SetTimer(DestroyTimer, this, &AGrapplingHookHead::DoDestroy, DestroyDelay);
+		}
+		else
+		{
+			//destroy ourselves immediately
+			Destroy();	
+		}
+	}
+}
+
+void AGrapplingHookHead::DoDestroy()
+{
+	//destroy ourselves
+	Destroy();
+
+	//check if we have a player movement component
+	if (PlayerMovementComponent)
+	{
+		//stop the player grapple
+		PlayerMovementComponent->StopGrapple();
+	}
 }

@@ -43,6 +43,14 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Despawn")
 	bool bCanDespawnbyOverlap = true;
 
+	//whether or not to destroy on impact
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Despawn")
+	bool bDestroyOnImpact = true;
+
+	//the amount of time to wait before destroying the hook after impact
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Despawn", meta = (EditCondition = "bDestroyOnImpact == true", editconditionHides))
+	float DestroyDelay = 0.1f;
+
 	//the hitbox for the grappling hook head's collisions with surfaces
 	UPROPERTY(VisibleAnywhere)
 	class USphereComponent* WallHitbox;
@@ -71,6 +79,9 @@ public:
 	UPROPERTY()
 	class AGrapplingRopeActor* RopeActor;
 
+	//timer handle for destroying the grappling hook head after a delay
+	FTimerHandle DestroyTimer;
+
 	//overrides
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -79,11 +90,17 @@ public:
 	UFUNCTION()
 	void OnOverlapBegin(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
+	//the function that's called when the grappling hook head stops overlapping something
 	UFUNCTION()
 	void OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex);
 
+	//the function that's called when the grappling hook head hits something
 	UFUNCTION()
 	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	//the function that's called when the grappling hook head is destroyed because of a hit
+	UFUNCTION()
+	void DoDestroy();
 
 	//get the current state of the grappling hook head
 	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }
