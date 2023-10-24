@@ -48,21 +48,32 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void UPlayerMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
 {
-	//store the analog input modifier
-	const float OldAnalogInputModifier = AnalogInputModifier;
-
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
+		//store the analog input modifier
+		const float OldAnalogInputModifier = AnalogInputModifier;
+
 		//disable input
 		AnalogInputModifier = 0;
+
+		//call the parent implementation
+		Super::PhysFlying(deltaTime, Iterations);
+
+		//restore the analog input modifier
+		AnalogInputModifier = OldAnalogInputModifier;
+
+		//check if the input vector is not zero
+		if (const FVector InputVector = ConsumeInputVector(); !InputVector.IsZero())
+		{
+
+		}
 	}
-
-	//call the parent implementation
-	Super::PhysFlying(deltaTime, Iterations);
-
-	//restore the analog input modifier
-	AnalogInputModifier = OldAnalogInputModifier;
+	else
+	{
+		//call the parent implementation
+		Super::PhysFlying(deltaTime, Iterations);	
+	}
 }
 
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)

@@ -83,6 +83,7 @@ public:
 	//override functions
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void PhysFlying(float deltaTime, int32 Iterations) override;
+	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)

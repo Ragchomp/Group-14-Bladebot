@@ -45,7 +45,7 @@ public:
 
 	//whether or not to destroy on impact
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Despawn")
-	bool bDestroyOnImpact = true;
+	bool bDestroyOnImpact = false;
 
 	//the amount of time to wait before destroying the hook after impact
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Despawn", meta = (EditCondition = "bDestroyOnImpact == true", editconditionHides))
@@ -81,6 +81,10 @@ public:
 
 	//timer handle for destroying the grappling hook head after a delay
 	FTimerHandle DestroyTimer;
+
+
+	//whether or not we've hit something
+	bool bHasHitWall = false;
 
 	//overrides
 	virtual void BeginPlay() override;
