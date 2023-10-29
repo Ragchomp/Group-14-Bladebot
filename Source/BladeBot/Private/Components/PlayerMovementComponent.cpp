@@ -48,21 +48,32 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 void UPlayerMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
 {
-	//store the analog input modifier
-	const float OldAnalogInputModifier = AnalogInputModifier;
-
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
+		//store the analog input modifier
+		const float OldAnalogInputModifier = AnalogInputModifier;
+
 		//disable input
 		AnalogInputModifier = 0;
+
+		//call the parent implementation
+		Super::PhysFlying(deltaTime, Iterations);
+
+		//restore the analog input modifier
+		AnalogInputModifier = OldAnalogInputModifier;
+
+		//check if the input vector is not zero
+		if (const FVector InputVector = ConsumeInputVector(); !InputVector.IsZero())
+		{
+
+		}
 	}
-
-	//call the parent implementation
-	Super::PhysFlying(deltaTime, Iterations);
-
-	//restore the analog input modifier
-	AnalogInputModifier = OldAnalogInputModifier;
+	else
+	{
+		//call the parent implementation
+		Super::PhysFlying(deltaTime, Iterations);	
+	}
 }
 
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
@@ -151,7 +162,7 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit) const
 	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
 }
 
-void UPlayerMovementComponent::UpdateGrappleVelocity(float DeltaTime)
+void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
 	//get the point the character is grappling to
 	const FVector GrapplePoint = GrappleObject->GetGrapplePoint(GetCharacterOwner());
@@ -160,17 +171,33 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(float DeltaTime)
 	GrappleVelocity = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
 
 	//check if we should set the velocity
-	if (bSetVelocity)
+	switch (GrappleMode)
 	{
-		//set the velocity
-		Velocity = GrappleVelocity * SetGrappleSpeed;
-	}
-	else
-	{
-		//add the grapple vector to the character's velocity
-		Velocity += GrappleVelocity * AddGrappleSpeed * DeltaTime;	
+		case SetVelocity:
+			//set the velocity
+			Velocity = GrappleVelocity * SetGrappleSpeed;
+		break;
+		case AddToVelocity:
+			//add the grapple vector to the character's velocity
+			Velocity += GrappleVelocity * AddGrappleSpeed * DeltaTime;
+		break;
+		case InterpToGrapple:
+			switch (GrappleInterpType)
+			{
+				case Constant:
+					//interpolate the velocity
+					Velocity = FMath::VInterpConstantTo(Velocity, GrappleVelocity * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+				case InterpTo:
+					//interpolate the velocity
+					Velocity = FMath::VInterpTo(Velocity, GrappleVelocity * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+				case InterpStep:
+					//interpolate the velocity
+					Velocity = FMath::VInterpTo(Velocity, GrappleVelocity * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+			}
+		break;
 	}
 
+	
 	//update the character's velocity
 	UpdateComponentVelocity();
 }

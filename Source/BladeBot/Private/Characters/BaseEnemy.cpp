@@ -4,13 +4,10 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Components/CapsuleComponent.h"
 
 ABaseEnemy::ABaseEnemy()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	RootComponent = GetCapsuleComponent();
 
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("Attributes"));
 
@@ -52,19 +49,6 @@ float ABaseEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 }
 
 // ------------- Health ------------
-
-void ABaseEnemy::HandleDamage(const float& DamageAmount)
-{
-	if (Attributes)
-	{
-		Attributes->ReceiveDamage(DamageAmount);
-
-		if(Attributes->IsNotAlive())
-		{
-			Die();
-		}
-	}
-}
 
 void ABaseEnemy::Die()
 {

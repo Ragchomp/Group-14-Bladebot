@@ -28,14 +28,14 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	//Enable ticking
 	PrimaryActorTick.bCanEverTick = true;
 
-	//Detach rotation from controller
+	//Don't rotate when the controller rotates. Let that just affect the camera.
 	bUseControllerRotationPitch = false;
-	bUseControllerRotationRoll = false;
 	bUseControllerRotationYaw = false;
+	bUseControllerRotationRoll = false;
 
 	//set rotation to follow movement
-	GetCharacterMovement()->bOrientRotationToMovement = true;
-	GetCharacterMovement()->RotationRate = FRotator(0.f, 500.f, 0.f);
+	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	//get a reference to the movement component as a player movement component
 	PlayerMovementComponent = Cast<UPlayerMovementComponent>(GetCharacterMovement());
@@ -127,6 +127,7 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
+		EnhancedInputComponent->BindAction(IA_StopGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::StopGrapple);
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
@@ -249,6 +250,34 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 		}
 		//spawn the grappling hook
 		SpawnGrappleProjectile();
+	}
+}
+
+void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
+{
+	if (CharacterState != ECharacterState::ECS_Dead){
+
+		//check if there is an existing grappling hook
+		if (GrapplingHookRef)
+		{
+			//check if we should destroy the hook immediately
+			if (DestroyHookImmediately)
+			{
+				//destroy the grappling hook
+				GrapplingHookRef->Destroy();	
+			}
+			else
+			{
+				//set the grappling hook to destroy on impact
+				GrapplingHookRef->bDestroyOnImpact = true;
+			}
+		}
+
+		//print debug message
+		InputDebugMessage(IA_StopGrapple);
+
+		//stop the player grapple
+		PlayerMovementComponent->StopGrapple();
 	}
 }
 
