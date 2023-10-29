@@ -110,24 +110,39 @@ protected:
 	UFUNCTION()
 	void PlayerDashAttack(const FInputActionValue& Value);
 
+	UFUNCTION()
+	void ResetCooldown();
+
+	//Cooldown
+	bool bCanPerformAction = true;
+    float LastActionTime = 0.0f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+    float CooldownDuration = 2.0f;
+
 	////SlowdownSounds
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashSpeed = 1000.f;
+	TObjectPtr<UParticleSystem> DashEffect;
 
-	// Duration of the dash
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashDuration;
+	float DashSpeed = 20.f;
 
-	// How much time before the end of the dash to start decelerating.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashDecelerationTime;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	//float DefaultRotationRate = 500.f;
 
-	// The rate of deceleration.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashDecelerationRate;
+	//// Duration of the dash
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	//float DashDuration;
+
+	//// How much time before the end of the dash to start decelerating.
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	//float DashDecelerationTime;
+
+	//// The rate of deceleration.
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	//float DashDecelerationRate;
 
 	// Determines if the character can dash
 	bool bIsDashing;
