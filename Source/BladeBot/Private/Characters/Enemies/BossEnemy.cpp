@@ -163,23 +163,10 @@ void ABossEnemy::SpawnRocket()
 
 void ABossEnemy::RocketBarrageCooldown()
 {
-	
 	PlayVFXCoolDown(GetActorLocation());
 	PlayAudioCoolDown(GetActorLocation());
 	GunState = ESGunState::ESGS_Shooting;
 	GetWorldTimerManager().SetTimer(RocketBarrageStartupTimer, this, &ABossEnemy::ShootRocketBarrage, RocketBarrageStartupTime);
-}
-
-// shooting
-
-void ABossEnemy::EnemyLeft()
-{
-	//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Enemy left"));
-	CombatTarget = nullptr;
-	EnemyState = EEnemyState::EES_Idle;
-
-	// Shooting timer
-
 }
 
 // ------------ Misc ----------------
@@ -188,14 +175,9 @@ void ABossEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 {
 	APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-	if (Player && Player->ActorHasTag(FName("Player")))
+	if (CombatTarget == nullptr && Player && Player->ActorHasTag(FName("Player")))
 	{
 		CombatTarget = Player;
 		SeenAnEnemy();
 	}
-}
-
-void ABossEnemy::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	EnemyLeft();
 }

@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Characters/BaseEnemy.h"
 #include "GameFramework/Actor.h"
 #include "MissleDestructable_Boss.generated.h"
 
 UCLASS()
-class BLADEBOT_API AMissleDestructable_Boss : public AActor
+class BLADEBOT_API AMissleDestructable_Boss : public ABaseEnemy
 {
 	GENERATED_BODY()
 	
@@ -15,7 +16,6 @@ public:
 	AMissleDestructable_Boss();
 	virtual void Tick(float DeltaTime) override;
 
-	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 	void SetCombatTarget(AActor* CombatTargetInn);
 
 protected:
@@ -26,7 +26,6 @@ private:
 	// ------------- Functions ------------
 
 	// Health -----------
-	void Die();
 
 	// Movement ----------
 	void Rotate(FVector Target, float DeltaTime);
@@ -40,23 +39,21 @@ private:
 	void LineTrace(FVector Target, FHitResult& OutHit);
 
 	// Combat ----------
-
-
+	void StartBombTimer();
+	void BombTimerFinished();
+	
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;
 
 	// ------------- Components ------------
 
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-		class UBoxComponent* Collision;
+	// ------------- Timer Handlers ------------
 
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-		class USkeletalMeshComponent* Mesh;
+	FTimerHandle MissleExplosionTimer;
 
-	// Declare a pointer to the component in your subclass.
-	UPROPERTY(VisibleAnywhere, Category = "Components")
-		class UAttributeComponent* AttributeComponent;
+
+
 
 public:
 	UPROPERTY(VisibleAnywhere, Category = "Constants")
@@ -65,7 +62,18 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Constants")
 		float RotationSpeed = 1.0f;
 
-	UFUNCTION(BlueprintCallable)
-		FVector GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2);
+	UPROPERTY(VisibleAnywhere, Category = "Constants")
+		float StartExplosionTimerRange = 40.0f;
 
+	UPROPERTY(VisibleAnywhere, Category = "Constants")
+		float ExplosionRange = 100.0f;
+
+	UPROPERTY(VisibleAnywhere, Category = "Constants")
+		float Damage = 1.0f;
+
+	UPROPERTY(VisibleAnywhere, Category = "Constants")
+		float MissleExplosionRate = 2.f;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = "Constants")
+		bool startedToExplode = false;
 };

@@ -42,16 +42,12 @@ protected:
 	void SpawnRocket();
 	// /Spawning ----------
 	void RocketBarrageCooldown();
-	void EnemyLeft();
 
 	// Other ----------
 
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
 		bool bFromSweep, const FHitResult& SweepResult) override;
-
-	virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
 private:
 
@@ -69,6 +65,7 @@ private:
 	// Declare a pointer to the component in your subclass.
 	UPROPERTY(VisibleAnywhere, Category = "Components")
 		class UAttributeComponent* AttributeComponent;
+
 	// ------------- Timer Handlers ------------
 
 	FTimerHandle RocketBarrageStartupTimer;
@@ -81,7 +78,7 @@ public:
 
 	// ------------- Constants ------------
 	UPROPERTY()
-		float DetectionRange = 5000.f;
+		float DetectionRange = 10000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
 		float CurrentHealthOverride = 3.f;
