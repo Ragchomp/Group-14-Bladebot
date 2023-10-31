@@ -185,12 +185,26 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 		const FRotator ControlPlayerRotationYaw = GetControlRotation();
 		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
 
-		//get the forward and right vectors from the control rotation
-		const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+		//get the right vector from the control rotation
 		const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
 
-		//add movement input
-		AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
+		//check if the player is grappling
+		if (PlayerMovementComponent->bIsGrappling)
+		{
+			//get the up vector from the control rotation
+			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Z);
+
+			//add upwards/downwards movement input
+			AddMovementInput(PlayerDirectionYaw_Upwards_Downwards, VectorDirection.Y);
+		}
+		else
+		{
+			//get the forward vector from the control rotation
+			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+
+			//add forward/backwards movement input
+			AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);	
+		}
 		AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 	}
 }

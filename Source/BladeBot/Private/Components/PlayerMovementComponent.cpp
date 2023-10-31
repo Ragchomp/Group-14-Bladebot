@@ -12,6 +12,34 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	//call the parent implementation
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
+	//print the current movement mode
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Movement Mode: %s"), *GetMovementName()));
+}
+
+void UPlayerMovementComponent::PhysFalling(float DeltaTime, int32 Iterations)
+{
+	//check the distance to the nearest floor
+	FHitResult FloorHit;
+	GetWorld()->LineTraceSingleByChannel(FloorHit, GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() - FVector::UpVector * FloorCheckDistance, ECC_Visibility);
+
+	//check if there is a floor within that distance
+	if (FloorHit.bBlockingHit)
+	{
+		//check if the distance to the floor is less than the capsule half height + 1
+		if (const float DistanceToFloor = FVector::Dist(GetOwner()->GetActorLocation(), FloorHit.ImpactPoint); DistanceToFloor < GetCharacterOwner()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 1.f)
+		{
+			//process the landing
+			ProcessLanded(FloorHit, 0.f, Iterations);
+			return;
+		}
+	}
+
+	//call the parent implementation
+	Super::PhysFalling(DeltaTime, Iterations);
+}
+
+void UPlayerMovementComponent::PhysFlying(const float DeltaTime, const int32 Iterations)
+{
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
@@ -19,61 +47,38 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		UpdateGrappleVelocity(DeltaTime);
 	}
 
-	////print whether the player is grappling or not
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Is Grappling: %s"), bIsGrappling ? TEXT("True") : TEXT("False")));
-
-	////print the current movement mode
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Movement Mode: %s"), *GetMovementName()));
-
-	//check the distance to the nearest floor
-	FHitResult FloorHit;
-	GetWorld()->LineTraceSingleByChannel(FloorHit, GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() - FVector::UpVector * 1000.f, ECC_Visibility);
-
-	//check if there is a floor
-	if (FloorHit.bBlockingHit)
-	{
-		const float DistanceToFloor = FVector::Dist(GetOwner()->GetActorLocation(), FloorHit.ImpactPoint);
-
-		//check if the distance to the floor is less than the capsule half height + 1
-		if (DistanceToFloor < GetCharacterOwner()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 1.f)
-		{
-			//set the movement mode to walking
-			SetMovementMode(DefaultLandMovementMode);
-		}
-
-		//print debug message
-		///GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Floor Distance: %f"), DistanceToFloor));
-	}
+	//call the parent implementation
+	Super::PhysFlying(DeltaTime, Iterations);
 }
 
-void UPlayerMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
+FVector UPlayerMovementComponent::ConsumeInputVector()
 {
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
-		//store the analog input modifier
-		const float OldAnalogInputModifier = AnalogInputModifier;
+		//add the input vector to the grapple input vector
+		GrappleInputVector += GetPendingInputVector();
 
-		//disable input
-		AnalogInputModifier = 0;
+		//clamp the grapple input vector
+		GrappleInputVector = GrappleInputVector.GetClampedToMaxSize(1.f);
+	}
 
-		//call the parent implementation
-		Super::PhysFlying(deltaTime, Iterations);
+	//Store the input vector
+	const FVector ReturnVec = Super::ConsumeInputVector();
 
-		//restore the analog input modifier
-		AnalogInputModifier = OldAnalogInputModifier;
-
-		//check if the input vector is not zero
-		if (const FVector InputVector = ConsumeInputVector(); !InputVector.IsZero())
-		{
-
-		}
+	//check if the input vector is zero
+	if (ReturnVec.IsNearlyZero())
+	{
+		//set the grapple mode to set velocity
+		GrappleMode = InterpVelocity;
 	}
 	else
 	{
-		//call the parent implementation
-		Super::PhysFlying(deltaTime, Iterations);	
+		//set the grapple mode to add to velocity
+		GrappleMode = AddToVelocity;
 	}
+
+	return ReturnVec;
 }
 
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
@@ -89,9 +94,6 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 
 		//set the movement mode to flying so we don't get stuck on the floor
 		SetMovementMode(MOVE_Flying);
-
-		////print debug message
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Start Grapple"));
 	}
 }
 
@@ -102,15 +104,8 @@ void UPlayerMovementComponent::StopGrapple()
 		//set is grappling to false
 		bIsGrappling = false;
 
-		//check if the player is still in the flying movement mode
-		if (MovementMode == MOVE_Flying)
-		{
-			//set the movement mode to the default movement mode
-			SetDefaultMovementMode();
-		}
-
-		////print debug message
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Stop Grapple"));
+		//reset the movement mode
+		SetDefaultMovementMode();
 	}
 }
 
@@ -118,7 +113,7 @@ bool UPlayerMovementComponent::CanGrapple() const
 {
 	//do a line trace to see if the player is aiming at something within grapple range
 	FHitResult GrappleHit;
-	GrappleLineTrace(GrappleHit);
+	GrappleLineTrace(GrappleHit, MaxGrappleDistance);
 
 	//if the line trace hit something, return true
 	if (GrappleHit.bBlockingHit)
@@ -130,7 +125,28 @@ bool UPlayerMovementComponent::CanGrapple() const
 	return false;
 }
 
-void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit) const
+float UPlayerMovementComponent::GetGrappleDistanceLeft() const
+{
+	//do a line trace to see if the player is aiming at something within the grapple check range
+	FHitResult GrappleHit;
+	GrappleLineTrace(GrappleHit, MaxGrappleCheckDistance);
+
+	//if the line trace hit something, return the distance to the hit
+	if (GrappleHit.bBlockingHit)
+	{
+		//get the distance left until the player can grapple to where they are aiming and check if it's greater than 0
+		if (const float GrappleDistanceLeft = FVector::Dist(GetOwner()->GetActorLocation(), GrappleHit.ImpactPoint) - MaxGrappleDistance; GrappleDistanceLeft > 0.f)
+		{
+			//return the distance left until the player can grapple to where they are aiming
+			return GrappleDistanceLeft;
+		}
+	}
+
+	//otherwise return 0
+	return 0.f;
+}
+
+void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
 {
 	//get the player controller
 	const APlayerController* PC = GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld());
@@ -146,7 +162,7 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit) const
 	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
 
 	//get the end point of the line trace
-	const FVector End = CameraLocation + Rotation * MaxGrappleDistance;
+	const FVector End = CameraLocation + Rotation * MaxDistance;
 
 	//the collision parameters to use for the line trace
 	FCollisionQueryParams GrappleCollisionParams;
@@ -181,7 +197,7 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 			//add the grapple vector to the character's velocity
 			Velocity += GrappleVelocity * AddGrappleSpeed * DeltaTime;
 		break;
-		case InterpToGrapple:
+		case InterpVelocity:
 			switch (GrappleInterpType)
 			{
 				case Constant:
@@ -200,5 +216,11 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	
 	//update the character's velocity
 	UpdateComponentVelocity();
+}
+
+void UPlayerMovementComponent::StopSliding()
+{
+	//set the movement mode to the default land movement mode
+	SetMovementMode(DefaultLandMovementMode);
 }
 
