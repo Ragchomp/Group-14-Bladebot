@@ -19,6 +19,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope")
 	TSubclassOf<class AGrapplingRopeActor> RopeActorClass;
 
+	//whether or not to add the player's speed to the grappling hook head's initial speed when it's spawned
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+	bool bAddPlayerSpeed = false;
+
+	//whether or not to add the player's velocity to the grappling hook head's velocity when it's spawned
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
+	bool bAddPlayerVelocity = false;
+
 	//whether or not to use a max distance for the projectile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxTravelDistance")
 	bool bUseMaxDistance = false;
@@ -28,7 +36,7 @@ public:
 	bool bUseSpawnForDistanceCheck = true;
 
 	//the max distance the projectile can travel
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxTravelDistance", meta = (EditCondition = "bUseMaxDistance == true", editconditionHides))
+	UPROPERTY(BlueprintReadOnly, Category = "MaxTravelDistance")
 	float MaxDistance = 3000.f;
 
 	//the location to use when checking if we've reached the max distance

@@ -20,10 +20,11 @@
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
 #include "EngineUtils.h"
+#include "MaterialHLSLTree.h"
 #include "BladeBot/Spawning/SpawnPoint.h"
 
-
-APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
+APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(
+	ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
 {
 	//Enable ticking
 	PrimaryActorTick.bCanEverTick = true;
@@ -34,7 +35,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	bUseControllerRotationRoll = false;
 
 	//set rotation to follow movement
-	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...	
+	GetCharacterMovement()->bOrientRotationToMovement = true; // Character moves in the direction of input...
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f); // ...at this rotation rate
 
 	//get a reference to the movement component as a player movement component
@@ -73,7 +74,8 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	Tags.Add(FName("Player"));
 }
 
-float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
+                                   AActor* DamageCauser)
 {
 	//check if we have a valid attribute component and player overlay
 	if (Attributes && PlayerOverlay)
@@ -123,14 +125,20 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InInputComponent))
 	{
 		//bind the input actions
-		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::GroundMovement);
-		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
+		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this,
+		                                   &APlayerCharacter::GroundMovement);
+		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this,
+		                                   &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
-		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
-		EnhancedInputComponent->BindAction(IA_StopGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::StopGrapple);
-		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::PlayerDashAttack);
+		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this,
+		                                   &APlayerCharacter::ShootGrapple);
+		EnhancedInputComponent->BindAction(IA_StopGrapple, ETriggerEvent::Triggered, this,
+		                                   &APlayerCharacter::StopGrapple);
+		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this,
+		                                   &APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
-		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
+		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this,
+		                                   &APlayerCharacter::CallRestartPlayer);
 		//EnhancedInputComponent->BindAction(IA_KillSelf, ETriggerEvent::Triggered, this, &APlayerCharacter::Destroyed);
 	}
 }
@@ -177,12 +185,26 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 		const FRotator ControlPlayerRotationYaw = GetControlRotation();
 		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
 
-		//get the forward and right vectors from the control rotation
-		const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+		//get the right vector from the control rotation
 		const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
 
-		//add movement input
-		AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
+		//check if the player is grappling
+		if (PlayerMovementComponent->bIsGrappling)
+		{
+			//get the up vector from the control rotation
+			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Z);
+
+			//add upwards/downwards movement input
+			AddMovementInput(PlayerDirectionYaw_Upwards_Downwards, VectorDirection.Y);
+		}
+		else
+		{
+			//get the forward vector from the control rotation
+			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+
+			//add forward/backwards movement input
+			AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);	
+		}
 		AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 	}
 }
@@ -255,8 +277,8 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 
 void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 {
-	if (CharacterState != ECharacterState::ECS_Dead){
-
+	if (CharacterState != ECharacterState::ECS_Dead)
+	{
 		//check if there is an existing grappling hook
 		if (GrapplingHookRef)
 		{
@@ -264,7 +286,7 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 			if (DestroyHookImmediately)
 			{
 				//destroy the grappling hook
-				GrapplingHookRef->Destroy();	
+				GrapplingHookRef->Destroy();
 			}
 			else
 			{
@@ -302,24 +324,53 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
-	//check if we can use the input
-	if (CanUseInput(Value))
+	if (bCanPerformAction && (GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration)
 	{
-		//print debug message
-		InputDebugMessage(IA_DashAttack);
+		//check if we can use the input
+		if (CanUseInput(Value))
+		{
+			//print debug message
+			InputDebugMessage(IA_DashAttack);
 
-		//get the camera manager
-		const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->PlayerCameraManager;
+			//get the camera manager
+			const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
+			                                                               PlayerCameraManager;
 
-		//get the camera forward vector
-		const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+			//get the camera forward vector
+			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
 
-		//play the dash sound
-		UGameplayStatics::PlaySound2D(this, DashSound);
+			//play the dash sound
+			UGameplayStatics::PlaySound2D(this, DashSound);
 
-		//launch the character
-		this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+			//play niagara effect at socket location
+			UGameplayStatics::SpawnEmitterAttached(DashEffect, GetMesh(), FName("DashSocket"));
+
+			//get velocity from PlayerMovementComponent
+			const FVector Velocity = PlayerMovementComponent->Velocity;
+			Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+
+			//launch the character
+			this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+
+			PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+
+			// Update the last action time
+			LastActionTime = GetWorld()->GetTimeSeconds();
+
+			// Set the cooldown flag to false
+			bCanPerformAction = false;
+
+			// Set a timer to reset the cooldown flag after CooldownDuration seconds
+			FTimerHandle CooldownTimerHandle;
+			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldown,
+			                                CooldownDuration, false);
+		}
 	}
+}
+
+void APlayerCharacter::ResetCooldown()
+{
+	bCanPerformAction = true;
 }
 
 void APlayerCharacter::Destroyed()
@@ -426,9 +477,9 @@ void APlayerCharacter::SpawnGrappleProjectile()
 		SpawnParams.Instigator = this;
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-
 		//assign the grappling hook head reference to the spawned grappling hook head
-		GrapplingHookRef = GetWorld()->SpawnActor<AGrapplingHookHead>(GrappleHookHeadClass, SpawnLocation, SpawnRotation, SpawnParams);
+		GrapplingHookRef = GetWorld()->SpawnActor<AGrapplingHookHead>(GrappleHookHeadClass, SpawnLocation,
+		                                                              SpawnRotation, SpawnParams);
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
@@ -452,7 +503,8 @@ void APlayerCharacter::InputInit()
 	if (PlayerController)
 	{
 		// Input system
-		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer());
+		UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(
+			PlayerController->GetLocalPlayer());
 		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
 	}
 }
@@ -486,9 +538,11 @@ void APlayerCharacter::TimerInit()
 }
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                 UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+                                 UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
+                                 const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill && OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
+	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill &&
+		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
 	{
 		//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Killed em")));
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
