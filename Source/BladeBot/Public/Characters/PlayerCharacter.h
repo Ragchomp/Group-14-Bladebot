@@ -28,7 +28,6 @@ public:
 	void CountTime();
 	bool CrosshairCheck() const;
 
-
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
 
@@ -111,13 +110,16 @@ protected:
 	void PlayerDashAttack(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void ResetCooldown();
+	void ResetCooldownDashOne();
+
+	UFUNCTION()
+	void ResetCooldownDashTwo();
 
 	//Cooldown
 	bool bCanPerformAction = true;
-    float LastActionTime = 0.0f;
+	float LastActionTime = 0.0f;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-    float CooldownDuration = 2.0f;
+	float CooldownDuration = 5.0f;
 
 	////SlowdownSounds
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
@@ -128,6 +130,15 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	float DashSpeed = 20.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	int DashOne = FMath::Clamp(DashOne, 0, MaximumAmountOfDashes);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	int DashTwo = FMath::Clamp(DashTwo, 0, MaximumAmountOfDashes);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	int MaximumAmountOfDashes = 1;
 
 	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	//float DefaultRotationRate = 500.f;
@@ -149,6 +160,7 @@ protected:
 
 	// Time since the dash was initiated
 	float AirDashTime;
+
 public:
 
 	/** Class Components  */

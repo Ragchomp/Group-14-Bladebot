@@ -72,10 +72,14 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 
 	//add the player tag
 	Tags.Add(FName("Player"));
+
+	// Set Amount of Dashes to 2 on start
+	DashOne = 1;
+	DashTwo = 1;
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
-                                   AActor* DamageCauser)
+	AActor* DamageCauser)
 {
 	//check if we have a valid attribute component and player overlay
 	if (Attributes && PlayerOverlay)
@@ -126,19 +130,19 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 	{
 		//bind the input actions
 		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this,
-		                                   &APlayerCharacter::GroundMovement);
+			&APlayerCharacter::GroundMovement);
 		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this,
-		                                   &APlayerCharacter::CameraMovement);
+			&APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
 		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this,
-		                                   &APlayerCharacter::ShootGrapple);
+			&APlayerCharacter::ShootGrapple);
 		EnhancedInputComponent->BindAction(IA_StopGrapple, ETriggerEvent::Triggered, this,
-		                                   &APlayerCharacter::StopGrapple);
+			&APlayerCharacter::StopGrapple);
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this,
-		                                   &APlayerCharacter::PlayerDashAttack);
+			&APlayerCharacter::PlayerDashAttack);
 		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this,
-		                                   &APlayerCharacter::CallRestartPlayer);
+			&APlayerCharacter::CallRestartPlayer);
 		//EnhancedInputComponent->BindAction(IA_KillSelf, ETriggerEvent::Triggered, this, &APlayerCharacter::Destroyed);
 	}
 }
@@ -192,7 +196,8 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 		if (PlayerMovementComponent->bIsGrappling)
 		{
 			//get the up vector from the control rotation
-			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Z);
+			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).
+				GetUnitAxis(EAxis::Z);
 
 			//add upwards/downwards movement input
 			AddMovementInput(PlayerDirectionYaw_Upwards_Downwards, VectorDirection.Y);
@@ -200,10 +205,11 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 		else
 		{
 			//get the forward vector from the control rotation
-			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).
+				GetUnitAxis(EAxis::X);
 
 			//add forward/backwards movement input
-			AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);	
+			AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
 		}
 		AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 	}
@@ -324,53 +330,102 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
-	if (bCanPerformAction && (GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration)
+	if (/*(GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration ||*/ DashOne > 0 || DashTwo > 0)
 	{
 		//check if we can use the input
 		if (CanUseInput(Value))
 		{
-			//print debug message
-			InputDebugMessage(IA_DashAttack);
+			if (DashOne > 0)
+			{
+				// Print debug message
+				InputDebugMessage(IA_DashAttack);
 
-			//get the camera manager
-			const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
-			                                                               PlayerCameraManager;
+				// Get the camera manager
+				const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
+					PlayerCameraManager;
 
-			//get the camera forward vector
-			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+				// Get the camera forward vector
+				const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
 
-			//play the dash sound
-			UGameplayStatics::PlaySound2D(this, DashSound);
+				// Play the dash sound
+				UGameplayStatics::PlaySound2D(this, DashSound);
 
-			//play niagara effect at socket location
-			UGameplayStatics::SpawnEmitterAttached(DashEffect, GetMesh(), FName("DashSocket"));
+				// Play niagara effect at socket location
+				UGameplayStatics::SpawnEmitterAttached(DashEffect, GetMesh(), FName("DashSocket"));
 
-			//get velocity from PlayerMovementComponent
-			const FVector Velocity = PlayerMovementComponent->Velocity;
-			Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+				// Get velocity from PlayerMovementComponent
+				const FVector Velocity = PlayerMovementComponent->Velocity;
 
-			//launch the character
-			this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+				//launch the character
+				this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
 
-			PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+				PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
 
-			// Update the last action time
-			LastActionTime = GetWorld()->GetTimeSeconds();
+				// Update the last action time
+				LastActionTime = GetWorld()->GetTimeSeconds();
 
-			// Set the cooldown flag to false
-			bCanPerformAction = false;
+				// Decrement the amount of dashes
+				DashOne--;
 
-			// Set a timer to reset the cooldown flag after CooldownDuration seconds
-			FTimerHandle CooldownTimerHandle;
-			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldown,
-			                                CooldownDuration, false);
+				// Set a timer to reset the cooldown flag after CooldownDuration seconds
+				FTimerHandle CooldownTimerHandle;
+				GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashOne,
+					CooldownDuration, false);
+				GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash One Used")));
+			}
+			else if (DashTwo > 0)
+			{
+				// Print debug message
+				InputDebugMessage(IA_DashAttack);
+
+				// Get the camera manager
+				const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
+					PlayerCameraManager;
+
+				// Get the camera forward vector
+				const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+
+				// Play the dash sound
+				UGameplayStatics::PlaySound2D(this, DashSound);
+
+				// Play niagara effect at socket location
+				UGameplayStatics::SpawnEmitterAttached(DashEffect, GetMesh(), FName("DashSocket"));
+
+				// Get velocity from PlayerMovementComponent
+				const FVector Velocity = PlayerMovementComponent->Velocity;
+
+				//launch the character
+				this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+
+				PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+
+				// Update the last action time
+				LastActionTime = GetWorld()->GetTimeSeconds();
+
+				// Decrement the amount of dashes
+				DashTwo--;
+
+				// Set a timer to reset the cooldown flag after CooldownDuration seconds
+				FTimerHandle CooldownTimerHandle;
+				GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashTwo,
+					CooldownDuration, false);
+
+				GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash Two Used")));
+			}
 		}
 	}
 }
 
-void APlayerCharacter::ResetCooldown()
+void APlayerCharacter::ResetCooldownDashOne()
 {
-	bCanPerformAction = true;
+	DashOne++;
+	GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Dash One Ready")));
+}
+
+void APlayerCharacter::ResetCooldownDashTwo()
+{
+	DashTwo++;
+	GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Dash Two Ready")));
 }
 
 void APlayerCharacter::Destroyed()
@@ -395,6 +450,9 @@ void APlayerCharacter::CallRestartPlayer()
 {
 	//Getting Pawn Controller reference
 	const TObjectPtr<AController> ControllerReference = GetController();
+
+	DashOne = 1;
+	DashTwo = 1;
 
 	//Destroying Player
 	Destroyed();
@@ -479,7 +537,7 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 		//assign the grappling hook head reference to the spawned grappling hook head
 		GrapplingHookRef = GetWorld()->SpawnActor<AGrapplingHookHead>(GrappleHookHeadClass, SpawnLocation,
-		                                                              SpawnRotation, SpawnParams);
+			SpawnRotation, SpawnParams);
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
@@ -538,8 +596,8 @@ void APlayerCharacter::TimerInit()
 }
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                                 UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
-                                 const FHitResult& SweepResult)
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
+	const FHitResult& SweepResult)
 {
 	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill &&
 		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)

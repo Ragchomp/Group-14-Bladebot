@@ -120,7 +120,7 @@ bool UPlayerMovementComponent::CanGrapple() const
 	{
 		return true;
 	}
-
+	
 	//otherwise return false
 	return false;
 }
