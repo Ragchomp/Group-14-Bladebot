@@ -153,7 +153,7 @@ public:
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	class UCameraComponent* Camera;
+	class UPlayerCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UCameraArmComponent* CameraArm;

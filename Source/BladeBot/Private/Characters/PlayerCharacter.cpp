@@ -22,6 +22,7 @@
 #include "EngineUtils.h"
 #include "MaterialHLSLTree.h"
 #include "BladeBot/Spawning/SpawnPoint.h"
+#include "Components/PlayerCameraComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(
 	ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
@@ -43,7 +44,7 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 
 	//create our components
 	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
-	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+	Camera = CreateDefaultSubobject<UPlayerCameraComponent>(TEXT("Camera"));
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
 
 	//setup attachments
