@@ -45,7 +45,6 @@ AGrapplingHookHead::AGrapplingHookHead()
 	//set the projectile movement component settings
 	ProjectileMovementComponent->ProjectileGravityScale = 0;
 	ProjectileMovementComponent->InitialSpeed = 2000;
-	ProjectileMovementComponent->MaxSpeed = 2000;
 }
 
 void AGrapplingHookHead::BeginPlay()

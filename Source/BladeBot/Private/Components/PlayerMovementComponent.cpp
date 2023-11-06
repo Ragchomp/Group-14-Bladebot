@@ -53,16 +53,6 @@ void UPlayerMovementComponent::PhysFlying(const float DeltaTime, const int32 Ite
 
 FVector UPlayerMovementComponent::ConsumeInputVector()
 {
-	//check if the player is grappling
-	if (bIsGrappling)
-	{
-		//add the input vector to the grapple input vector
-		GrappleInputVector += GetPendingInputVector();
-
-		//clamp the grapple input vector
-		GrappleInputVector = GrappleInputVector.GetClampedToMaxSize(1.f);
-	}
-
 	//Store the input vector
 	const FVector ReturnVec = Super::ConsumeInputVector();
 
@@ -76,6 +66,13 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	{
 		//set the grapple mode to add to velocity
 		GrappleMode = AddToVelocity;
+	}
+
+	//check if the player is grappling
+	if (bIsGrappling)
+	{
+		//return the input vector multiplied by the grapple input modifier
+		return ReturnVec * GrappleMovementInputModifier;
 	}
 
 	return ReturnVec;
@@ -120,7 +117,7 @@ bool UPlayerMovementComponent::CanGrapple() const
 	{
 		return true;
 	}
-
+	
 	//otherwise return false
 	return false;
 }

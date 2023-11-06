@@ -1,4 +1,3 @@
-
 //Main
 #include "HUD/PlayerOverlay.h"
 
@@ -9,7 +8,7 @@
 
 void UPlayerOverlay::SetHealthBarPercent(float Percent)
 {
-	if(HealthBar)
+	if (HealthBar)
 	{
 		HealthBar->SetPercent(Percent);
 	}
@@ -17,7 +16,7 @@ void UPlayerOverlay::SetHealthBarPercent(float Percent)
 
 void UPlayerOverlay::SetSeconds(int32 InnSeconds)
 {
-	if(Seconds)
+	if (Seconds)
 	{
 		const FString String = FString::Printf(TEXT("%d"), InnSeconds);
 		const FText Text = FText::FromString(String);
@@ -37,11 +36,11 @@ void UPlayerOverlay::SetMinutes(int32 InnMinutes)
 
 void UPlayerOverlay::EnableGrapplingCrosshair(bool CanGrapple)
 {
-	if(GrapplingHookCroshair)
+	if (GrapplingHookCroshair)
 	{
 		ESlateVisibility CanSee = ESlateVisibility::Hidden;
 
-		if(CanGrapple == true)
+		if (CanGrapple == true)
 		{
 			CanSee = ESlateVisibility::Visible;
 		}
