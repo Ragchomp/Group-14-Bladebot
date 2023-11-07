@@ -113,50 +113,37 @@ protected:
 	void ResetCooldownDashOne();
 
 	UFUNCTION()
-	void ResetCooldownDashTwo();
+	void EnergyRegeneration();
 
 	//Cooldown
 	bool bCanPerformAction = true;
 	float LastActionTime = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float CooldownDuration = 5.0f;
+	float DashDuration = 5.0f;
+
 
 	////SlowdownSounds
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	TObjectPtr<UParticleSystem> DashEffect;
+	TObjectPtr<UNiagaraSystem> DashEffect = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	float DashSpeed = 20.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	int DashOne = FMath::Clamp(DashOne, 0, MaximumAmountOfDashes);
+	float DashEnergy;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	int DashTwo = FMath::Clamp(DashTwo, 0, MaximumAmountOfDashes);
+	float MaximumDashEnergy = 200.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	int MaximumAmountOfDashes = 1;
-
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DefaultRotationRate = 500.f;
-
-	//// Duration of the dash
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DashDuration;
-
-	//// How much time before the end of the dash to start decelerating.
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DashDecelerationTime;
-
-	//// The rate of deceleration.
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DashDecelerationRate;
+	float EnergyRegenerationRate = 1.f;
 
 	// Determines if the character can dash
-	bool bIsDashing;
+	bool bIsDashing = false;
 
 	// Time since the dash was initiated
 	float AirDashTime;

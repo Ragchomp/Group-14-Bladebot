@@ -21,6 +21,7 @@
 #include "BladebotGameMode.h"
 #include "EngineUtils.h"
 #include "MaterialHLSLTree.h"
+#include "NiagaraFunctionLibrary.h"
 #include "BladeBot/Spawning/SpawnPoint.h"
 #include "Components/PlayerCameraComponent.h"
 
@@ -74,9 +75,10 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	//add the player tag
 	Tags.Add(FName("Player"));
 
-	// Set Amount of Dashes to 2 on start
-	DashOne = 1;
-	DashTwo = 1;
+	//DashInit
+	MaximumDashEnergy = 200.f;
+	EnergyRegenerationRate = 1;
+	DashEnergy = MaximumDashEnergy;
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
@@ -160,6 +162,8 @@ void APlayerCharacter::Tick(float DeltaTime)
 		//update the grappling crosshair
 		PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
 	}
+
+	EnergyRegeneration();
 }
 
 bool APlayerCharacter::CanUseInput(const FInputActionValue& Value)
@@ -331,102 +335,64 @@ void APlayerCharacter::Attack(const FInputActionValue& Value)
 
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
-	if (/*(GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration ||*/ DashOne > 0 || DashTwo > 0)
+	if (/*(GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration ||*/ DashEnergy > 100)
 	{
 		//check if we can use the input
 		if (CanUseInput(Value))
 		{
-			if (DashOne > 0)
-			{
-				// Print debug message
-				InputDebugMessage(IA_DashAttack);
+			// Print debug message
+			InputDebugMessage(IA_DashAttack);
 
-				// Get the camera manager
-				const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
-					PlayerCameraManager;
+			// Get the camera manager
+			const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
+				PlayerCameraManager;
 
-				// Get the camera forward vector
-				const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+			// Get the camera forward vector
+			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
 
-				// Play the dash sound
-				UGameplayStatics::PlaySound2D(this, DashSound);
+			// Play the dash sound
+			UGameplayStatics::PlaySound2D(this, DashSound);
 
-				// Play niagara effect at socket location
-				UGameplayStatics::SpawnEmitterAttached(DashEffect, GetMesh(), FName("DashSocket"));
+			// Play niagara effect at socket location
+			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DashEffect, GetActorLocation()/*GetMesh()->GetSocketLocation(
+				FName("DashSocket"))*/);
 
-				// Get velocity from PlayerMovementComponent
-				const FVector Velocity = PlayerMovementComponent->Velocity;
+			// Get velocity from PlayerMovementComponent
+			const FVector Velocity = PlayerMovementComponent->Velocity;
 
-				//launch the character
-				this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+			//launch the character
+			this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
 
-				PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+			PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
 
-				// Update the last action time
-				LastActionTime = GetWorld()->GetTimeSeconds();
+			// Update the last action time
+			LastActionTime = GetWorld()->GetTimeSeconds();
 
-				// Decrement the amount of dashes
-				DashOne--;
+			// Decrement the amount of dashes
+			DashEnergy -= 100;
 
-				// Set a timer to reset the cooldown flag after CooldownDuration seconds
-				FTimerHandle CooldownTimerHandle;
-				GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashOne,
-					CooldownDuration, false);
-				GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash One Used")));
-			}
-			else if (DashTwo > 0)
-			{
-				// Print debug message
-				InputDebugMessage(IA_DashAttack);
+			// Set a timer to reset the cooldown flag after CooldownDuration seconds
+			FTimerHandle CooldownTimerHandle;
+			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashOne,
+				DashDuration, false);
+			GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash One Used")));
 
-				// Get the camera manager
-				const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
-					PlayerCameraManager;
-
-				// Get the camera forward vector
-				const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
-
-				// Play the dash sound
-				UGameplayStatics::PlaySound2D(this, DashSound);
-
-				// Play niagara effect at socket location
-				UGameplayStatics::SpawnEmitterAttached(DashEffect, GetMesh(), FName("DashSocket"));
-
-				// Get velocity from PlayerMovementComponent
-				const FVector Velocity = PlayerMovementComponent->Velocity;
-
-				//launch the character
-				this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
-
-				PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
-
-				// Update the last action time
-				LastActionTime = GetWorld()->GetTimeSeconds();
-
-				// Decrement the amount of dashes
-				DashTwo--;
-
-				// Set a timer to reset the cooldown flag after CooldownDuration seconds
-				FTimerHandle CooldownTimerHandle;
-				GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashTwo,
-					CooldownDuration, false);
-
-				GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash Two Used")));
-			}
+			//Enable is dashing
+			bIsDashing = true;
 		}
 	}
 }
 
 void APlayerCharacter::ResetCooldownDashOne()
 {
-	DashOne++;
 	GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Dash One Ready")));
+	bIsDashing = false;
 }
 
-void APlayerCharacter::ResetCooldownDashTwo()
+void APlayerCharacter::EnergyRegeneration()
 {
-	DashTwo++;
-	GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Dash Two Ready")));
+	DashEnergy += 1 * EnergyRegenerationRate;
+	DashEnergy = FMath::Clamp(DashEnergy, 0, MaximumDashEnergy);
 }
 
 void APlayerCharacter::Destroyed()
@@ -452,8 +418,7 @@ void APlayerCharacter::CallRestartPlayer()
 	//Getting Pawn Controller reference
 	const TObjectPtr<AController> ControllerReference = GetController();
 
-	DashOne = 1;
-	DashTwo = 1;
+	DashEnergy = MaximumDashEnergy;
 
 	//Destroying Player
 	Destroyed();
