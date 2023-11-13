@@ -28,7 +28,6 @@ public:
 	void CountTime();
 	bool CrosshairCheck() const;
 
-
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
 
@@ -111,44 +110,44 @@ protected:
 	void PlayerDashAttack(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void ResetCooldown();
+	void ResetCooldownDashOne();
+
+	UFUNCTION()
+	void EnergyRegeneration();
 
 	//Cooldown
 	bool bCanPerformAction = true;
-    float LastActionTime = 0.0f;
+	float LastActionTime = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-    float CooldownDuration = 2.0f;
+	float DashDuration = 5.0f;
+
 
 	////SlowdownSounds
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	TObjectPtr<UParticleSystem> DashEffect;
+	TObjectPtr<UNiagaraSystem> DashEffect = nullptr;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	float DashSpeed = 20.f;
 
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DefaultRotationRate = 500.f;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashEnergy;
 
-	//// Duration of the dash
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DashDuration;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float MaximumDashEnergy = 200.f;
 
-	//// How much time before the end of the dash to start decelerating.
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DashDecelerationTime;
-
-	//// The rate of deceleration.
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	//float DashDecelerationRate;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float EnergyRegenerationRate = 1.f;
 
 	// Determines if the character can dash
-	bool bIsDashing;
+	bool bIsDashing = false;
 
 	// Time since the dash was initiated
 	float AirDashTime;
+
 public:
 
 	/** Class Components  */
