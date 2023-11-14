@@ -112,9 +112,9 @@ class BLADEBOT_API UPlayerCameraComponent : public UCameraComponent
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
 	bool bUseDebugVal = true;
 
-	//reference to the grappling hook
+	//the current camera state
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
-	AGrapplingHookHead* GrapplingHookRef = nullptr;
+	FCameraStateStruct CurrentCameraState;
 
 	//reference to the owner as a player character
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")

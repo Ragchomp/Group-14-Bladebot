@@ -145,8 +145,35 @@ bool UPlayerMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
 	return Super::IsExceedingMaxSpeed(MaxSpeed);
 }
 
+float UPlayerMovementComponent::GetMaxBrakingDeceleration() const
+{
+	//check if the player is bunny hopping
+	if (bIsBunnyHopping)
+	{
+		//if so, return the bunny hop braking deceleration
+		return BunnyHopBrakingDeceleration;
+	}
+
+	//return the result of the parent implementation if the player is not bunny hopping
+	return Super::GetMaxBrakingDeceleration();
+}
+
 void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
 {
+	//check if the jump type is set to bunny hop
+	if (JumpType == BunnyHop)
+	{
+		//check if the current velocity is greater than the minimum bunny hop speed
+		if (Velocity.Size() >= MinBunnyHopSpeed)
+		{
+			//set the max movement speed to be the bunny hop max speed
+			bIsBunnyHopping = true;
+
+			//return
+			return;
+		}
+	}
+
 	//call the parent implementation
 	Super::ProcessLanded(Hit, remainingTime, Iterations);
 

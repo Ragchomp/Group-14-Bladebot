@@ -147,6 +147,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	float BunnyHopTime = 0.5f;
 
+	//the braking deceleration to use when bunny hopping
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	float BunnyHopBrakingDeceleration = 0.f;
+
 	//the max distance away from a ledge the player can be to jump off of it
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	float LedgeJumpDistance = 200.f;
@@ -185,6 +189,7 @@ public:
 	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
+	virtual float GetMaxBrakingDeceleration() const override;
 	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 	virtual void PhysFlying(float DeltaTime, int32 Iterations) override;
