@@ -45,7 +45,6 @@ AGrapplingHookHead::AGrapplingHookHead()
 	//set the projectile movement component settings
 	ProjectileMovementComponent->ProjectileGravityScale = 0;
 	ProjectileMovementComponent->InitialSpeed = 2000;
-	ProjectileMovementComponent->MaxSpeed = 2000;
 }
 
 void AGrapplingHookHead::BeginPlay()
@@ -79,8 +78,22 @@ void AGrapplingHookHead::BeginPlay()
 		DistanceCheckLocation = GetInstigator()->GetActorLocation();
 	}
 
+	//check if we should add the players's speed to the projectile movement component's initial speed
+	if (bAddPlayerSpeed)
+	{
+		//add the player's speed to the projectile movement component's initial speed
+		ProjectileMovementComponent->InitialSpeed += GetInstigator()->GetVelocity().Size();
+	}
+
 	//set the projectile movement component's velocity to the forward vector of the actor
 	ProjectileMovementComponent->Velocity = GetActorForwardVector() * ProjectileMovementComponent->InitialSpeed;
+
+	//check if we should add the player's velocity to the projectile movement component's velocity
+	if (bAddPlayerVelocity)
+	{
+		//add the player's velocity to the projectile movement component's velocity
+		ProjectileMovementComponent->Velocity += GetInstigator()->GetVelocity().GetSafeNormal() * ProjectileMovementComponent->InitialSpeed;
+	}
 
 	//array for player movement components
 	TArray<UPlayerMovementComponent*> PlayerMovementComponents;

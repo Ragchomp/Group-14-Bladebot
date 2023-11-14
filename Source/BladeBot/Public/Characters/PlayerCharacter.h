@@ -28,7 +28,6 @@ public:
 	void CountTime();
 	bool CrosshairCheck() const;
 
-
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
 
@@ -110,30 +109,45 @@ protected:
 	UFUNCTION()
 	void PlayerDashAttack(const FInputActionValue& Value);
 
+	UFUNCTION()
+	void ResetCooldownDashOne();
+
+	UFUNCTION()
+	void EnergyRegeneration();
+
+	//Cooldown
+	bool bCanPerformAction = true;
+	float LastActionTime = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float DashDuration = 5.0f;
+
+
 	////SlowdownSounds
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashSpeed = 1000.f;
+	TObjectPtr<UNiagaraSystem> DashEffect = nullptr;
 
-	// Duration of the dash
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashDuration;
+	float DashSpeed = 20.f;
 
-	// How much time before the end of the dash to start decelerating.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashDecelerationTime;
+	float DashEnergy;
 
-	// The rate of deceleration.
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
-	float DashDecelerationRate;
+	float MaximumDashEnergy = 200.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float EnergyRegenerationRate = 1.f;
 
 	// Determines if the character can dash
-	bool bIsDashing;
+	bool bIsDashing = false;
 
 	// Time since the dash was initiated
 	float AirDashTime;
+
 public:
 
 	/** Class Components  */
@@ -169,15 +183,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float DisplayMinutes = 0.f;
 
+	/** Grapple */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	float GrappleSpawnDist = 100;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
-	bool AddVelocityToGrappleHook = true;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
 	bool DestroyHookImmediately = false;
 
+	/** Damage */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
 	float MovementSpeedToKill = 4000.f;
 

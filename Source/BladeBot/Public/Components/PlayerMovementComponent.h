@@ -7,17 +7,23 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GrapplingHook/GrapplingRopeActor.h"
 #include "CollisionShape.h"
+#include "InputActionValue.h"
 #include "Math/InterpShorthand.h"
 #include "PlayerMovementComponent.generated.h"
 
 class AGrapplingHookHead;
 
+//unsure about implementation of grapple slide, wondering if it would be better to modify friction and braking deceleration instead of isvalidlandingspot
+//unsure about how to implement grapple movement input in the setvelocity mode
+	//maybe track the player's input and use that to in the set velocity mode?
+
+//enum for different grappling modes
 UENUM(BlueprintType)
 enum EGrapplingMode
 {
 	SetVelocity,
 	AddToVelocity,
-	InterpToGrapple,
+	InterpVelocity,
 };
 
 /**
@@ -36,40 +42,48 @@ public:
 	TEnumAsByte<EGrapplingMode> GrappleMode = SetVelocity;
 
 	//the grappling speed in set velocity mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::SetVelocity", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	float SetGrappleSpeed = 2000.f;
 
 	//the grappling speed in add velocity mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::AddToVelocity", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	float AddGrappleSpeed = 4000.f;
 
-	//the grappling speed in add velocity mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::InterpToGrapple", EditConditionHides))
+	//the grappling speed in interp velocity mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	float InterpGrappleSpeed = 2000.f;
 
 	//the interp function to use when using the InterpToGrapple mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::InterpToGrapple", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	TEnumAsByte<EInterpToTargetType> GrappleInterpType = InterpTo;
 
 	//the interpolation speed when using the InterpToGrapple mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "GrappleMode == EGrapplingMode::InterpToGrapple", EditConditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	float GrappleInterpSpeed = 2.5f;
 
 	//whether or not the player is grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
 	bool bIsGrappling = false;
 
-	//the grappling hook that the player is using
-	UPROPERTY(BlueprintReadOnly, Category = "Grappling|GrappleHook")
-	AGrapplingHookHead* GrapplingHook = nullptr;
+	//the input modifier to apply to movement input when grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	float GrappleMovementInputModifier = 0.5f;
 
 	//the max distance the Grappling hook can travel
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|GrappleHook")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
 	float MaxGrappleDistance = 3000.f;
 
+	//the max distance to check for when checking if the player can grapple to where they are aiming
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
+	float MaxGrappleCheckDistance = 6000.f;
+
 	//the trace channel to use when checking if the player can grapple to where they are aiming
-	UPROPERTY(EditAnywhere, Category = "Grappling|CanGrapple");
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance");
 	TEnumAsByte<ECollisionChannel> CanGrappleTraceChannel = ECC_Visibility;
+
+	//the distance to use when checking for floors
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "FloorCheck")
+	float FloorCheckDistance = 1000.f;
 
 	//the collision shape to use when checking if the player can grapple to where they are aiming
 	ECollisionShape::Type CanGrappleCollisionShape = ECollisionShape::Sphere;
@@ -82,8 +96,9 @@ public:
 
 	//override functions
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	virtual void PhysFlying(float deltaTime, int32 Iterations) override;
-	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	virtual void PhysFalling(float DeltaTime, int32 Iterations) override;
+	virtual void PhysFlying(float DeltaTime, int32 Iterations) override;
+	virtual FVector ConsumeInputVector() override;
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
@@ -94,11 +109,19 @@ public:
 	void StopGrapple();
 
 	//function that detects if the player can grapple or not
+	UFUNCTION(BlueprintCallable)
 	bool CanGrapple() const;
 
+	//gets the distance to the point the player is looking at minus the max grapple distance or returns 0 if that distance is less than 0 or what the player is looking at is not within the max grapple check distance
+	UFUNCTION(BlueprintCallable)
+	float GetGrappleDistanceLeft() const;
+
 	//line trace function for the grapple hook
-	void GrappleLineTrace(FHitResult& OutHit) const;
+	void GrappleLineTrace(FHitResult& OutHit, float MaxDistance) const;
 
 	//sets the velocity of the player character when grappling
 	void UpdateGrappleVelocity(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable)
+	void StopSliding();
 };
