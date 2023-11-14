@@ -256,7 +256,7 @@ void AMineEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* Oth
 	if (Player && Player->ActorHasTag(FName("Player")))
 	{
 		CombatTarget = Player;
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Detected player"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Detected player"));
 		SeenAnEnemy();
 	}
 }

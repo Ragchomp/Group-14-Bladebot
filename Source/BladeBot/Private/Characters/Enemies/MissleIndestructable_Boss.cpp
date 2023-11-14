@@ -1,38 +1,38 @@
 
 // Classes
-#include "Characters/Enemies/MissleDestructable_Boss.h"
+#include "Characters/Enemies/MissleIndestructable_Boss.h"
 #include "Characters/Enemies/BossEnemy.h"
 
 // Components
 #include "Kismet/GameplayStatics.h"
 
 
-AMissleDestructable_Boss::AMissleDestructable_Boss()
+AMissleIndestructable_Boss::AMissleIndestructable_Boss()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
 }
 
-void AMissleDestructable_Boss::BeginPlay()
+void AMissleIndestructable_Boss::BeginPlay()
 {
 	Super::BeginPlay();
 
 	Tags.Add(FName("Enemy"));
 
 
-	if(randomMovements == true)
+	if (randomMovementSpeeds == true)
 	{
 		SetRandomMovementSpeed();
 		SetRandomRotationSpeed();
 	}
 }
 
-void AMissleDestructable_Boss::SetCombatTarget(AActor* CombatTargetInn)
+void AMissleIndestructable_Boss::SetCombatTarget(AActor* CombatTargetInn)
 {
 	CombatTarget = CombatTargetInn;
 }
 
-void AMissleDestructable_Boss::Tick(float DeltaTime)
+void AMissleIndestructable_Boss::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	//float playerspeed = CombatTarget->GetVelocity().Length();
@@ -43,14 +43,14 @@ void AMissleDestructable_Boss::Tick(float DeltaTime)
 	StartBombTimer();
 }
 
-void AMissleDestructable_Boss::Rotate(FVector Target, float DeltaTime)
+void AMissleIndestructable_Boss::Rotate(FVector Target, float DeltaTime)
 {
 	if (CombatTarget)
 	{
 		FVector Point1 = GetActorLocation();
 		FVector Point2 = Target;
 		FVector MovementVector = GetVectorBetweenTwoPoints(Point1, Point2);
-		
+
 		FRotator CurrentRotation = GetActorRotation();
 		FRotator TargetRotation = MovementVector.Rotation();
 
@@ -59,36 +59,36 @@ void AMissleDestructable_Boss::Rotate(FVector Target, float DeltaTime)
 	}
 }
 
-void AMissleDestructable_Boss::Move(float DeltaTime)
+void AMissleIndestructable_Boss::Move(float DeltaTime)
 {
 	FVector NewLocation = GetActorLocation();
 	NewLocation += GetActorForwardVector() * MovementSpeed * DeltaTime;
 	SetActorLocation(NewLocation);
 }
 
-void AMissleDestructable_Boss::SetRandomMovementSpeed()
+void AMissleIndestructable_Boss::SetRandomMovementSpeed()
 {
 	MovementSpeed = FMath::RandRange(MovementSpeedMin, MovementSpeedMax);
 }
 
-void AMissleDestructable_Boss::SetRandomRotationSpeed()
+void AMissleIndestructable_Boss::SetRandomRotationSpeed()
 {
 	RotationSpeed = FMath::RandRange(RotationSpeedMin, RotationSpeedMax);
 }
 
-void AMissleDestructable_Boss::StartBombTimer()
+void AMissleIndestructable_Boss::StartBombTimer()
 {
-	if(CombatTarget && InTargetRange(CombatTarget, StartExplosionTimerRange) && startedToExplode == false)
-	{ 
+	if (CombatTarget && InTargetRange(CombatTarget, StartExplosionTimerRange) && startedToExplode == false)
+	{
 		PlayVFXChargeUp(GetActorLocation());
 		PlayAudioChargeUp(GetActorLocation());
-		GetWorldTimerManager().SetTimer(MissleExplosionTimer, this, &AMissleDestructable_Boss::BombTimerFinished, MissleExplosionRate);
+		GetWorldTimerManager().SetTimer(MissleExplosionTimer, this, &AMissleIndestructable_Boss::BombTimerFinished, MissleExplosionRate);
 		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Orange, FString::Printf(TEXT("StartExploding")));
 		startedToExplode = true;
 	}
 }
 
-void AMissleDestructable_Boss::BombTimerFinished()
+void AMissleIndestructable_Boss::BombTimerFinished()
 {
 	if (CombatTarget && InTargetRange(CombatTarget, ExplosionRange))
 	{
