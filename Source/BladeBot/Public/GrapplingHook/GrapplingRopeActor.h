@@ -73,8 +73,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering", meta = (EditCondition = "UseRopeRadiusAsRibbonWidth == false", EditConditionHides))
 	float RibbonWidth = 10.f;
 
-	//whether 
-
 	//whether we should draw debug lines for the rope
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
 	bool bDrawDebugRope = false;
@@ -121,7 +119,7 @@ public:
 
 	//whether or not to use the jitter on the niagara ribbons
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter")
-	bool bUseJitter = true;
+	bool bUseJitter = false;
 
 	//the name of the user parameter for the jitter on the niagara ribbons
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter", meta = (EditCondition = "bUseJitter == true", EditConditionHides))
