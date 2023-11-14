@@ -10,7 +10,11 @@
 
 UPlayerCameraComponent::UPlayerCameraComponent()
 {
+	//create the speed lines component
 	SpeedLinesRef = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpeedLinesRef"));
+
+	//attach the speed lines to this component
+	SpeedLinesRef->SetupAttachment(this);
 }
 
 void UPlayerCameraComponent::BeginPlay()
@@ -35,14 +39,32 @@ void UPlayerCameraComponent::BeginPlay()
 
 void UPlayerCameraComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	//check that we're not in the editor
+	//check if we have a valid world
+	if (!GetWorld()->IsValidLowLevelFast())
+	{
+		//return
+		return;
+	}
+
+	//check that we're not in a preview world
 	if (GetWorld()->IsPreviewWorld())
 	{
 		//call the parent implementation
 		Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 		//return
-		return;
+		return;	
+	}
+
+	//check if we have a valid player character reference
+	if (PlayerCharacterRef)
+	{
+		//check if the player character has a valid grappling hook reference
+		if (PlayerCharacterRef->GrapplingHookRef)
+		{
+			//update the camera state
+			UpdateCameraState(PlayerCharacterRef->GrapplingHookRef->GetGrappleState(), PlayerCharacterRef->GetIsDashing(), DeltaTime);	
+		}
 	}
 
 	//get the owner's velocity
@@ -61,7 +83,6 @@ void UPlayerCameraComponent::TickComponent(const float DeltaTime, const ELevelTi
 	//check if we have speed lines and if we should use them
 	if (SpeedLinesRef && bUseSpeedLines)
 	{
-
 		//clamp the speed
 		Speed = FMath::GetMappedRangeValueClamped(SpeedLinesSpeedParamInRange, SpeedLinesSpeedParamOutRange, Speed);
 
@@ -83,23 +104,12 @@ void UPlayerCameraComponent::TickComponent(const float DeltaTime, const ELevelTi
 		}
 	}
 
-
-	//check if we have a references
-	if (GrapplingHookRef && PlayerCharacterRef)
-	{
-		//update the camera state
-		UpdateCameraState(GrapplingHookRef->GetGrappleState(), PlayerCharacterRef->GetIsDashing(), DeltaTime);
-	}
-
 	//call the parent implementation
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
 void UPlayerCameraComponent::UpdateCameraState(const EGrappleState NewState, const bool IsDashing, const float DeltaTime)
 {
-	//init the camera state variable
-	FCameraStateStruct CameraState;
-
 	//loop through the camera states
 	for (const FCameraStateStruct State : CameraStates)
 	{
@@ -107,17 +117,16 @@ void UPlayerCameraComponent::UpdateCameraState(const EGrappleState NewState, con
 		if (State.GrappleState == NewState && State.bUseWithDashing == IsDashing)
 		{
 			//set the camera state
-			CameraState = State;
+			CurrentCameraState = State;
 
 			//exit the loop
 			break;
-		
 		}
 	}
 
 	//update the field of view
-	InterpToTarget(CameraState.FovInterpType, FieldOfView, CameraState.FieldOfView, CameraState.FovInterpSpeed, DeltaTime);
+	FieldOfView = InterpToTarget(CurrentCameraState.FovInterpType, FieldOfView, CurrentCameraState.FieldOfView, CurrentCameraState.FovInterpSpeed, DeltaTime);
 
 	//update the post process settings
-	PostProcessSettings = CameraState.PostProcessSettings;
+	PostProcessSettings = CurrentCameraState.PostProcessSettings;
 }
