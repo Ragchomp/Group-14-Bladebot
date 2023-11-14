@@ -21,6 +21,7 @@ public:
 	//overrides
 	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
 	virtual void Tick(float DeltaTime) override;
+	virtual bool CanJumpInternal_Implementation() const override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	FTimerHandle Seconds;
@@ -152,7 +153,7 @@ public:
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
-	class UCameraComponent* Camera;
+	class UPlayerCameraComponent* Camera;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UCameraArmComponent* CameraArm;
@@ -219,4 +220,6 @@ public:
 
 	/** Getters & Setters  */
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
+
+	FORCEINLINE bool GetIsDashing() const { return bIsDashing; }
 };
