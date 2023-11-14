@@ -230,7 +230,8 @@ private:
 	FTimerHandle RespawnTime;
 	virtual void Die() override;
 	void OverlayInit();
-	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;
