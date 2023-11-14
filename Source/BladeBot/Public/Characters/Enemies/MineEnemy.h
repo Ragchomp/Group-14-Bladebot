@@ -82,7 +82,7 @@ public:
 	// ------------- Constants ------------
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
-		float DischargeMaxRange = 1500.f;
+		float DischargeMaxRange = 2000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		float DischargeChargeRate = 3.f;

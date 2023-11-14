@@ -30,8 +30,11 @@ protected:
 	// ------------- Functions ------------
 
 	// Health ----------
+	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	// Movement ----------
+	AActor* chooseJumpTarget();
+	void JumpAway();
 
 	// Combat ----------
 	void SeenAnEnemy();
@@ -55,8 +58,23 @@ private:
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;
 
+	UPROPERTY(VisibleAnywhere)
+		class AActor* JumpTarget;
+
+	UPROPERTY(EditAnywhere, Category = "JumpLocations")
+		TArray<AActor*> JumpToPositions;
+
+	UPROPERTY()
+		TArray<AActor*> Targets;
+
+	UPROPERTY()
+		int32 CurrentTargetIndex = -1;
+
 	UPROPERTY(EditAnywhere, Category = "Components")
 		TSubclassOf<class AMissleDestructable_Boss> MissleDestuctable_BP;
+
+	UPROPERTY(EditAnywhere, Category = "Components")
+		TSubclassOf<class AMissleIndestructable_Boss> MissleIndestuctable_BP;
 
 	// ------------- Components ------------
 	UPROPERTY(VisibleAnywhere)
@@ -81,22 +99,22 @@ public:
 		float DetectionRange = 10000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
-		float CurrentHealthOverride = 3.f;
+		float CurrentHealthOverride = 4.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
-		float MaxHealthOverride = 3.f;
+		float MaxHealthOverride = 4.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
 		float RocketBarrageStartupTime = 2.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
-		float NextRocketIntervalTime = 0.3f;
+		float MissleIntervalTime = 0.5f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
 		float RocketBarrageCooldownTime = 3.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
-		int RocketsToShoot = 10;
+		int MisslesToShoot = 10;
 
 	UPROPERTY()
 		int RocketsShoot = 0;
@@ -136,7 +154,13 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
 		float MissleSpanwLocationoffSettMaxZ = 400.f;
-	
+
+	UPROPERTY()
+		int tokdamageOnce = 0;
+
+	UPROPERTY()
+		int jumpthreshold = 0;
+
 	// ------------- Bools ------------
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools")

@@ -1,19 +1,17 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "Characters/BaseEnemy.h"
 #include "GameFramework/Actor.h"
-#include "MissleDestructable_Boss.generated.h"
+#include "MissleIndestructable_Boss.generated.h"
 
 UCLASS()
-class BLADEBOT_API AMissleDestructable_Boss : public ABaseEnemy
+class BLADEBOT_API AMissleIndestructable_Boss : public ABaseEnemy
 {
 	GENERATED_BODY()
-	
-public:	
-	AMissleDestructable_Boss();
+
+public:
+	AMissleIndestructable_Boss();
 	virtual void Tick(float DeltaTime) override;
 
 	void SetCombatTarget(AActor* CombatTargetInn);
@@ -39,7 +37,7 @@ private:
 	void StartBombTimer();
 	void BombTimerFinished();
 	void instantExplode();
-	
+
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;
@@ -52,16 +50,16 @@ private:
 
 public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
-		float MovementSpeedMin = 500.f;
+		float MovementSpeedMin = 1300.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
-		float MovementSpeedMax = 1400.f;
+		float MovementSpeedMax = 1500.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
-		float MovementSpeed = 1000.f;
+		float MovementSpeed = 1400.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
-		float RotationSpeedMin = 0.1f;
+		float RotationSpeedMin = 0.8f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
 		float RotationSpeedMax = 1.3f;
@@ -73,7 +71,7 @@ public:
 		float StartExplosionTimerRange = 300.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
-		float ExplosionRange = 400.0f;
+		float ExplosionRange = 500.0f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
 		float Damage = 1.0f;
@@ -82,11 +80,11 @@ public:
 		float MissleExplosionRate = 0.3f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Constants")
-		float PlayerSpeedToNotDieFromExplosion = 2500.f;
+		float PlayerSpeedToNotDieFromExplosion = 3000.f;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = "Bools")
 		bool startedToExplode = false;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Bools")
-		bool randomMovements = true;
+		bool randomMovementSpeeds = true;
 };

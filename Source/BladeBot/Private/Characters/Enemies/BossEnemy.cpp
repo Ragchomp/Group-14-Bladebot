@@ -6,6 +6,7 @@
 #include "Characters/Enemies/BossEnemy.h"
 #include "Characters/PlayerCharacter.h"
 #include "Characters/Enemies/MissleDestructable_Boss.h"
+#include "Characters/Enemies/MissleIndestructable_Boss.h"
 
 // Components
 #include "Components/CapsuleComponent.h"
@@ -68,6 +69,69 @@ void ABossEnemy::BeginPlay()
 		AttributeComponent->SetCurrentHealth(CurrentHealthOverride);
 	}
 
+	JumpTarget = chooseJumpTarget();
+
+}
+
+float ABossEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
+	AActor* DamageCauser)
+{
+	
+	if(tokdamageOnce == jumpthreshold)
+	{
+		//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("tok the damage"));
+		// Knockback effect on player if we should have it
+		tokdamageOnce++;
+		JumpAway();
+		return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	}
+	return 0;
+	
+}
+
+AActor* ABossEnemy::chooseJumpTarget()
+{
+	//Choose random patrol point
+	if (RandomPatrolPointSelection == true)
+	{
+		Targets.Empty();
+		for (AActor* Target : JumpToPositions)
+		{
+			if (Target != JumpTarget)
+			{
+				Targets.AddUnique(Target);
+			}
+		}
+
+		const int32 NumTargets = Targets.Num();
+		if (NumTargets > 0)
+		{
+			const int32 TargetSelection = FMath::RandRange(0, NumTargets - 1);
+			return Targets[TargetSelection];
+		}
+	}
+	else // Choose next patrol point in array
+	{
+		const int32 NumPatrolTargets = JumpToPositions.Num();
+		if (NumPatrolTargets > 0)
+		{
+			CurrentTargetIndex = (CurrentTargetIndex + 1) % NumPatrolTargets;
+			return JumpToPositions[CurrentTargetIndex];
+		}
+	}
+
+	return nullptr;
+}
+
+void ABossEnemy::JumpAway()
+{
+	JumpTarget = chooseJumpTarget();
+	SetActorLocation(JumpTarget->GetActorLocation());
+
+	if(tokdamageOnce > jumpthreshold)
+	{
+		jumpthreshold++;
+	}
 }
 
 void ABossEnemy::Tick(float DeltaTime)
@@ -90,7 +154,7 @@ void ABossEnemy::Tick(float DeltaTime)
 
 void ABossEnemy::SeenAnEnemy()
 {
-	GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("enemy Seen"));
+	//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("enemy Seen"));
 	GunState = ESGunState::ESGS_Chargeing;
 	PlayVFXChargeUp(GetActorLocation());
 	PlayAudioChargeUp(GetActorLocation());
@@ -99,20 +163,21 @@ void ABossEnemy::SeenAnEnemy()
 
 void ABossEnemy::ShootRocketBarrage()
 {
-	if (RocketsShoot < 1)
+	if (RocketsShoot < MisslesToShoot)
 	{
 		GunState = ESGunState::ESGS_Shooting;
-		GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Green, TEXT("Started barrage"));
+		//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Green, TEXT("Started barrage"));
 
-		GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Spanwned rocket start timer"));
-		GetWorldTimerManager().SetTimer(RocketBarrageNextRocketTimer, this, &ABossEnemy::SpawnRocket, NextRocketIntervalTime);
+		//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Spanwned rocket start timer"));
+		GetWorldTimerManager().SetTimer(RocketBarrageNextRocketTimer, this, &ABossEnemy::SpawnRocket, MissleIntervalTime);
 		RocketsShoot++;
 	}
 	else
 	{
 		RocketsShoot = 0;
-		GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Yellow, TEXT("Started cooldown"));
+		//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Yellow, TEXT("Started cooldown"));
 		GunState = ESGunState::ESGS_Cooling;
+		JumpAway();
 		GetWorldTimerManager().SetTimer(RocketBarrageCooldownTimer, this, &ABossEnemy::RocketBarrageCooldown, RocketBarrageCooldownTime);
 	}
 
@@ -149,12 +214,24 @@ void ABossEnemy::SpawnRocket()
 	//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Shot a rocket"));
 
 	// Spawn rocket
-	if(MissleDestuctable_BP)
+	if(MissleDestuctable_BP && MissleIndestuctable_BP)
 	{
-		AMissleDestructable_Boss* NewMissle = GetWorld()->SpawnActor<AMissleDestructable_Boss>(MissleDestuctable_BP, MissleSpawnLocation(), MissleSpawnRotation());
-		if(NewMissle && CombatTarget)
+		int whatToSpawn = FMath::RandRange(1, 10);
+		if(whatToSpawn == 1)
 		{
-			NewMissle->SetCombatTarget(CombatTarget);
+			AMissleIndestructable_Boss* NewDoomMissle = GetWorld()->SpawnActor<AMissleIndestructable_Boss>(MissleIndestuctable_BP, MissleSpawnLocation(), MissleSpawnRotation());
+			if (NewDoomMissle && CombatTarget)
+			{
+				NewDoomMissle->SetCombatTarget(CombatTarget);
+			}
+		}
+		else
+		{
+			AMissleDestructable_Boss* NewMissle = GetWorld()->SpawnActor<AMissleDestructable_Boss>(MissleDestuctable_BP, MissleSpawnLocation(), MissleSpawnRotation());
+			if (NewMissle && CombatTarget)
+			{
+				NewMissle->SetCombatTarget(CombatTarget);
+			}
 		}
 
 		ShootRocketBarrage();
