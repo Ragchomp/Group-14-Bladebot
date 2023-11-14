@@ -165,6 +165,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	bool bIsDashing = false;
 
+	//the maximum speed the dash can reach
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float MaxDashSpeed = 2000.f;
+
 	// Time since the dash was initiated
 	float AirDashTime;
 
@@ -230,7 +234,8 @@ private:
 	FTimerHandle RespawnTime;
 	virtual void Die() override;
 	void OverlayInit();
-	void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 
 	/** State Control  */
 	ECharacterState CharacterState = ECharacterState::ECS_Idle;

@@ -6,6 +6,7 @@
 #include "BladebotGameMode.h"
 #include "Characters/PlayerCharacter.h"
 #include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
 
 // Sets default values
 ABladebotKillBox::ABladebotKillBox()
@@ -34,7 +35,14 @@ void ABladebotKillBox::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
 		{
 			if (const TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
 			{
-				Cast<APlayerCharacter>(OtherActor)->CallRestartPlayer();
+				UGameplayStatics::SetGamePaused(GetWorld(), true);
+				//Cast<APlayerCharacter>(OtherActor)->CallRestartPlayer();
+				//UGameViewportClient* ViewportClient = GetWorld()->GetGameViewport();
+
+				//if (ViewportClient)
+				//{
+				//	ViewportClient->SetSuppressTransitionMessage(true);
+				//}
 			}
 		}
 	}
