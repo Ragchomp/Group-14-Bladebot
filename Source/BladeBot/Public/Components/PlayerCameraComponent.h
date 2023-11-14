@@ -21,7 +21,7 @@ struct FCameraStateStruct
 	GENERATED_BODY()
 
 	//constructors
-	explicit FCameraStateStruct(const EGrappleState InGrappleState = EGrappleState::EGS_Retracted, const float InFov = 90.0f, const bool InUseWithDashing =  false, const FPostProcessSettings InPostProcessSettings = FPostProcessSettings())
+	explicit FCameraStateStruct(const EGrappleState InGrappleState = EGrappleState::EGS_Retracted, const bool InUseWithDashing =  false, const float InFov = 90.0f, const FPostProcessSettings InPostProcessSettings = FPostProcessSettings())
 	{
 		GrappleState = InGrappleState;
 		PostProcessSettings = InPostProcessSettings;
@@ -70,47 +70,50 @@ class BLADEBOT_API UPlayerCameraComponent : public UCameraComponent
 		FCameraStateStruct(EGrappleState::EGS_Retracted),
 		FCameraStateStruct(EGrappleState::EGS_InAir),
 		FCameraStateStruct(EGrappleState::EGS_Attached),
+		FCameraStateStruct(EGrappleState::EGS_Retracted, true),
+		FCameraStateStruct(EGrappleState::EGS_InAir, true),
+		FCameraStateStruct(EGrappleState::EGS_Attached, true),
 	};
 
-	//the velocity at which the camera speed lines will be used
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	float MinSpeedLinesVal = 30.f;
+	////the velocity at which the camera speed lines will be used
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//float MinSpeedLinesVal = 30.f;
 
-	//whether or not to ignore the z axis when calculating the speed for the speed lines
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	bool bIgnoreZVel = true;
+	////whether or not to ignore the z axis when calculating the speed for the speed lines
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//bool bIgnoreZVel = true;
 
-	//the speed lines to use when the camera owner is moving fast
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	UNiagaraSystem* SpeedLines = nullptr;
+	////the speed lines to use when the camera owner is moving fast
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//UNiagaraSystem* SpeedLines = nullptr;
 
-	//the parameter name for the speed lines's speed parameter
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	FName SpeedLinesSpeedParamName = "Speed";
+	////the parameter name for the speed lines's speed parameter
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//FName SpeedLinesSpeedParamName = "Speed";
 
-	//the in range for the speed lines's speed parameter
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	FVector2D SpeedLinesSpeedParamInRange = FVector2D(0.0f, 90.0f);
+	////the in range for the speed lines's speed parameter
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//FVector2D SpeedLinesSpeedParamInRange = FVector2D(0.0f, 90.0f);
 
-	//the out range for the speed lines's speed parameter
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	FVector2D SpeedLinesSpeedParamOutRange = FVector2D(0.0f, 6000.0f);
+	////the out range for the speed lines's speed parameter
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//FVector2D SpeedLinesSpeedParamOutRange = FVector2D(0.0f, 6000.0f);
 
-	//reference to the spawned speed lines
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera|SpeedLines")
-	UNiagaraComponent* SpeedLinesRef = nullptr;
+	////reference to the spawned speed lines
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera|SpeedLines")
+	//UNiagaraComponent* SpeedLinesRef = nullptr;
 
-	//whether of not to use the speed lines
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	bool bUseSpeedLines = false;
+	////whether of not to use the speed lines
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//bool bUseSpeedLines = false;
 
-	//debug value for the speed lines
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	float SpeedLinesDebugVal = 1000.0f;
+	////debug value for the speed lines
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//float SpeedLinesDebugVal = 1000.0f;
 
-	//whether or not to use the debug value for the speed lines
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	bool bUseDebugVal = true;
+	////whether or not to use the debug value for the speed lines
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
+	//bool bUseDebugVal = true;
 
 	//the current camera state
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
