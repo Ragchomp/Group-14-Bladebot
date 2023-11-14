@@ -147,6 +147,10 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	bool bIsDashing = false;
 
+	//the maximum speed the dash can reach
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	float MaxDashSpeed = 2000.f;
+
 	// Time since the dash was initiated
 	float AirDashTime;
 
