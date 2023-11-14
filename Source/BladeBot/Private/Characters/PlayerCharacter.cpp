@@ -443,6 +443,8 @@ void APlayerCharacter::Destroyed()
 
 void APlayerCharacter::CallRestartPlayer()
 {
+	UGameplayStatics::SetGamePaused(GetWorld(), false);
+
 	//Getting Pawn Controller reference
 	const TObjectPtr<AController> ControllerReference = GetController();
 
