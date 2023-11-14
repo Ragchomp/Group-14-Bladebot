@@ -1,8 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "Components/BoxComponent.h"
 #include "BladebotKillBox.h"
-
+#include "Components/BoxComponent.h"
 #include "BladebotGameMode.h"
 #include "Characters/PlayerCharacter.h"
 #include "GameFramework/Character.h"

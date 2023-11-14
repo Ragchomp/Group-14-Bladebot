@@ -383,7 +383,7 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DashEffect, GetActorLocation()/*GetMesh()->GetSocketLocation(
 				FName("DashSocket"))*/);
 
-			// Get velocity from PlayerMovementComponent
+				// Get velocity from PlayerMovementComponent
 			const FVector Velocity = PlayerMovementComponent->Velocity;
 
 			//launch the character
@@ -448,6 +448,10 @@ void APlayerCharacter::CallRestartPlayer()
 
 	//Destroying Player
 	Destroyed();
+	if (GrapplingHookRef->IsValidLowLevel())
+	{
+		GrapplingHookRef->Destroy();
+	}
 
 	//Getting the World and GameMode in the world to invoke the restart player function
 	if (const TObjectPtr<UWorld> World = GetWorld())
