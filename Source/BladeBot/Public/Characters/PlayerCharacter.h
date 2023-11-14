@@ -144,6 +144,7 @@ protected:
 	float EnergyRegenerationRate = 1.f;
 
 	// Determines if the character can dash
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	bool bIsDashing = false;
 
 	// Time since the dash was initiated
