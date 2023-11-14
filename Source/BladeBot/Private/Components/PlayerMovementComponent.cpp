@@ -7,6 +7,19 @@ UPlayerMovementComponent::UPlayerMovementComponent()
 	bUseFlatBaseForFloorChecks = true;
 }
 
+void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+{
+	//call the parent implementation
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
+	////check if we're not walking on the floor
+	//if (!IsWalking())
+	//{
+	//	//clear the bunny hop timer
+	//	GetWorld()->GetTimerManager().ClearTimer(BunnyHopTimer);
+	//}
+}
+
 bool UPlayerMovementComponent::CanAttemptJump() const
 {
 	//check if the jump type is set to can jump off any surface
@@ -132,69 +145,76 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 	return Super::DoJump(bReplayingMoves);
 }
 
-bool UPlayerMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
-{
-	//check if the player is bunny hopping
-	if (bIsBunnyHopping)
-	{
-		//if so, return whether or not the current velocity is greater than the max bunny hop speed
-		return Velocity.Size() > MaxBunnyHopSpeed;
-	}
+//bool UPlayerMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
+//{
+	////check if the player is bunny hopping
+	//if (bIsBunnyHopping)
+	//{
+	//	//if so, return whether or not the current velocity is greater than the max bunny hop speed
+	//	return false;
+	//}
 
 	//return the result of the parent implementation
-	return Super::IsExceedingMaxSpeed(MaxSpeed);
-}
+	//return Super::IsExceedingMaxSpeed(MaxSpeed);
+//}
 
-float UPlayerMovementComponent::GetMaxBrakingDeceleration() const
-{
-	//check if the player is bunny hopping
-	if (bIsBunnyHopping)
-	{
-		//if so, return the bunny hop braking deceleration
-		return BunnyHopBrakingDeceleration;
-	}
+//void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
+//{
+	////check if the jump type is set to bunny hop
+	//if (JumpType == BunnyHop)
+	//{
+	//	//check if the current velocity is greater than the minimum bunny hop speed
+	//	if (Velocity.Size() >= MinBunnyHopSpeed)
+	//	{
+	//		//set the max movement speed to be the bunny hop max speed
+	//		bIsBunnyHopping = true;
+	//	}
+	//	else
+	//	{
+	//		//reset is bunny hopping
+	//		bIsBunnyHopping = false;
 
-	//return the result of the parent implementation if the player is not bunny hopping
-	return Super::GetMaxBrakingDeceleration();
-}
+	//		//clear the bunny hop timer
+	//		GetWorld()->GetTimerManager().ClearTimer(BunnyHopTimer);
+	//	}
+	//}
 
-void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
-{
-	//check if the jump type is set to bunny hop
-	if (JumpType == BunnyHop)
-	{
-		//check if the current velocity is greater than the minimum bunny hop speed
-		if (Velocity.Size() >= MinBunnyHopSpeed)
-		{
-			//set the max movement speed to be the bunny hop max speed
-			bIsBunnyHopping = true;
+	////call the parent implementation
+	//Super::ProcessLanded(Hit, remainingTime, Iterations);
 
-			//return
-			return;
-		}
-	}
+	////set a timer for the bunny hop
+	//GetWorld()->GetTimerManager().SetTimer(BunnyHopTimer, this, &UPlayerMovementComponent::StopBunnyHop, BunnyHopTime, false);
+//}
 
-	//call the parent implementation
-	Super::ProcessLanded(Hit, remainingTime, Iterations);
+//void UPlayerMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
+//{
+//	//check if the player is bunny hopping
+//	if (bIsBunnyHopping)
+//	{
+//		//call the parent implementation with the bunny hop braking deceleration
+//		Super::CalcVelocity(DeltaTime, 0, bFluid, BunnyHopBrakingDeceleration);
+//	}
+//	else
+//	{
+//		//call the parent implementation
+//		Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+//	}
+//}
 
-	//set a timer for the bunny hop
-	GetWorld()->GetTimerManager().SetTimer(BunnyHopTimer, this, &UPlayerMovementComponent::StopBunnyHop, BunnyHopTime, false);
-}
-
-void UPlayerMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
-{
-	//check if the player is bunny hopping
-	if (bIsBunnyHopping)
-	{
-		//set the velocity to the current velocity minus the velocity multiplied by the friction
-		Velocity -= Velocity * Friction * DeltaTime;
-	}
-	else
-	{
-		//call the parent implementation
-		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
-	}
-}
+//void UPlayerMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
+//{
+//	//check if the player is bunny hopping
+//	if (bIsBunnyHopping)
+//	{
+//		//call the parent implementation with the bunny hop braking deceleration
+//		Super::ApplyVelocityBraking(DeltaTime, Friction, BunnyHopBrakingDeceleration);
+//	}
+//	else
+//	{
+//		//call the parent implementation
+//		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
+//	}
+//}
 
 void UPlayerMovementComponent::PhysFlying(const float DeltaTime, const int32 Iterations)
 {
@@ -418,7 +438,7 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 	{
 		case NoBoost:
 			//set the velocity
-			Velocity = FVector::UpVector * JumpZVel;
+			Velocity += FVector::UpVector * JumpZVel;
 		break;
 		case AddToZ:
 			//add the velocity
