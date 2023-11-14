@@ -128,8 +128,26 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	TObjectPtr<USoundBase> DashSound;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
 	TObjectPtr<UNiagaraSystem> DashEffect = nullptr;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
+	float EffectXLocation = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
+	float EffectYLocation = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
+	float EffectPitch = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
+	float EffectYaw = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
+	float EffectRoll = 0.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack | Effect")
+	float EffectZLocation = 0.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "DashAttack")
 	float DashSpeed = 20.f;

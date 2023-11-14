@@ -376,14 +376,16 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 			// Get the camera forward vector
 			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
 
+			// Get the camera forward vector
+			const FVector CamLocation = CamManager->GetCameraLocation();
+
 			// Play the dash sound
 			UGameplayStatics::PlaySound2D(this, DashSound);
 
 			// Play niagara effect at socket location
-			UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), DashEffect, GetActorLocation()/*GetMesh()->GetSocketLocation(
-				FName("DashSocket"))*/);
+			UNiagaraFunctionLibrary::SpawnSystemAttached(DashEffect, Camera, FName("Dash"), FVector(EffectXLocation, EffectYLocation, EffectZLocation), FRotator(EffectPitch, EffectYaw, EffectRoll), EAttachLocation::KeepRelativeOffset, true);
 
-				// Get velocity from PlayerMovementComponent
+			// Get velocity from PlayerMovementComponent
 			const FVector Velocity = PlayerMovementComponent->Velocity;
 
 			//launch the character
