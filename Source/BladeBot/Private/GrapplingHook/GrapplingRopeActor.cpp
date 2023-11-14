@@ -9,7 +9,7 @@ AGrapplingRopeActor::AGrapplingRopeActor()
 	PrimaryActorTick.bCanEverTick = true;
 
 	//initialize the collision points array
-	CollisionPoints.Init(FVector(), 2);
+	RopePoints.Init(FVector(), 2);
 }
 
 void AGrapplingRopeActor::BeginPlay()
@@ -30,16 +30,16 @@ void AGrapplingRopeActor::BeginPlay()
 		if (UseSocketOnInstigator)
 		{
 			//array of static mesh components for the instigator pawn
-			TArray<UStaticMeshComponent*> ActorComponents;
+			TArray<UMeshComponent*> ActorComponents;
 
 			//fill the array with the static mesh components of the instigator pawn
-			GetInstigator()->GetComponents(UStaticMeshComponent::StaticClass(), ActorComponents);
+			GetInstigator()->GetComponents(UMeshComponent::StaticClass(), ActorComponents);
 
 			//check if the array is not empty
 			if (ActorComponents.Num() > 0)
 			{
 				//loop through the array
-				for (UStaticMeshComponent* MeshComponent : ActorComponents)
+				for (UMeshComponent* MeshComponent : ActorComponents)
 				{
 					//check if the mesh component has a socket with the given name
 					if (MeshComponent->DoesSocketExist(InstigatorSocketName))
@@ -122,7 +122,7 @@ void AGrapplingRopeActor::Destroyed()
 
 FVector AGrapplingRopeActor::GetGrapplePoint(AActor* TravelingActor) const
 {
-	return CollisionPoints[1];
+	return RopePoints[1];
 }
 
 void AGrapplingRopeActor::CheckCollisionPoints()
@@ -133,20 +133,23 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 	CollisionParams.AddIgnoredActor(Owner);
 
 	//iterate through all the collision points
-	for (int Index = 0; Index < CollisionPoints.Num() - 1; Index++)
+	for (int Index = 0; Index < RopePoints.Num() - 1; Index++)
 	{
 		//check if we're not at the first collision point
 		if (Index != 0)
 		{
+			//set jitter to false
+			bUseJitter = false;
+
 			//sweep from the previous collision point to the next collision point
 			FHitResult Surrounding;
-			GetWorld()->SweepSingleByChannel(Surrounding, CollisionPoints[Index - 1], CollisionPoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
+			GetWorld()->SweepSingleByChannel(Surrounding, RopePoints[Index - 1], RopePoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
 
 			//check if the sweep returned a blocking hit or started inside an object
 			if (!Surrounding.bBlockingHit || Surrounding.bStartPenetrating)
 			{
 				//remove the collision point from the array
-				CollisionPoints.RemoveAt(Index);
+				RopePoints.RemoveAt(Index);
 
 				//check if we need to remove the niagara component for this collision point
 				if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
@@ -168,16 +171,16 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 
 		FHitResult Next;
 		//sweep from the current collision point to the next collision point
-		GetWorld()->SweepSingleByChannel(Next, CollisionPoints[Index], CollisionPoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
+		GetWorld()->SweepSingleByChannel(Next, RopePoints[Index], RopePoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
 
 		//check for hits
 		if (Next.IsValidBlockingHit())
 		{
 			//if we hit something, add a new collision point at the hit location if we're not too close to the last collision point
-			if (FVector::Dist(CollisionPoints[Index], Next.Location) > MinCollisionPointSpacing)
+			if (FVector::Dist(RopePoints[Index], Next.Location) > MinCollisionPointSpacing)
 			{
 				//insert the new collision point at the hit location
-				CollisionPoints.Insert(Next.Location + Next.ImpactNormal, Index + 1);
+				RopePoints.Insert(Next.Location + Next.ImpactNormal, Index + 1);
 			}
 		}
 	}
@@ -197,16 +200,16 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 		if (UseSocketOnInstigator)
 		{
 			//set the start of the rope to the socket location
-			CollisionPoints[0] = InstigatorMesh->GetSocketLocation(InstigatorSocketName);
+			RopePoints[0] = InstigatorMesh->GetSocketLocation(InstigatorSocketName);
 		}
 		else
 		{
 			//set the start of the rope to the instigator pawn's location
-			CollisionPoints[0] = GetInstigator()->GetActorLocation();
+			RopePoints[0] = GetInstigator()->GetActorLocation();
 		}
 
 		//set the end of the rope to the owner's location
-		CollisionPoints[CollisionPoints.Num() - 1] = Owner->GetActorLocation();
+		RopePoints[RopePoints.Num() - 1] = Owner->GetActorLocation();
 	}
 }
 
@@ -216,16 +219,19 @@ void AGrapplingRopeActor::RenderRope()
 	if (NiagaraSystem->IsValidLowLevelFast())
 	{
 		//iterate through all the collision points except the last one
-		for (int Index = 0; Index < CollisionPoints.Num() - 1; ++Index)
+		for (int Index = 0; Index < RopePoints.Num() - 1; ++Index)
 		{
 			//check if we have a valid Niagara component to use or if we need to create a new one
 			if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
 			{
 				//set the start location of the Niagara component
-				NiagaraComponents[Index]->SetWorldLocation(CollisionPoints[Index]);
+				NiagaraComponents[Index]->SetWorldLocation(RopePoints[Index]);
 
 				//set the end location of the Niagara component
-				NiagaraComponents[Index]->SetVectorParameter(RibbonEndParameterName, CollisionPoints[Index + 1]);
+				NiagaraComponents[Index]->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
+
+				//set whether or not to use jitter
+				NiagaraComponents[Index]->SetBoolParameter(JitterParameterName, bUseJitter);
 
 				//check if we should use rope radius
 				if (UseRopeRadiusAsRibbonWidth)
@@ -242,10 +248,10 @@ void AGrapplingRopeActor::RenderRope()
 			else
 			{
 				//create a new Niagara component
-				UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, CollisionPoints[Index]);
+				UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, RopePoints[Index]);
 
 				//set the end location of the Niagara component
-				NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, CollisionPoints[Index + 1]);
+				NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
 
 				//add the new Niagara component to the array
 				NiagaraComponents.Add(NewNiagaraComponent);
@@ -267,9 +273,9 @@ void AGrapplingRopeActor::DrawDebugRope()
 		case InfiniteRopeLength:
 		{
 			//draw all the parts of the rope in between
-			for (int i = 0; i < CollisionPoints.Num() - 1; i++)
+			for (int i = 0; i < RopePoints.Num() - 1; i++)
 			{
-				DrawDebugLine(GetWorld(), CollisionPoints[i], CollisionPoints[i + 1], FColor::Red, false, 0, 0, 3);
+				DrawDebugLine(GetWorld(), RopePoints[i], RopePoints[i + 1], FColor::Red, false, 0, 0, 3);
 			}
 			break;
 		}
@@ -310,23 +316,23 @@ void AGrapplingRopeActor::SetRopeMode(const ERopeMode NewRopeMode)
 	else
 	{
 		//check if we have any collision points to convert
-		if (CollisionPoints.IsEmpty())
+		if (RopePoints.IsEmpty())
 		{
 			return;
 		}
 
 		//fill the space between collision points with Hitboxes and physics constraints
-		for (int Index = 0; Index < CollisionPoints.Num(); ++Index)
+		for (int Index = 0; Index < RopePoints.Num(); ++Index)
 		{
 			//don't process the last collision point
-			if (!CollisionPoints.IsValidIndex(Index + 1))
+			if (!RopePoints.IsValidIndex(Index + 1))
 			{
 				break;
 			}
 
 			//Get start and end locations
-			FVector StartLocation = CollisionPoints[Index];
-			FVector EndLocation = CollisionPoints[Index + 1];
+			FVector StartLocation = RopePoints[Index];
+			FVector EndLocation = RopePoints[Index + 1];
 
 			//Get the direction and distance between the 2 locations
 			FVector Direction = (EndLocation - StartLocation).GetSafeNormal();
