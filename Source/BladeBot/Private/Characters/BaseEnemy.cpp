@@ -54,6 +54,9 @@ void ABaseEnemy::Die()
 {
 	if (CanDie == false) return;
 
+	PlayAudioDie(GetActorLocation());
+	PlayVFXDie(GetActorLocation());
+
 	Tags.Add(FName("Dead"));
 	SetActorHiddenInGame(true);
 	SetActorEnableCollision(false);
@@ -142,6 +145,42 @@ void ABaseEnemy::PlayVFXAttack(const FVector& PlayLocation)
 	}
 }
 
+void ABaseEnemy::PlayVFXDie(const FVector& PlayLocation)
+{
+	if (VFXDie && NiagaraComp) {
+		NiagaraComp->SetAsset(VFXDie);
+
+		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			VFXDie,
+			PlayLocation,
+			GetActorRotation(),
+			FVector(1.f),
+			true,
+			true,
+			ENCPoolMethod::None,
+			true);
+	}
+}
+
+void ABaseEnemy::PlayVFXSpawn(const FVector& PlayLocation)
+{
+	if (VFXSpawn && NiagaraComp) {
+		NiagaraComp->SetAsset(VFXSpawn);
+
+		NiagaraComp = UNiagaraFunctionLibrary::SpawnSystemAtLocation(
+			this,
+			VFXSpawn,
+			PlayLocation,
+			GetActorRotation(),
+			FVector(1.f),
+			true,
+			true,
+			ENCPoolMethod::None,
+			true);
+	}
+}
+
 // ------------- Audio ------------
 
 void ABaseEnemy::PlayAudioGetHit(const FVector& Location)
@@ -187,6 +226,30 @@ void ABaseEnemy::PlayAudioCoolDown(const FVector& Location)
 		UGameplayStatics::PlaySoundAtLocation(
 			this,
 			CoolDownSound,
+			Location
+		);
+	}
+}
+
+void ABaseEnemy::PlayAudioDie(const FVector& Location)
+{
+	if (DieSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			DieSound,
+			Location
+		);
+	}
+}
+
+void ABaseEnemy::PlayAudioSpawn(const FVector& Location)
+{
+	if (SpawnSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(
+			this,
+			SpawnSound,
 			Location
 		);
 	}

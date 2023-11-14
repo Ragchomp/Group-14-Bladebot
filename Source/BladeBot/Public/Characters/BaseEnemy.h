@@ -64,6 +64,18 @@ protected:
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayVFXAttack(const FVector& PlayLocation);
 
+		// ----
+		// Spawns a Niagara system at inputs location
+		// ----
+	UFUNCTION(BlueprintCallable)
+		virtual void PlayVFXDie(const FVector& PlayLocation);
+
+		// ----
+		// Spawns a Niagara system at inputs location
+		// ----
+	UFUNCTION(BlueprintCallable)
+		virtual void PlayVFXSpawn(const FVector& PlayLocation);
+
 	// Audio ------------------------------
 
 		// ----
@@ -71,21 +83,36 @@ protected:
 		// ----
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioGetHit(const FVector& Location);
-	// ----
-	// Spawns a Sound system at inputs location
-	// ----
+
+		// ----
+		// Spawns a Sound system at inputs location
+		// ----
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioAttack(const FVector& Location);
-	// ----
-	// Spawns a Sound system at inputs location
-	// ----
+
+		// ----
+		// Spawns a Sound system at inputs location
+		// ----
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioChargeUp(const FVector& Location);
-	// ----
-	// Spawns a Sound system at inputs location
-	// ----
+
+		// ----
+		// Spawns a Sound system at inputs location
+		// ----
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioCoolDown(const FVector& Location);
+
+		// ----
+		// Spawns a Sound system at inputs location
+		// ----
+	UFUNCTION(BlueprintCallable)
+		virtual void PlayAudioDie(const FVector& Location);
+
+		// ----
+		// Spawns a Sound system at inputs location
+		// ----
+	UFUNCTION(BlueprintCallable)
+		virtual void PlayAudioSpawn(const FVector& Location);
 
 	// Other ------------------------------
 
@@ -111,19 +138,6 @@ private:
 		class UAttributeComponent* Attributes;
 
 
-	// Audio ------------------------------
-	UPROPERTY(EditAnywhere, Category = "Audio")
-		class USoundBase* GetHitSound;
-
-	UPROPERTY(EditAnywhere, Category = "Audio")
-		class USoundBase* AttackSound;
-
-	UPROPERTY(EditAnywhere, Category = "Audio")
-		class USoundBase* ChargeUpSound;
-
-	UPROPERTY(EditAnywhere, Category = "Audio")
-		class USoundBase* CoolDownSound;
-
 	// VFX ------------------------------
 
 	UPROPERTY(EditAnywhere)
@@ -137,6 +151,31 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
 		class UNiagaraSystem* VFXAttack;
+
+	UPROPERTY(EditAnywhere, Category = "VFX")
+		class UNiagaraSystem* VFXDie;
+
+	UPROPERTY(EditAnywhere, Category = "VFX")
+		class UNiagaraSystem* VFXSpawn;
+
+	// Audio ------------------------------
+	UPROPERTY(EditAnywhere, Category = "Audio")
+		class USoundBase* GetHitSound;
+
+	UPROPERTY(EditAnywhere, Category = "Audio")
+		class USoundBase* AttackSound;
+
+	UPROPERTY(EditAnywhere, Category = "Audio")
+		class USoundBase* ChargeUpSound;
+
+	UPROPERTY(EditAnywhere, Category = "Audio")
+		class USoundBase* CoolDownSound;
+
+	UPROPERTY(EditAnywhere, Category = "Audio")
+		class USoundBase* DieSound;
+
+	UPROPERTY(EditAnywhere, Category = "Audio")
+		class USoundBase* SpawnSound;
 
 public:
 
