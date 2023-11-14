@@ -391,7 +391,7 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 			//launch the character
 			this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
 
-			PlayerMovementComponent->Velocity *= Velocity * FMath::Clamp(Velocity.Size(), 0, 1);
+			PlayerMovementComponent->Velocity *= Velocity.GetSafeNormal() * FMath::Clamp(Velocity.Length(), FMath::Min(Velocity.Size(), MaxDashSpeed), FMath::Max(Velocity.Size(), MaxDashSpeed));
 
 			// Update the last action time
 			LastActionTime = GetWorld()->GetTimeSeconds();
