@@ -9,6 +9,8 @@
 
 class ACharacter;
 
+//the trace only floor feature currently doesn't work
+
 //struct for the camera zoom interpolations
 USTRUCT(BlueprintType)
 struct FCameraZoomStruct
@@ -95,6 +97,10 @@ public:
 	//the time between each crouch lerping (in seconds)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraSettings|Crouch", meta=(ClampMin = 0.0f, editcondition = "bSmoothCrouch", editconditionHides))
 	float CrouchLerpTime = 0.025f;
+
+	//whether or not to only do a collision trace against the floor (currently doesn't work)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "CameraSettings|Collision")
+	bool bTraceOnlyFloor = false;
 
 	//the current index in the CamZoomInterps array to use
 	float CurrentInterpIndex = 0;
