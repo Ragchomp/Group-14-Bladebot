@@ -2,11 +2,8 @@
 // Classes
 #include "Characters/Enemies/MissleDestructable_Boss.h"
 #include "Characters/Enemies/BossEnemy.h"
-#include "Components/AttributeComponent.h"
 
 // Components
-#include "Components/BoxComponent.h"
-#include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 
@@ -14,13 +11,6 @@ AMissleDestructable_Boss::AMissleDestructable_Boss()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	Collision = CreateDefaultSubobject<UBoxComponent>(TEXT("Collision Box"));
-	SetRootComponent(Collision);
-
-	Mesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("Skeletal Mesh"));
-	Mesh->SetupAttachment(Collision);
-
-	AttributeComponent = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
 }
 
 void AMissleDestructable_Boss::BeginPlay()
@@ -29,6 +19,12 @@ void AMissleDestructable_Boss::BeginPlay()
 
 	Tags.Add(FName("Enemy"));
 
+
+	if(randomMovements == true)
+	{
+		SetRandomMovementSpeed();
+		SetRandomRotationSpeed();
+	}
 }
 
 void AMissleDestructable_Boss::SetCombatTarget(AActor* CombatTargetInn)
@@ -36,52 +32,15 @@ void AMissleDestructable_Boss::SetCombatTarget(AActor* CombatTargetInn)
 	CombatTarget = CombatTargetInn;
 }
 
-
 void AMissleDestructable_Boss::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
-	//if( /* line of sight */)
-		// rotate to player
-
-	//else
-		// branch line of sight, find path to player  
-		// rotate toward toward pathes
-		// re run check
-
-		// move
-	if (CombatTarget)
-	{
-		CheckSight();
-	}
+	//float playerspeed = CombatTarget->GetVelocity().Length();
+	//GEngine->AddOnScreenDebugMessage(10, 1, FColor::Orange, FString::Printf(TEXT("%f"), playerspeed));
 
 	Rotate(CombatTarget->GetActorLocation(), DeltaTime);
 	Move(DeltaTime);
-}
-
-float AMissleDestructable_Boss::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent,
-	AController* EventInstigator, AActor* DamageCauser)
-{
-	//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("Take Damage"));
-	if (AttributeComponent)
-	{
-		AttributeComponent->ReceiveDamage(DamageAmount);
-
-		if (AttributeComponent->IsNotAlive())
-		{
-			Die();
-		}
-	}
-	return 0.0f;
-}
-
-
-void AMissleDestructable_Boss::Die()
-{
-	Tags.Add(FName("Dead"));
-	SetActorHiddenInGame(true);
-	SetActorEnableCollision(false);
-	this->Destroy();
+	StartBombTimer();
 }
 
 void AMissleDestructable_Boss::Rotate(FVector Target, float DeltaTime)
@@ -91,7 +50,7 @@ void AMissleDestructable_Boss::Rotate(FVector Target, float DeltaTime)
 		FVector Point1 = GetActorLocation();
 		FVector Point2 = Target;
 		FVector MovementVector = GetVectorBetweenTwoPoints(Point1, Point2);
-
+		
 		FRotator CurrentRotation = GetActorRotation();
 		FRotator TargetRotation = MovementVector.Rotation();
 
@@ -107,47 +66,37 @@ void AMissleDestructable_Boss::Move(float DeltaTime)
 	SetActorLocation(NewLocation);
 }
 
-bool AMissleDestructable_Boss::CheckSight()
+void AMissleDestructable_Boss::SetRandomMovementSpeed()
 {
+	MovementSpeed = FMath::RandRange(MovementSpeedMin, MovementSpeedMax);
+}
 
-	if(CombatTarget)
-	{
-		FHitResult OutHit;
-		LineTrace(CombatTarget->GetActorLocation(), OutHit);
+void AMissleDestructable_Boss::SetRandomRotationSpeed()
+{
+	RotationSpeed = FMath::RandRange(RotationSpeedMin, RotationSpeedMax);
+}
+
+void AMissleDestructable_Boss::StartBombTimer()
+{
+	if(CombatTarget && InTargetRange(CombatTarget, StartExplosionTimerRange) && startedToExplode == false)
+	{ 
+		PlayVFXChargeUp(GetActorLocation());
+		PlayAudioChargeUp(GetActorLocation());
+		GetWorldTimerManager().SetTimer(MissleExplosionTimer, this, &AMissleDestructable_Boss::BombTimerFinished, MissleExplosionRate);
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Orange, FString::Printf(TEXT("StartExploding")));
+		startedToExplode = true;
 	}
-
-	return false;
 }
 
-void AMissleDestructable_Boss::LineTrace(FVector Target, FHitResult& OutHit)
+void AMissleDestructable_Boss::BombTimerFinished()
 {
-	// Trace Information
-	const FVector Start = GetActorLocation();
-	const FVector End = Target;
-	bool bTraceComplex = false;
-	FHitResult LineHit;
-	TArray<AActor*> ActorsToIgnore;
-	ActorsToIgnore.Add(this);
-
-	// The Trace
-	UKismetSystemLibrary::LineTraceSingle(
-		this,
-		Start,
-		End,
-		ETraceTypeQuery::TraceTypeQuery1,
-		false,
-		ActorsToIgnore,
-		EDrawDebugTrace::ForOneFrame,
-		OutHit,
-		true
-	);
+	if (CombatTarget && InTargetRange(CombatTarget, ExplosionRange))
+	{
+		if (CombatTarget->ActorHasTag("Player") && CombatTarget->GetVelocity().Length() < PlayerSpeedToNotDieFromExplosion)
+			UGameplayStatics::ApplyDamage(CombatTarget, Damage, this->GetInstigatorController(), this, UDamageType::StaticClass());
+		//GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Orange, FString::Printf(TEXT("Exploded, hit player")));
+	}
+	PlayVFXAttack(GetActorLocation());
+	PlayAudioAttack(GetActorLocation());
+	Die();
 }
-
-FVector AMissleDestructable_Boss::GetVectorBetweenTwoPoints(const FVector& Point1, const FVector& Point2)
-{
-	FVector VectorBetweenLocations = Point1 - Point2;
-	VectorBetweenLocations.Normalize();
-
-	return -VectorBetweenLocations;
-}
-
