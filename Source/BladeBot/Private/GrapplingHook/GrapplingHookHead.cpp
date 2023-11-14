@@ -130,7 +130,7 @@ void AGrapplingHookHead::Tick(float DeltaTime)
 	}
 
 	//check if we should destroy on impact and if we've hit a wall
-	if (bDestroyOnImpact && bHasHitWall)
+	if (bDestroyOnImpact && HasHitWall())
 	{
 		//destroy ourselves
 		DoDestroy();
@@ -151,6 +151,19 @@ void AGrapplingHookHead::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 	if (!bCanDespawnbyOverlap)
 	{
 		return;
+	}
+
+	//check if our rope actor is valid
+	if (RopeActor)
+	{
+		//check if the number of collision points in the rope actor is not equal to 2
+		if (RopeActor->RopePoints.Num() != 2)
+		{
+			//if so, return
+			return;
+		}
+
+
 	}
 
 	//check if we've been alive for the minimum time
@@ -186,8 +199,34 @@ void AGrapplingHookHead::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, 
 
 void AGrapplingHookHead::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	//check if we've hit a wall
+	if (HitComponent == WallHitbox)
+	{
+		//handle wall collision
+		HandleWallCollision(Hit);
+	}
+}
+
+void AGrapplingHookHead::DoDestroy()
+{
+	//destroy ourselves
+	Destroy();
+
+	//check if we have a player movement component
+	if (PlayerMovementComponent)
+	{
+		//stop the player grapple
+		PlayerMovementComponent->StopGrapple();
+	}
+}
+
+void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
+{
 	//set the grapple state to attached
 	GrappleState = EGrappleState::EGS_Attached;
+
+	//set the rope actor's bUseJitter to false
+	RopeActor->bUseJitter = false;
 
 	//check if we have a player movement component
 	if (PlayerMovementComponent)
@@ -212,19 +251,12 @@ void AGrapplingHookHead::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherA
 		}
 	}
 
-	//set bHasHitWall to true
-	bHasHitWall = true;
+	//attach to the wall that we hit
+	AttachToComponent(Hit.GetComponent(), FAttachmentTransformRules::KeepWorldTransform);
 }
 
-void AGrapplingHookHead::DoDestroy()
+bool AGrapplingHookHead::HasHitWall() const
 {
-	//destroy ourselves
-	Destroy();
-
-	//check if we have a player movement component
-	if (PlayerMovementComponent)
-	{
-		//stop the player grapple
-		PlayerMovementComponent->StopGrapple();
-	}
+	//return whether or not we're attached to something
+	return GrappleState == EGrappleState::EGS_Attached;
 }
