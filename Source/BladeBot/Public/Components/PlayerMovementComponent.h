@@ -131,17 +131,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	float JumpBoostAmount = 1000.f;
 
-	//the max movement speed to have when bunny hopping
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	float MaxBunnyHopSpeed = 1000.f;
-
 	//the minimum movement speed to have when attempting a bunny hopping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	float MinBunnyHopSpeed = 500.f;
+	float MinBunnyHopSpeed = 200.f;
 
 	//the amount of jump z val to use when bunny hopping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	float BunnyHopJumpZVal = 200.f;
+	float BunnyHopJumpZVal = 500.f;
 
 	//the amount of time on the ground the character can spend before they can no longer bunny hop
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
@@ -163,6 +159,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	float MinSpeedForSpeedBoost = 1000.f;
 
+	//whether or not the player is bunny hopping
+	UPROPERTY(BlueprintReadOnly, Category = "Jumping")
+	mutable bool bIsBunnyHopping = false;
+
 	//the collision shape to use when checking if the player can grapple to where they are aiming
 	ECollisionShape::Type CanGrappleCollisionShape = ECollisionShape::Sphere;
 
@@ -178,20 +178,17 @@ public:
 	//whether or not the player is jumping off of a wall
 	mutable bool bIsWallJumping = false;
 
-	//whether or not the player is bunny hopping
-	mutable bool bIsBunnyHopping = false;
-
 	//the timer handle for the bunny hop timer
 	FTimerHandle BunnyHopTimer = FTimerHandle();
 
 	//override functions
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual bool CanAttemptJump() const override;
 	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
 	virtual bool DoJump(bool bReplayingMoves) override;
-	virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
-	virtual float GetMaxBrakingDeceleration() const override;
-	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
-	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+	//virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
+	//virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
+	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void PhysFlying(float DeltaTime, int32 Iterations) override;
 	virtual FVector ConsumeInputVector() override;
 
