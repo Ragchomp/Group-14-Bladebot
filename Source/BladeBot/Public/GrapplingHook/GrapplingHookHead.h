@@ -90,10 +90,6 @@ public:
 	//timer handle for destroying the grappling hook head after a delay
 	FTimerHandle DestroyTimer;
 
-
-	//whether or not we've hit something
-	bool bHasHitWall = false;
-
 	//overrides
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -113,6 +109,14 @@ public:
 	//the function that's called when the grappling hook head is destroyed because of a hit
 	UFUNCTION()
 	void DoDestroy();
+
+	//handles a collision with a wall
+	UFUNCTION()
+	void HandleWallCollision(const FHitResult& Hit);
+
+	//whether or not the grappling hook has hit a wall
+	UFUNCTION(BlueprintCallable)
+	bool HasHitWall() const;
 
 	//get the current state of the grappling hook head
 	FORCEINLINE EGrappleState GetGrappleState() const { return GrappleState; }

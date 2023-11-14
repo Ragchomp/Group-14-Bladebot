@@ -5,10 +5,12 @@
 
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
+#include "Characters/PlayerCharacter.h"
 #include "GrapplingHook/GrapplingHookHead.h"
 
 UPlayerCameraComponent::UPlayerCameraComponent()
 {
+	SpeedLinesRef = CreateDefaultSubobject<UNiagaraComponent>(TEXT("SpeedLinesRef"));
 }
 
 void UPlayerCameraComponent::BeginPlay()
@@ -16,75 +18,106 @@ void UPlayerCameraComponent::BeginPlay()
 	//call the parent implementation
 	Super::BeginPlay();
 
-	//spawn the speed lines
-	//SpeedLinesRef = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), SpeedLines, GetOwner()->GetActorLocation(), GetOwner()->GetActorRotation());
+	//get owner as a player character
+	PlayerCharacterRef = Cast<APlayerCharacter>(GetOwner());
+
+	//check if we shouldn't use the speed lines
+	if (!bUseSpeedLines)
+	{
+		//check if we have a reference to the speed lines
+		if (SpeedLinesRef)
+		{
+			//destroy the speed lines
+			SpeedLinesRef->DestroyComponent();
+		}
+	}
 }
 
-void UPlayerCameraComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
+void UPlayerCameraComponent::TickComponent(const float DeltaTime, const ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
-	////get the owner's velocity
-	//const FVector Velocity = GetOwner()->GetVelocity();
+	//check that we're not in the editor
+	if (GetWorld()->IsPreviewWorld())
+	{
+		//call the parent implementation
+		Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	////get the speed
-	//float Speed = Velocity.Size();
+		//return
+		return;
+	}
 
-	////if we are ignoring the z axis
-	//if (bIgnoreZVelocity)
-	//{
-	//	//zero out the z axis
-	//	Speed = Velocity.Size2D();
-	//}
+	//get the owner's velocity
+	const FVector Velocity = GetOwner()->GetVelocity();
 
-	////clamp the speed
-	//Speed = FMath::GetMappedRangeValueClamped(SpeedLinesSpeedParamInRange, SpeedLinesSpeedParamOutRange, Speed);
+	//get the speed
+	float Speed = Velocity.Size();
 
-	////if the speed is greater than the speed lines velocity
-	//if (Speed > MinSpeedLinesVal)
-	//{
-	//	//update the float parameter
-	//	SpeedLinesRef->SetFloatParameter(SpeedLinesSpeedParamName, Speed);
-	//}
-	//else
-	//{
-	//	//update the float parameter
-	//	SpeedLinesRef->SetFloatParameter(SpeedLinesSpeedParamName, 0.0f);
-	//}
+	//check if we are ignoring the z axis
+	if (bIgnoreZVel)
+	{
+		//zero out the z axis
+		Speed = Velocity.Size2D();
+	}
 
-	////if we are using a seperate fov when grappling hook is active
-	//if (bUseGrapplingFov)
-	//{
-	//	switch (GrapplingHookRef->GetGrappleState()) {
-	//		case EGrappleState::EGS_Retracted:
-	//			//set the fov
-	//			CustomSetFieldOfView(HookRetractedFov, DeltaTime, ToRetractedLerpSpeed);
-	//			break;
-	//		case EGrappleState::EGS_InAir:
-	//			//set the fov
-	//			CustomSetFieldOfView(HookInAirFov, DeltaTime, ToAirLerpSpeed);
-	//			break;
-	//		case EGrappleState::EGS_Attached:
-	//			//set the fov
-	//			CustomSetFieldOfView(HookRetractingFov, DeltaTime, ToRetractingLerpSpeed);
-	//			break;
-	//		default: ;
-	//	}
-	//}
+	//check if we have speed lines and if we should use them
+	if (SpeedLinesRef && bUseSpeedLines)
+	{
+
+		//clamp the speed
+		Speed = FMath::GetMappedRangeValueClamped(SpeedLinesSpeedParamInRange, SpeedLinesSpeedParamOutRange, Speed);
+
+		//if the speed is greater than the speed lines velocity
+		if (bUseDebugVal)
+		{
+			//update the float parameter
+			SpeedLinesRef->SetFloatParameter(SpeedLinesSpeedParamName, SpeedLinesDebugVal);
+		}
+		else if (Speed > MinSpeedLinesVal)
+		{
+			//update the float parameter
+			SpeedLinesRef->SetFloatParameter(SpeedLinesSpeedParamName, Speed);
+		}
+		else
+		{
+			//update the float parameter
+			SpeedLinesRef->SetFloatParameter(SpeedLinesSpeedParamName, 0.0f);
+		}
+	}
+
+
+	//check if we have a references
+	if (GrapplingHookRef && PlayerCharacterRef)
+	{
+		//update the camera state
+		UpdateCameraState(GrapplingHookRef->GetGrappleState(), PlayerCharacterRef->GetIsDashing(), DeltaTime);
+	}
 
 	//call the parent implementation
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UPlayerCameraComponent::CustomSetFieldOfView(const float InFieldOfView, const float DeltaTime, const float LerpSpeed)
+void UPlayerCameraComponent::UpdateCameraState(const EGrappleState NewState, const bool IsDashing, const float DeltaTime)
 {
-	//if we are lerping the fov
-	if (bLerpFov)
+	//init the camera state variable
+	FCameraStateStruct CameraState;
+
+	//loop through the camera states
+	for (const FCameraStateStruct State : CameraStates)
 	{
-		//lerp the fov
-		SetFieldOfView(InterpToTarget(FovInterpType,FieldOfView, InFieldOfView, DeltaTime, LerpSpeed));
+		//check if the state is the same as the new state and if we should use it with whatever dashing state we're in
+		if (State.GrappleState == NewState && State.bUseWithDashing == IsDashing)
+		{
+			//set the camera state
+			CameraState = State;
+
+			//exit the loop
+			break;
+		
+		}
 	}
-	else
-	{
-		//set the fov
-		SetFieldOfView(InFieldOfView);
-	}
+
+	//update the field of view
+	InterpToTarget(CameraState.FovInterpType, FieldOfView, CameraState.FieldOfView, CameraState.FovInterpSpeed, DeltaTime);
+
+	//update the post process settings
+	PostProcessSettings = CameraState.PostProcessSettings;
 }

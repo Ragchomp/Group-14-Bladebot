@@ -1,5 +1,6 @@
 #include "Components/CameraArmComponent.h"
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
 UCameraArmComponent::UCameraArmComponent(const FObjectInitializer& ObjectInitializer)
@@ -71,8 +72,35 @@ void UCameraArmComponent::UpdateDesiredArmLocation(bool bDoTrace, bool bDoLocati
 		SocketOffset = CamSocketOffset * CameraOffsetAmount;
 	}
 
-	//call the parent implementation
-	Super::UpdateDesiredArmLocation(bDoTrace, bDoLocationLag, bDoRotationLag, DeltaTime);
+	//check if we should only trace the floor
+	if (bTraceOnlyFloor)
+	{
+		//call the parent implementation without tracing
+		Super::UpdateDesiredArmLocation(false, bDoLocationLag, bDoRotationLag, DeltaTime);
+
+		//the collision parameters to use
+		FCollisionQueryParams QueryParams(SCENE_QUERY_STAT(SpringArm), false, GetOwner());
+
+		//trace from the previous arm origin to the desired location
+		FHitResult Result;
+		GetWorld()->SweepSingleByChannel(Result, PreviousArmOrigin, PreviousDesiredLoc, FQuat::Identity, ProbeChannel, FCollisionShape::MakeSphere(ProbeSize), QueryParams);
+
+		//check if we hit something
+		if (Result.bBlockingHit)
+		{
+			//check if the hit normal is facing up
+			if (Result.ImpactNormal.Z > 0)
+			{
+				//set the relative socket location
+				RelativeSocketLocation = BlendLocations(UnfixedCameraPosition, Result.Location, Result.bBlockingHit, DeltaTime);
+			}
+		}
+	}
+	else
+	{
+		//call the parent implementation without any changes
+		Super::UpdateDesiredArmLocation(bDoTrace, bDoLocationLag, bDoRotationLag, DeltaTime);		
+	}
 }
 
 void UCameraArmComponent::InterpCameraZoom()

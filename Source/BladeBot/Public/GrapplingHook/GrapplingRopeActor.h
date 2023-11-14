@@ -32,8 +32,7 @@ enum ERopeMode
 	InfiniteRopeLength UMETA(DisplayName = "InfiniteLength"),
 
 	//rope is a set length
-	FixedLength UMETA(DisplayName = "FixedLength"),
-
+	FixedLength UMETA(DisplayName = "FixedLength")
 };
 
 UCLASS()
@@ -74,6 +73,8 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering", meta = (EditCondition = "UseRopeRadiusAsRibbonWidth == false", EditConditionHides))
 	float RibbonWidth = 10.f;
 
+	//whether 
+
 	//whether we should draw debug lines for the rope
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
 	bool bDrawDebugRope = false;
@@ -86,13 +87,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Rope|Rendering")
 	TArray<UNiagaraComponent*> NiagaraComponents;
 
-	//the minimum spacing between new and old collision points in the infinite length rope mode
+	//the minimum spacing between new and old rope points in the infinite length rope mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|InfiniteLength", meta = (editcondition = "RopeMode == ERopeMode::InfiniteRopeLength", editconditionHides))
 	float MinCollisionPointSpacing = 20.f;
 
-	//array of collision points used when the rope is infinite length
+	//array of rope points used when the rope is infinite length
 	UPROPERTY(BlueprintReadOnly, Category = "Rope|InfiniteLength")
-	TArray<FVector> CollisionPoints;
+	TArray<FVector> RopePoints;
 
 	//the extra space between hitboxes spawned when constructing the physics constraints in the fixed length rope mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope|FixedLength", meta = (editcondition = "RopeMode == ERopeMode::FixedLength", editconditionHides))
@@ -116,7 +117,15 @@ public:
 
 	//reference to the socket mesh to use when attaching the rope to the instigator pawn
 	UPROPERTY(BlueprintReadOnly, Category= "Rope|Sockets|Instigator", meta = (EditCondition = "UseSocketOnInstigator == true", EditConditionHides))
-	UStaticMeshComponent* InstigatorMesh = nullptr;
+	UMeshComponent* InstigatorMesh = nullptr;
+
+	//whether or not to use the jitter on the niagara ribbons
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter")
+	bool bUseJitter = true;
+
+	//the name of the user parameter for the jitter on the niagara ribbons
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter", meta = (EditCondition = "bUseJitter == true", EditConditionHides))
+	FName JitterParameterName = "DoJitter";
 
 	//actor overrides
 	virtual void BeginPlay() override;

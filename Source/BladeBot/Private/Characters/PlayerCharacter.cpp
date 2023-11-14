@@ -56,6 +56,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
 
+	//set the mesh's collision profile to be no collision
+	GetMesh()->SetCollisionProfileName(FName("NoCollision"));
+
 	//set the capsule component's default size
 	GetCapsuleComponent()->SetCapsuleHalfHeight(60);
 	GetCapsuleComponent()->SetCapsuleRadius(10);
@@ -166,6 +169,17 @@ void APlayerCharacter::Tick(float DeltaTime)
 	EnergyRegeneration();
 }
 
+bool APlayerCharacter::CanJumpInternal_Implementation() const
+{
+	//check if we are allowed to attempt to jump and we're wall jumping
+	if (GetCharacterMovement()->IsJumpAllowed() && PlayerMovementComponent->bIsWallJumping)
+	{
+		return true;
+	}
+	//return the parent implementation
+	return Super::CanJumpInternal_Implementation();
+}
+
 bool APlayerCharacter::CanUseInput(const FInputActionValue& Value)
 {
 	//check if the input is used and if the character is not dead
@@ -194,29 +208,41 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 		const FRotator ControlPlayerRotationYaw = GetControlRotation();
 		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
 
-		//get the right vector from the control rotation
-		const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
-
 		//check if the player is grappling
 		if (PlayerMovementComponent->bIsGrappling)
 		{
 			//get the up vector from the control rotation
-			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).
-				GetUnitAxis(EAxis::Z);
+			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Z);
+
+			//get the X axis for the movement input
+			const FVector MovementXAxis = FVector::CrossProduct(PlayerDirectionYaw_Upwards_Downwards.GetSafeNormal(), PlayerMovementComponent->GrappleDirection.GetSafeNormal()).GetSafeNormal();
+
+			//get the right vector from the control rotation
+			const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
+
+			//get the X axis for the movement input
+			const FVector MovementYAxis = FVector::CrossProduct((PlayerDirectionYaw_Left_Right * -1).GetSafeNormal(), PlayerMovementComponent->GrappleDirection.GetSafeNormal()).GetSafeNormal();
 
 			//add upwards/downwards movement input
-			AddMovementInput(PlayerDirectionYaw_Upwards_Downwards, VectorDirection.Y);
+			AddMovementInput(MovementYAxis, VectorDirection.Y);
+
+			//add left/right movement input
+			AddMovementInput(MovementXAxis, VectorDirection.X);
 		}
 		else
 		{
 			//get the forward vector from the control rotation
-			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).
-				GetUnitAxis(EAxis::X);
+			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+
+			//get the right vector from the control rotation
+			const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
 
 			//add forward/backwards movement input
 			AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
+
+			//add left/right movement input
+			AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 		}
-		AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 	}
 }
 
@@ -275,7 +301,7 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 		//check if there is an existing grappling hook
 		if (GrapplingHookRef)
 		{
-			//reactivate the grappling hook
+			//destroy the grappling hook
 			GrapplingHookRef->Destroy();
 
 			//print debug message
