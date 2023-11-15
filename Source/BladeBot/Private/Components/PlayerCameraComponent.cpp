@@ -62,17 +62,8 @@ void UPlayerCameraComponent::TickComponent(const float DeltaTime, const ELevelTi
 	//check if we have a valid player character reference
 	if (PlayerCharacterRef)
 	{
-		//check if the player character has a valid grappling hook reference
-		if (PlayerCharacterRef->GrapplingHookRef)
-		{
-			//update the camera state
-			UpdateCameraState(PlayerCharacterRef->GrapplingHookRef->GetGrappleState(), PlayerCharacterRef->GetIsDashing(), DeltaTime);	
-		}
-		else
-		{
-			//update the camera state
-			UpdateCameraState(EGrappleState::EGS_Retracted, PlayerCharacterRef->GetIsDashing(), DeltaTime);
-		}
+		//update the camera state
+		UpdateCameraState(PlayerCharacterRef->GrapplingHookRef, DeltaTime);	
 	}
 
 	////get the owner's velocity
@@ -116,13 +107,28 @@ void UPlayerCameraComponent::TickComponent(const float DeltaTime, const ELevelTi
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 }
 
-void UPlayerCameraComponent::UpdateCameraState(const EGrappleState NewState, const bool IsDashing, const float DeltaTime)
+void UPlayerCameraComponent::UpdateCameraState(AGrapplingHookHead* GrapplingHook, const float DeltaTime)
 {
+	//the new camera state
+	EGrappleState NewState;
+
+	//check if we have a valid grappling hook
+	if (GrapplingHook)
+	{
+		//set the new state
+		NewState = GrapplingHook->GrappleState;
+	}
+	else
+	{
+		//set the new state
+		NewState = EGrappleState::EGS_Retracted;
+	}
+
 	//loop through the camera states
 	for (const FCameraStateStruct State : CameraStates)
 	{
 		//check if the state is the same as the new state and if we should use it with whatever dashing state we're in
-		if (State.GrappleState == NewState && State.bUseWithDashing == IsDashing)
+		if (State.GrappleState == NewState && State.bUseWithDashing == PlayerCharacterRef->GetIsDashing())
 		{
 			//set the camera state
 			CurrentCameraState = State;
