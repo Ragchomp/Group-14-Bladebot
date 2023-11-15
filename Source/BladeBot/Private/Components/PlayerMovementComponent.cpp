@@ -260,6 +260,21 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	return ReturnVec;
 }
 
+bool UPlayerMovementComponent::HandlePendingLaunch()
+{
+	//store the result of the parent implementation
+	const bool ReturnVal = Super::HandlePendingLaunch();
+
+	//check if the player is grappling
+	if (bIsGrappling)
+	{
+		//set the movement mode back to flying
+		SetMovementMode(MOVE_Flying);
+	}
+
+	return ReturnVal;
+}
+
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 {
 	//check if the player is already grappling
