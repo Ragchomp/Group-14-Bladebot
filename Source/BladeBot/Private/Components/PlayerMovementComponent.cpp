@@ -9,7 +9,6 @@ UPlayerMovementComponent::UPlayerMovementComponent()
 	BrakingFrictionFactor = 0.1f;
 	JumpZVelocity = 1000.f;
 	AirControl = 2.f;
-	BrakingDecelerationFalling = 100.f;
 }
 
 //void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
@@ -286,6 +285,9 @@ void UPlayerMovementComponent::StopGrapple()
 
 		//reset the movement mode
 		SetDefaultMovementMode();
+
+		//reset the character's rotation
+		GetCharacterOwner()->SetActorRotation(FRotator(0.f, 0, 0.f));
 	}
 }
 
@@ -387,9 +389,11 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 		break;
 	}
 
-	
 	//update the character's velocity
 	UpdateComponentVelocity();
+
+	//set the character's rotation to face the grapple point
+	GetCharacterOwner()->SetActorRotation(GrappleDirection.Rotation());
 }
 
 bool UPlayerMovementComponent::WallJump()

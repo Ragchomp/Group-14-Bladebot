@@ -3,6 +3,8 @@
 #include "GrapplingHook/GrapplingHookHead.h"
 
 //Components
+#include "Characters/PlayerCharacter.h"
+#include "Components/PlayerCameraComponent.h"
 #include "Components/PlayerMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -125,7 +127,7 @@ void AGrapplingHookHead::Tick(float DeltaTime)
 		if (FVector::Dist(DistanceCheckLocation, GetActorLocation()) >= MaxDistance)
 		{
 			//destroy ourselves
-			Destroy();
+			DoDestroy();
 		}
 	}
 
@@ -176,15 +178,8 @@ void AGrapplingHookHead::OnOverlapBegin(UPrimitiveComponent* OverlappedComponent
 		return;
 	}
 
-	//check if we have a player movement component
-	if (PlayerMovementComponent)
-	{
-		//start player grapple
-		PlayerMovementComponent->StopGrapple();
-	}
-
 	//destroy ourselves
-	Destroy();
+	DoDestroy();
 }
 
 void AGrapplingHookHead::OnOverlapEnd(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
@@ -217,6 +212,9 @@ void AGrapplingHookHead::DoDestroy()
 	{
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
+
+		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetInstigator());
+		PlayerCharacter->GrapplingHookRef = nullptr;
 	}
 }
 
@@ -247,7 +245,7 @@ void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
 		else
 		{
 			//destroy ourselves immediately
-			Destroy();	
+			DoDestroy();	
 		}
 	}
 

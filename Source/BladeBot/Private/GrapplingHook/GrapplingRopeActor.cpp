@@ -237,7 +237,7 @@ void AGrapplingRopeActor::RenderRope()
 				if (UseRopeRadiusAsRibbonWidth)
 				{
 					//set the ribbon width to the rope radius
-					NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RopeRadius);
+					NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RopeRadius /* * 2*/);
 				}
 				else
 				{
