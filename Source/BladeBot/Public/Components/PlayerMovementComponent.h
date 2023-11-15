@@ -191,6 +191,7 @@ public:
 	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual void PhysFlying(float DeltaTime, int32 Iterations) override;
 	virtual FVector ConsumeInputVector() override;
+	virtual bool HandlePendingLaunch() override;
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
