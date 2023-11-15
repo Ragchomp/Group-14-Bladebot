@@ -123,11 +123,12 @@ class BLADEBOT_API UPlayerCameraComponent : public UCameraComponent
 	UPROPERTY(BlueprintReadOnly, Category = "Camera")
 	APlayerCharacter* PlayerCharacterRef = nullptr;
 
+
 	//overrides
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 
 	//updates the camera state
 	UFUNCTION(BlueprintCallable, Category = "Camera")
-	void UpdateCameraState(const EGrappleState NewState, const bool IsDashing, const float DeltaTime);
+	void UpdateCameraState(AGrapplingHookHead* GrapplingHook, const float DeltaTime);
 };
