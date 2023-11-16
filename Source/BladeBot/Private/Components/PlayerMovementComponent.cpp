@@ -62,8 +62,8 @@ bool UPlayerMovementComponent::CanAttemptJump() const
 	return Super::CanAttemptJump() && !IsFalling();
 }
 
-void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
-{
+//void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
+//{
 	////call the parent implementation
 	//Super::HandleImpact(Hit, TimeSlice, MoveDelta);
 
@@ -82,7 +82,7 @@ void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSli
 	//	//set the wall jump timer
 	//	GetWorld()->GetTimerManager().SetTimer(WalljumpTimerHandle, this, &UPlayerMovementComponent::DisableWallJump, WallJumpTime, false);
 	//}
-}
+//}
 
 void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
 {
