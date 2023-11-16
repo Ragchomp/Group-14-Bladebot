@@ -10,10 +10,15 @@
 #include "Math/InterpShorthand.h"
 #include "PlayerMovementComponent.generated.h"
 
+class UPlayerCameraComponent;
 class AGrapplingHookHead;
 
 //maybe add a rope tension force to the player when grappling to make it feel more like a real grapple and force the character to move either towards the grapple point or in a swing arc around it
-//maybe add a force in the direction the player is looking at when boosting a jump?
+//FVector::HeadingAngle()
+//FVector::MirrorByVector()
+//FVector::SlerpVectorToDirection()
+//FVector::VectorPlaneProject()
+
 
 //enum for different grappling modes
 UENUM(BlueprintType)
@@ -22,18 +27,6 @@ enum EGrapplingMode
 	SetVelocity,
 	AddToVelocity,
 	InterpVelocity,
-};
-
-//enum for different jump types
-UENUM(BlueprintType)
-enum EJumpType
-{
-	Normal,
-	AlwaysBoosted,
-	//CanJumpOffAnySurface, //doesn't work
-	//BunnyHop,
-	BoostedWhenAtLedgeAndMovingTowardsLedge, //draw debug sphere doesn't work
-	BoostedWhenMovingFast,
 };
 
 //enum for different jump boost types
@@ -60,7 +53,7 @@ public:
 	UPlayerMovementComponent();
 
 	//whether or not to set the velocity of the player when grappling
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
+	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
 	TEnumAsByte<EGrapplingMode> GrappleMode = SetVelocity;
 
 	//the grappling speed in set velocity mode
@@ -91,6 +84,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
 	float GrappleMovementInputModifier = 1.f;
 
+	//the launch force to apply when starting to grapple
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Launch")
+	float GrappleLaunchForce = 500.f;
+
 	//the max distance the Grappling hook can travel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
 	float MaxGrappleDistance = 4500.f;
@@ -103,65 +100,57 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance");
 	TEnumAsByte<ECollisionChannel> CanGrappleTraceChannel = ECC_Visibility;
 
-	//the current jump type
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	TEnumAsByte<EJumpType> JumpType = BoostedWhenMovingFast;
-
 	//the current jump boost type
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	TEnumAsByte<EJumpBoostType> JumpBoostType = DirectionalJump;
 
 	//the amount of force to apply in the direction the player is looking when jumping with the DirectionalJump boost type
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
 	float DirectionalJumpForce = 3000.f;
 
-	//the max distance away from something the player can be to jump off of it
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	float JumpOffDistance = 2000.f;
-
-	//the force the player gets away from the wall when wall jumping
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	float WallJumpForce = 1000.f;
-
-	////the amount of force to apply in the direction the player is looking when wall jumping
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//float WallJumpDirectionalForce = 1000.f;
+	//whether or not to boost the jump in the direction the player is looking when velocity is above the MinSpeedForSpeedBoost
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
+	bool bBoostJumpInDirectionLooking = true;
 
 	//the amount of boost to apply when boosting a jump
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
 	float JumpBoostAmount = 500.f;
 
-	////the minimum movement speed to have when attempting a bunny hopping
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//float MinBunnyHopSpeed = 200.f;
-
-	////the amount of jump z val to use when bunny hopping
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//float BunnyHopJumpZVal = 500.f;
-
-	////the amount of time on the ground the character can spend before they can no longer bunny hop
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//float BunnyHopTime = 0.5f;
-
-	////the braking deceleration to use when bunny hopping
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//float BunnyHopBrakingDeceleration = 0.f;
-
-	////the max distance away from a ledge the player can be to jump off of it
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//float LedgeJumpDistance = 200.f;
-
-	////whether or not to draw a debug sphere at the ledge jump location
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	//bool bDrawDebugSphere = false;
-
 	//the minimum speed the player needs to be moving at to get a speed based jump boost
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
 	float MinSpeedForSpeedBoost = 1000.f;
 
-	////whether or not the player is bunny hopping
-	//UPROPERTY(BlueprintReadOnly, Category = "Jumping")
-	//mutable bool bIsBunnyHopping = false;
+	//whether or not the player can ever wall jump
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
+	bool bCanEverWallJump = true;
+
+	//the time the player has to jump off of a wall after hitting it
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
+	float WallJumpTime = 0.1f;
+
+	//the force the player gets away from the wall when wall jumping
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
+	float WallJumpForce = 1000.f;
+
+	//the force multipliers to apply to wall jumps (x = impactnormal, y = forwards, z = crossproduct of impactnormal and forwards)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
+	FVector WallJumpForceMultipliers = FVector(1.f, 1.f, 1.f);
+
+	//whether or not the player can wall jump when looking any direction
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
+	bool bMustFaceWallToWallJump = true;
+
+	//the modifier to check if the player is looking close enough to the wall to wall jump
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
+	float WallJumpDotModifier = 0.5f;
+
+	//whether or not the player can wall jump right now
+	UPROPERTY(BlueprintReadOnly, Category = "Jumping|Walljump")
+	bool bCanWallJump = false;
+
+	//reference to the player camera of the player character
+	UPROPERTY()
+	UPlayerCameraComponent* PlayerCamera = nullptr;
 
 	//the collision shape to use when checking if the player can grapple to where they are aiming
 	ECollisionShape::Type CanGrappleCollisionShape = ECollisionShape::Sphere;
@@ -175,21 +164,17 @@ public:
 	//the last hit that the character had
 	FHitResult LastHit;
 
-	//whether or not the player is jumping off of a wall
-	mutable bool bIsWallJumping = false;
-
 	//the timer handle for the bunny hop timer
-	FTimerHandle BunnyHopTimer = FTimerHandle();
+	FTimerHandle WalljumpTimerHandle = FTimerHandle();
 
 	//override functions
-	//virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
-	//virtual bool CanAttemptJump() const override;
-	//virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
+	virtual void BeginPlay() override;
+	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual bool CanAttemptJump() const override;
+	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
+	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
 	virtual bool DoJump(bool bReplayingMoves) override;
-	//virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
-	//virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
-	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
-	virtual void PhysFlying(float DeltaTime, int32 Iterations) override;
+	//virtual void PhysFlying(float DeltaTime, int32 Iterations) override;
 	virtual FVector ConsumeInputVector() override;
 	virtual bool HandlePendingLaunch() override;
 
@@ -215,13 +200,21 @@ public:
 	//sets the velocity of the player character when grappling
 	void UpdateGrappleVelocity(float DeltaTime);
 
+	//function to check if the player is looking in a direction that is close enough to the wallhits normal to wall jump
+	UFUNCTION(BlueprintCallable)
+	bool IsFacingNearWall() const;
+
+	//function for checking if the player can wall jump
+	UFUNCTION(BlueprintCallable)
+	bool CanWallJump() const;
+
 	//function for wall jumping
 	UFUNCTION(BlueprintCallable)
-	bool WallJump();
+	void DoWallJump();
 
-	////function for stopping bunny hopping
-	//UFUNCTION(BlueprintCallable)
-	//void StopBunnyHop() const;
+	//function for setting can wall jumo to false
+	UFUNCTION(BlueprintCallable)
+	void DisableWallJump();
 
 	//function for boosting jumps
 	UFUNCTION(BlueprintCallable)
