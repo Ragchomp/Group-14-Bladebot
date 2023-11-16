@@ -1,5 +1,5 @@
 #include "Components/PlayerMovementComponent.h"
-
+#include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 
 UPlayerMovementComponent::UPlayerMovementComponent()
@@ -11,217 +11,30 @@ UPlayerMovementComponent::UPlayerMovementComponent()
 	AirControl = 2.f;
 }
 
-//void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
-//{
-//	//call the parent implementation
-//	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-//
-//	//check if we're not walking on the floor
-//	if (!IsWalking())
-//	{
-//		//clear the bunny hop timer
-//		GetWorld()->GetTimerManager().ClearTimer(BunnyHopTimer);
-//	}
-//}
-
-//bool UPlayerMovementComponent::CanAttemptJump() const
-//{
-//	//check if the jump type is set to can jump off any surface
-//	if (JumpType == CanJumpOffAnySurface && LastHit.HasValidHitObjectHandle())
-//	{
-//		//check if the current distance from the player to the hit is less than the jump off distance
-//		if (const float Distance = FVector::Dist(GetOwner()->GetActorLocation(), LastHit.ImpactPoint); Distance <= JumpOffDistance)
-//		{
-//			//set whether or not the player is jumping off of something
-//			bIsWallJumping = true;
-//
-//			//return true
-//			return true;
-//		}
-//	}
-//	
-//	//otherwise return whether both the parent implementation returns true and the player is not falling
-//	return Super::CanAttemptJump() && !IsFalling();
-//}
-
-//void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
-//{
-//	//call the parent implementation
-//	Super::HandleImpact(Hit, TimeSlice, MoveDelta);
-//
-//	//set the last hit
-//	LastHit = Hit;
-//}
-
-bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
+void UPlayerMovementComponent::BeginPlay()
 {
-	switch (JumpType)
+	//call the parent implementation
+	Super::BeginPlay();
+
+	//array of player camera components
+	TArray<UPlayerCameraComponent*> PlayerCameras;
+
+	//get all of the player camera components
+	GetOwner()->GetComponents(PlayerCameras);
+
+	//check if there are any player camera components
+	if (!PlayerCameras.IsEmpty())
 	{
-		case Normal:
-		break;
-		case AlwaysBoosted:
-			//do a boosted jump
-			BoostJump(JumpZVelocity);
-
-			//return true
-			return true;
-		//case CanJumpOffAnySurface:
-		//	//check if the player is wall jumping
-		//	if (bIsWallJumping)
-		//	{
-		//		//check if the wall jump was successful
-		//		if (WallJump())
-		//		{
-		//			//return true
-		//			return true;
-		//		}
-		//	}
-		//break;
-		//case BunnyHop:
-		//	//check if we're moving fast enough to bunny hop
-		//	if (Velocity.Length() >= MinBunnyHopSpeed)
-		//	{
-		//		//do a boosted jump
-		//		BoostJump(BunnyHopJumpZVal);
-
-		//		//set the max movement speed to be the bunny hop max speed
-		//		bIsBunnyHopping = true;
-
-		//		//return true
-		//		return true;
-		//	}
-		//break;
-		//case BoostedWhenAtLedgeAndMovingTowardsLedge:
-		//	//check if we're walking
-		//	if (MovementMode == MOVE_Walking && Velocity.Length() >= 10)
-		//	{
-		//		//find the floor result
-		//		FFindFloorResult FloorResult;
-		//		FindFloor(GetOwner()->GetActorLocation(), FloorResult, false);
-
-		//		//check if the floor result is valid
-		//		if (FloorResult.HitResult.IsValidBlockingHit())
-		//		{
-		//			//get the floor location
-		//			FVector FloorLocation = FloorResult.HitResult.Location;
-
-		//			//get the location to check for a ledge jump
-		//			FVector CheckLocation = FloorLocation + (Velocity.GetSafeNormal() * LedgeJumpDistance);
-
-		//			//get the closest point on the floor to the check location
-		//			FVector ClosestPoint;
-		//			FloorResult.HitResult.GetComponent()->GetClosestPointOnCollision(CheckLocation, ClosestPoint);
-
-		//			//get the distance to the check location
-		//			const float CheckDistance = FVector::Dist(CheckLocation, FloorLocation);
-
-		//			//get the distance to the closest point
-		//			const float ClosestDistance = FVector::Dist(ClosestPoint, FloorLocation);
-
-		//			//check if the distance to the check location is greater than the distance to the closest point
-		//			if (CheckDistance > ClosestDistance)
-		//			{
-		//				//do a boosted jump
-		//				BoostJump(JumpZVelocity);
-
-		//				//return true
-		//				return true;
-		//			}
-		//		}
-		//		
-		//	}
-		//break;
-		case BoostedWhenMovingFast:
-			//check if we're moving fast enough to bunny hop
-			if (Velocity.Length() >= MinSpeedForSpeedBoost)
-			{
-				//do a boosted jump
-				BoostJump(JumpZVelocity);
-
-				//return true
-				return true;
-			}
-		break;
-		default: ;
+		//set the player camera
+		PlayerCamera = PlayerCameras[0];
 	}
-
-	//return the result of the parent implementation
-	return Super::DoJump(bReplayingMoves);
 }
 
-//bool UPlayerMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
-//{
-	////check if the player is bunny hopping
-	//if (bIsBunnyHopping)
-	//{
-	//	//if so, return whether or not the current velocity is greater than the max bunny hop speed
-	//	return false;
-	//}
-	//
-	//return the result of the parent implementation
-	//return Super::IsExceedingMaxSpeed(MaxSpeed);
-//}
-
-//void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
-//{
-	////check if the jump type is set to bunny hop
-	//if (JumpType == BunnyHop)
-	//{
-	//	//check if the current velocity is greater than the minimum bunny hop speed
-	//	if (Velocity.Size() >= MinBunnyHopSpeed)
-	//	{
-	//		//set the max movement speed to be the bunny hop max speed
-	//		bIsBunnyHopping = true;
-	//	}
-	//	else
-	//	{
-	//		//reset is bunny hopping
-	//		bIsBunnyHopping = false;
-	//
-	//		//clear the bunny hop timer
-	//		GetWorld()->GetTimerManager().ClearTimer(BunnyHopTimer);
-	//	}
-	//}
-	//
-	////call the parent implementation
-	//Super::ProcessLanded(Hit, remainingTime, Iterations);
-	//
-	////set a timer for the bunny hop
-	//GetWorld()->GetTimerManager().SetTimer(BunnyHopTimer, this, &UPlayerMovementComponent::StopBunnyHop, BunnyHopTime, false);
-//}
-
-//void UPlayerMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
-//{
-//	//check if the player is bunny hopping
-//	if (bIsBunnyHopping)
-//	{
-//		//call the parent implementation with the bunny hop braking deceleration
-//		Super::CalcVelocity(DeltaTime, 0, bFluid, BunnyHopBrakingDeceleration);
-//	}
-//	else
-//	{
-//		//call the parent implementation
-//		Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
-//	}
-//}
-
-//void UPlayerMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
-//{
-//	//check if the player is bunny hopping
-//	if (bIsBunnyHopping)
-//	{
-//		//call the parent implementation with the bunny hop braking deceleration
-//		Super::ApplyVelocityBraking(DeltaTime, Friction, BunnyHopBrakingDeceleration);
-//	}
-//	else
-//	{
-//		//call the parent implementation
-//		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
-//	}
-//}
-
-void UPlayerMovementComponent::PhysFlying(const float DeltaTime, const int32 Iterations)
+void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	//call the parent implementation
+	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
+
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
@@ -229,9 +42,105 @@ void UPlayerMovementComponent::PhysFlying(const float DeltaTime, const int32 Ite
 		UpdateGrappleVelocity(DeltaTime);
 	}
 
-	//call the parent implementation
-	Super::PhysFlying(DeltaTime, Iterations);
+	////debug arrows to show a theortical wall jump
+	//DrawDebugDirectionalArrow(GetWorld(), GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() + GetOwner()->GetActorForwardVector() * 100.f, 100.f, FColor::Red, false, 0.1f, 0, 5.f);
+	//DrawDebugDirectionalArrow(GetWorld(), GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * 100.f, 100.f, FColor::Green, false, 0.1f, 0, 5.f);
+	//DrawDebugDirectionalArrow(GetWorld(), GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() + FVector::CrossProduct(GetOwner()->GetActorForwardVector(), GetOwner()->GetActorRightVector()) * 100.f, 100.f, FColor::Blue, false, 0.1f, 0, 5.f);
 }
+
+bool UPlayerMovementComponent::CanAttemptJump() const
+{
+	//check if we can attempt a jump and the player is falling
+	if (CanWallJump())
+	{
+		//return whether the player can wall jump
+		return true;
+	}
+
+
+	//otherwise return whether both the parent implementation returns true and the player is not falling
+	return Super::CanAttemptJump() && !IsFalling();
+}
+
+//void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
+//{
+	////call the parent implementation
+	//Super::HandleImpact(Hit, TimeSlice, MoveDelta);
+
+	////check if we're falling
+	//if (IsFalling())
+	//{
+	//	//set the last hit
+	//	LastHit = Hit;
+
+	//	//set can wall jump to true
+	//	bCanWallJump = true;
+
+	//	//clear the wall jump timer
+	//	GetWorld()->GetTimerManager().ClearTimer(WalljumpTimerHandle);
+
+	//	//set the wall jump timer
+	//	GetWorld()->GetTimerManager().SetTimer(WalljumpTimerHandle, this, &UPlayerMovementComponent::DisableWallJump, WallJumpTime, false);
+	//}
+//}
+
+void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
+{
+	//call the parent implementation
+	Super::ProcessLanded(Hit, remainingTime, Iterations);
+
+	//check if we can wall jump
+	if (bCanWallJump)
+	{
+		//clear the wall jump timer
+		GetWorld()->GetTimerManager().ClearTimer(WalljumpTimerHandle);
+
+		//set bCanWallJump to false
+		bCanWallJump = false;
+
+		//reset the last hit
+		LastHit = FHitResult();
+	}
+}
+
+bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
+{
+	//check if we can wall jump
+	if (CanWallJump())
+	{
+		//do a wall jump
+		DoWallJump();
+
+		//return true
+		return true;
+	}
+
+	//check if we're moving fast enough to do a boosted jump and we're on the ground
+	if (Velocity.Length() >= MinSpeedForSpeedBoost && !IsFalling())
+	{
+		//do a boosted jump
+		BoostJump(JumpZVelocity);
+
+		//return true
+		return true;
+	}
+
+	//return the result of the parent implementation
+	return Super::DoJump(bReplayingMoves);
+}
+
+//void UPlayerMovementComponent::PhysFlying(const float DeltaTime, const int32 Iterations)
+//{
+//	//check if the player is grappling
+//	if (bIsGrappling)
+//	{
+//		//set the grapple velocity
+//		UpdateGrappleVelocity(DeltaTime);
+//	}
+//
+//	//call the parent implementation
+//	Super::PhysFlying(DeltaTime, Iterations);
+//}
 
 FVector UPlayerMovementComponent::ConsumeInputVector()
 {
@@ -269,7 +178,7 @@ bool UPlayerMovementComponent::HandlePendingLaunch()
 	if (bIsGrappling)
 	{
 		//set the movement mode back to flying
-		SetMovementMode(MOVE_Flying);
+		//SetMovementMode(MOVE_Flying);
 	}
 
 	return ReturnVal;
@@ -287,7 +196,17 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 		GrappleObject = GrappleRope;
 
 		//set the movement mode to flying so we don't get stuck on the floor
-		SetMovementMode(MOVE_Flying);
+		//SetMovementMode(MOVE_Flying);
+
+		//launch the character towards the grapple point
+		//Launch(GrappleObject->GetGrapplePoint(GetCharacterOwner()) - GetCharacterOwner()->GetActorLocation().GetSafeNormal() * GrappleLaunchForce);
+
+		//check if we have a valid movement base
+		//if (GetMovementBase()->IsValidLowLevel())
+		//{
+		//	//jump off the movement base to prevent the character from getting stuck on the floor
+		//	JumpOff(GetMovementBase()->GetOwner());	
+		//}
 	}
 }
 
@@ -299,7 +218,7 @@ void UPlayerMovementComponent::StopGrapple()
 		bIsGrappling = false;
 
 		//reset the movement mode
-		SetDefaultMovementMode();
+		//SetDefaultMovementMode();
 
 		//reset the character's rotation
 		GetCharacterOwner()->SetActorRotation(FRotator(0.f, 0, 0.f));
@@ -371,6 +290,13 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float 
 
 void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
+	//check if we're on the ground
+	if (IsWalking())
+	{
+		//set the movement mode to falling to prevent the character from getting stuck on the floor
+		SetMovementMode(MOVE_Falling);
+	}
+
 	//get the point the character is grappling to
 	const FVector GrapplePoint = GrappleObject->GetGrapplePoint(GetCharacterOwner());
 
@@ -411,38 +337,29 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	GetCharacterOwner()->SetActorRotation(GrappleDirection.Rotation());
 }
 
-bool UPlayerMovementComponent::WallJump()
+bool UPlayerMovementComponent::IsFacingNearWall() const
 {
-	//check if the last hit is valid
-	if (LastHit.HasValidHitObjectHandle())
+	//check if the player can wall jump right now
+	if (bCanWallJump)
 	{
-		//get the normal of the hit
-		const FVector Normal = LastHit.Normal;
-
-		//get the forward vector of the character
-		const FVector Forward = GetCharacterOwner()->GetActorForwardVector();
-
-		//get the dot product of the normal and the forward vector
-		const float Dot = FVector::DotProduct(Normal, Forward);
-
-		//check if the angle between the normal and the forward vector is less than 90 degrees
-		if (const float Angle = FMath::RadiansToDegrees(FMath::Acos(Dot)); Angle < 90.f)
+		//check if the last hit is valid
+		if (LastHit.IsValidBlockingHit())
 		{
-			//set the velocity
-			Velocity = FVector::UpVector * JumpZVelocity + GetOwner()->GetActorForwardVector() * DirectionalJumpForce;
+			//get the normal of the hit
+			const FVector Normal = LastHit.Normal;
 
-			//add the wall jump force to the velocity
-			Velocity += Normal * WallJumpForce;
+			//get the upwards vector of the character
+			const FVector Up = GetCharacterOwner()->GetActorUpVector();
 
-			//set the movement mode to falling
-			SetMovementMode(MOVE_Falling);
+			//get the cross product of the normal and the upwards vector
+			const FVector Cross = FVector::CrossProduct(Normal, Up);
 
-			//reset is wall jumping and the last hit
-			bIsWallJumping = false;
-			LastHit = FHitResult();
-
-			//return true
-			return true;
+			//check if the dot product of the cross product and the forward vector is greater than the WallJumpDotModifier
+			if (const float Dot = FVector::DotProduct(Cross, GetOwner()->GetActorForwardVector()); Dot > WallJumpDotModifier)
+			{
+				//return true
+				return true;
+			}
 		}
 	}
 
@@ -450,11 +367,54 @@ bool UPlayerMovementComponent::WallJump()
 	return false;
 }
 
-//void UPlayerMovementComponent::StopBunnyHop() const
-//{
-//	//set the max movement speed to be the default max walk speed
-//	bIsBunnyHopping = false;
-//}
+bool UPlayerMovementComponent::CanWallJump() const
+{
+	//check if we can wall jump, we're in the air and the last hit is valid
+	if (bCanWallJump && IsFalling() && LastHit.IsValidBlockingHit())
+	{
+		//check if the player is facing near enough to the wall or if we don't care about the player facing the wall
+		if (IsFacingNearWall() || !bMustFaceWallToWallJump)
+		{
+			//return true
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void UPlayerMovementComponent::DoWallJump()
+{
+	//get the normal of the hit
+	const FVector Normal = LastHit.Normal * WallJumpForceMultipliers.X;
+
+	////get the upwards vector of the character
+	//const FVector Up = PlayerCamera->GetUpVector();
+
+	//get the forward vector of the character
+	const FVector Forward = PlayerCamera->GetForwardVector() * WallJumpForceMultipliers.Y;
+
+	////get the cross product of the normal and the upwards vector
+	//const FVector Cross = FVector::CrossProduct(Normal, Up);
+
+	//get the cross product of the normal and the forward vector
+	const FVector Cross = FVector::CrossProduct(LastHit.Normal, PlayerCamera->GetForwardVector()).GetSafeNormal() * WallJumpForceMultipliers.Z;
+
+	//get the direction to jump in
+	const FVector JumpDirection = (Normal + Forward + Cross).GetSafeNormal() * WallJumpForce;
+
+	//set the velocity (change this to rotate the velocity instead of setting it later)
+	Velocity = JumpDirection;
+}
+
+void UPlayerMovementComponent::DisableWallJump()
+{
+	//set can wall jump to false
+	bCanWallJump = false;
+
+	//reset the last hit
+	LastHit = FHitResult();
+}
 
 void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 {
@@ -474,15 +434,8 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 		break;
 		case DirectionalJump:
 			//set the velocity
-			Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + GetOwner()->GetActorForwardVector() * DirectionalJumpForce;
+			Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + PlayerCamera->GetForwardVector() * DirectionalJumpForce;
 		break;
-		//case DirectionalJumpNoBoost:
-		//	//set the velocity
-		//	Velocity = FVector::UpVector * JumpZVel + GetOwner()->GetActorForwardVector() * DirectionalJumpForce;
-		//break;
-		//case DirectionalJumpNoZ:
-		//	//set the velocity
-		//	Velocity = GetOwner()->GetActorForwardVector() * DirectionalJumpForce;
 		default: ;
 	}
 

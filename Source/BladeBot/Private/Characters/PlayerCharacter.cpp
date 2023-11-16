@@ -172,7 +172,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 bool APlayerCharacter::CanJumpInternal_Implementation() const
 {
 	//check if we are allowed to attempt to jump and we're wall jumping
-	if (GetCharacterMovement()->IsJumpAllowed() && PlayerMovementComponent->bIsWallJumping)
+	if (GetCharacterMovement()->IsJumpAllowed() && PlayerMovementComponent->bCanWallJump)
 	{
 		return true;
 	}
