@@ -1,8 +1,6 @@
 #include "Characters/PlayerCharacter.h"
 #include "GrapplingHook/GrapplingHookHead.h"
 #include "Components/AttributeComponent.h"
-#include "HUD/MainHUD.h"
-#include "HUD/PlayerOverlay.h"
 #include "Engine/DamageEvents.h"
 
 //Components
@@ -20,7 +18,6 @@
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
 #include "EngineUtils.h"
-#include "MaterialHLSLTree.h"
 #include "NiagaraFunctionLibrary.h"
 #include "BladeBot/Spawning/SpawnPoint.h"
 #include "Components/PlayerCameraComponent.h"
@@ -88,13 +85,13 @@ float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& Damag
 	AActor* DamageCauser)
 {
 	//check if we have a valid attribute component and player overlay
-	if (Attributes && PlayerOverlay)
+	if (Attributes /*&& PlayerOverlay*/)
 	{
 		//call the attribute component's receive damage function
 		Attributes->ReceiveDamage(DamageAmount);
 
-		//update the health bar
-		PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+		////update the health bar
+		//PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
 
 		//check if the player is dead
 		if (Attributes->IsNotAlive())
@@ -146,7 +143,6 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 			&APlayerCharacter::StopGrapple);
 		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this,
 			&APlayerCharacter::PlayerDashAttack);
-		EnhancedInputComponent->BindAction(IA_Attack, ETriggerEvent::Triggered, this, &APlayerCharacter::Attack);
 		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this,
 			&APlayerCharacter::CallRestartPlayer);
 		//EnhancedInputComponent->BindAction(IA_KillSelf, ETriggerEvent::Triggered, this, &APlayerCharacter::Destroyed);
@@ -158,13 +154,13 @@ void APlayerCharacter::Tick(float DeltaTime)
 	//call the parent implementation
 	Super::Tick(DeltaTime);
 
-	//update the grappling crosshair
-	//if PlayerOverlay is valid update the player overlay's crosshair
-	if (PlayerOverlay)
-	{
-		//update the grappling crosshair
-		PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
-	}
+	////update the grappling crosshair
+	////if PlayerOverlay is valid update the player overlay's crosshair
+	//if (PlayerOverlay)
+	//{
+	//	//update the grappling crosshair
+	//	PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
+	//}
 
 	EnergyRegeneration();
 }
@@ -229,6 +225,27 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 			//add left/right movement input
 			AddMovementInput(MovementXAxis, VectorDirection.X);
 		}
+		////check if we're on the ground and moving against the current velocity
+		//else if (const float DotProduct = FVector2D::DotProduct(FVector2D(GetVelocity().X, GetVelocity().Y), VectorDirection); GetCharacterMovement()->IsMovingOnGround() && !GetVelocity().IsNearlyZero() && DotProduct < 0.f)
+		//{
+		//	//draw a green debug sphere
+		//	DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 8, FColor::Green, false, 0.1f);
+
+		//	//get the forward vector from the control rotation
+		//	const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+
+		//	//get the right vector from the control rotation
+		//	const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
+
+		//	//add forward/backwards movement input
+		//	AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
+
+		//	//add left/right movement input
+		//	AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
+
+		//	//set the breaking deceleration
+		//	GetCharacterMovement()->BrakingDecelerationWalking = 2048.f;
+		//}
 		else
 		{
 			//get the forward vector from the control rotation
@@ -276,22 +293,22 @@ void APlayerCharacter::DoJump(const FInputActionValue& Value)
 	}
 }
 
-bool APlayerCharacter::CrosshairCheck() const
-{
-	//if the player is already grappling return false
-	if (PlayerMovementComponent->bIsGrappling)
-	{
-		return false;
-	}
-
-	//if the player can grapple and there is no grappling hook return true
-	if (PlayerMovementComponent->CanGrapple() && (!GrapplingHookRef || GrapplingHookRef->IsActorBeingDestroyed()))
-	{
-		return true;
-	}
-
-	return false;
-}
+//bool APlayerCharacter::CrosshairCheck() const
+//{
+//	//if the player is already grappling return false
+//	if (PlayerMovementComponent->bIsGrappling)
+//	{
+//		return false;
+//	}
+//
+//	//if the player can grapple and there is no grappling hook return true
+//	if (PlayerMovementComponent->CanGrapple() && (!GrapplingHookRef || GrapplingHookRef->IsActorBeingDestroyed()))
+//	{
+//		return true;
+//	}
+//
+//	return false;
+//}
 
 void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 {
@@ -340,25 +357,6 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 	}
 }
 
-void APlayerCharacter::Attack(const FInputActionValue& Value)
-{
-	//check if we can use the input
-	if (CanUseInput(Value))
-	{
-		//print debug message
-		InputDebugMessage(IA_Attack);
-
-		// Apply damage function through gameplaystatics funciton
-		//UGameplayStatics::ApplyDamage(
-		//Actor that did damge
-		//Amount of damage as float
-		// SetOwner(this) is the owner of this attack
-		// SetInstigator(this) is the instigator
-		// UDamageType::StaticClass()
-		//);
-	}
-}
-
 void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 {
 	if (/*(GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration ||*/ DashEnergy > 100)
@@ -375,9 +373,6 @@ void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
 
 			// Get the camera forward vector
 			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
-
-			// Get the camera forward vector
-			const FVector CamLocation = CamManager->GetCameraLocation();
 
 			// Play the dash sound
 			UGameplayStatics::PlaySound2D(this, DashSound);
@@ -490,30 +485,30 @@ void APlayerCharacter::Die()
 	}
 }
 
-void APlayerCharacter::CountTime()
-{
-	//could use timespan instead of int probably
-
-	//if the timer shouldn't tick, don't do anything
-	if (TimerShouldTick == false)
-	{
-		return;
-	}
-
-	//increment the seconds
-	DisplaySeconds++;
-
-	//convert seconds to minutes
-	if (DisplaySeconds > 60)
-	{
-		DisplayMinutes++;
-		DisplaySeconds = 0;
-	}
-
-	//set the seconds and minutes on the player overlay
-	PlayerOverlay->SetSeconds(DisplaySeconds);
-	PlayerOverlay->SetMinutes(DisplayMinutes);
-}
+//void APlayerCharacter::CountTime()
+//{
+//	//could use timespan instead of int probably
+//
+//	//if the timer shouldn't tick, don't do anything
+//	if (TimerShouldTick == false)
+//	{
+//		return;
+//	}
+//
+//	//increment the seconds
+//	DisplaySeconds++;
+//
+//	//convert seconds to minutes
+//	if (DisplaySeconds > 60)
+//	{
+//		DisplayMinutes++;
+//		DisplaySeconds = 0;
+//	}
+//
+//	//set the seconds and minutes on the player overlay
+//	PlayerOverlay->SetSeconds(DisplaySeconds);
+//	PlayerOverlay->SetMinutes(DisplayMinutes);
+//}
 
 void APlayerCharacter::SpawnGrappleProjectile()
 {
@@ -548,8 +543,8 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 void APlayerCharacter::Inits()
 {
-	OverlayInit();
-	TimerInit();
+	//OverlayInit();
+	//TimerInit();
 	InputInit();
 	CharacterState = ECharacterState::ECS_Idle;
 	Tags.Add(FName("Player"));
@@ -567,33 +562,33 @@ void APlayerCharacter::InputInit()
 	}
 }
 
-void APlayerCharacter::OverlayInit()
-{
-	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+//void APlayerCharacter::OverlayInit()
+//{
+//	APlayerController* PlayerController = Cast<APlayerController>(GetController());
+//
+//	if (PlayerController)
+//	{
+//		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
+//
+//		if (MainHUD)
+//		{
+//			PlayerOverlay = MainHUD->GetMainOverlay();
+//
+//			if (PlayerOverlay && Attributes)
+//			{
+//				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
+//				PlayerOverlay->SetSeconds(DisplaySeconds);
+//				PlayerOverlay->SetMinutes(DisplayMinutes);
+//				PlayerOverlay->EnableGrapplingCrosshair(false);
+//			}
+//		}
+//	}
+//}
 
-	if (PlayerController)
-	{
-		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
-
-		if (MainHUD)
-		{
-			PlayerOverlay = MainHUD->GetMainOverlay();
-
-			if (PlayerOverlay && Attributes)
-			{
-				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
-				PlayerOverlay->SetSeconds(DisplaySeconds);
-				PlayerOverlay->SetMinutes(DisplayMinutes);
-				PlayerOverlay->EnableGrapplingCrosshair(false);
-			}
-		}
-	}
-}
-
-void APlayerCharacter::TimerInit()
-{
-	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountTime, 1.f, true);
-}
+//void APlayerCharacter::TimerInit()
+//{
+//	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountTime, 1.f, true);
+//}
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,

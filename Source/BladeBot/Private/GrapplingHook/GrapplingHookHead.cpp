@@ -4,7 +4,6 @@
 
 //Components
 #include "Characters/PlayerCharacter.h"
-#include "Components/PlayerCameraComponent.h"
 #include "Components/PlayerMovementComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -94,7 +93,7 @@ void AGrapplingHookHead::BeginPlay()
 	if (bAddPlayerVelocity)
 	{
 		//add the player's velocity to the projectile movement component's velocity
-		ProjectileMovementComponent->Velocity += GetInstigator()->GetVelocity().GetSafeNormal() * ProjectileMovementComponent->InitialSpeed;
+		ProjectileMovementComponent->Velocity += GetInstigator()->GetVelocity();
 	}
 
 	//array for player movement components
