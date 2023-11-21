@@ -21,7 +21,7 @@ public:
 
 	//whether or not to add the player's speed to the grappling hook head's initial speed when it's spawned
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
-	bool bAddPlayerSpeed = false;
+	bool bAddPlayerSpeed = true;
 
 	//whether or not to add the player's velocity to the grappling hook head's velocity when it's spawned
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawning")
@@ -29,7 +29,7 @@ public:
 
 	//whether or not to use a max distance for the projectile
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxTravelDistance")
-	bool bUseMaxDistance = false;
+	bool bUseMaxDistance = true;
 
 	//whether or not to set the distance check location to the projectile's location when the projectile is spawned
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "MaxTravelDistance", meta = (EditCondition = "bUseMaxDistance == true", editconditionHides))

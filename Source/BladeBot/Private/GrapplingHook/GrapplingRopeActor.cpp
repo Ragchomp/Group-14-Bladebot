@@ -146,7 +146,7 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 			GetWorld()->SweepSingleByChannel(Surrounding, RopePoints[Index - 1], RopePoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
 
 			//check if the sweep returned a blocking hit or started inside an object
-			if (!Surrounding.bBlockingHit || Surrounding.bStartPenetrating)
+			if (!Surrounding.bBlockingHit && !Surrounding.bStartPenetrating)
 			{
 				//remove the collision point from the array
 				RopePoints.RemoveAt(Index);
