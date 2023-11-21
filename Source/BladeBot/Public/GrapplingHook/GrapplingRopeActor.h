@@ -9,6 +9,8 @@
 #include "Engine/Classes/Components/SphereComponent.h"
 #include "GrapplingRopeActor.generated.h"
 
+//maybe add a rope tension force to the player when grappling to make it feel more like a real grapple and force the character to move either towards the grapple point or in a swing arc around it
+
 //interface for actors that can be grappled to
 UINTERFACE(MinimalAPI, Blueprintable)
 class UGrappleRopeInterface : public UInterface
@@ -107,11 +109,11 @@ public:
 
 	//whether or not to use a socket on the instigator pawn to attach the rope to
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Rope|Sockets|Instigator")
-	bool UseSocketOnInstigator = false;
+	bool UseSocketOnInstigator = true;
 
 	//the socket name to use when attaching the rope to the instigator pawn (uses the first mesh with a socket name with the given name)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Sockets|Instigator", meta = (EditCondition = "UseSocketOnInstigator == true", EditConditionHides))
-	FName InstigatorSocketName;
+	FName InstigatorSocketName = "HookSlot";
 
 	//reference to the socket mesh to use when attaching the rope to the instigator pawn
 	UPROPERTY(BlueprintReadOnly, Category= "Rope|Sockets|Instigator", meta = (EditCondition = "UseSocketOnInstigator == true", EditConditionHides))
@@ -119,7 +121,7 @@ public:
 
 	//whether or not to use the jitter on the niagara ribbons
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter")
-	bool bUseJitter = false;
+	bool bUseJitter = true;
 
 	//the name of the user parameter for the jitter on the niagara ribbons
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter", meta = (EditCondition = "bUseJitter == true", EditConditionHides))
