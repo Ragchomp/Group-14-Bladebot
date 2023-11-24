@@ -282,7 +282,7 @@ void UPlayerMovementComponent::StopGrapple()
 		if (bUseFlyingMovementMode)
 		{
 			//set the movement mode back to default
-			SetMovementMode(DefaultLandMovementMode);
+			SetMovementMode(MOVE_Falling);
 		}
 	}
 }
@@ -423,8 +423,8 @@ void UPlayerMovementComponent::DoWallJump()
 	//add the wall jump force to the velocity
 	Velocity += Normal * WallJumpForce + FVector::ZAxisVector * WallJumpZVel;
 
-	//print debug message
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Wall Jump"));
+	////print debug message
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Wall Jump"));
 }
 
 void UPlayerMovementComponent::DisableWallJump()
@@ -444,7 +444,7 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 	//set the velocity
 	Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + PlayerCamera->GetForwardVector() * DirectionalJumpForce;
 
-	//update the character's velocity
-	UpdateComponentVelocity();
+	////update the character's velocity
+	//UpdateComponentVelocity();
 }
 
