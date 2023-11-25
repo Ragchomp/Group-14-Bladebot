@@ -247,7 +247,7 @@ public:
 
 	//blueprint event for when the player stops grappling
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-	void OnStopGrapple();
+	void OnStopGrapple(FVector GrappleHookLocation);
 
 	//blueprint event for when the player does a normal jump
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
@@ -255,13 +255,13 @@ public:
 
 	//blueprint event for when the player does a directional jump
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
-	void OnDirectionalJump();
+	void OnDirectionalJump(FVector Direction);
 
 	//blueprint event for when the player starts colliding with a wall and can wall jump
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
-	void OnCanWallJump();
+	void OnCanWallJump(FHitResult WallHit);
 
 	//blueprint event for when the player wall jumps
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
-	void OnWallJump();
+	void OnWallJump(FHitResult WallHit);
 };

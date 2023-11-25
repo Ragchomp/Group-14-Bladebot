@@ -339,6 +339,9 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 		//check if there is an existing grappling hook
 		if (GrapplingHookRef)
 		{
+			//call the blueprint event
+			OnStopGrapple(GrapplingHookRef->GetActorLocation());
+
 			//check if we should destroy the hook immediately
 			if (DestroyHookImmediately)
 			{
@@ -357,9 +360,6 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
-
-		//call the blueprint event
-		OnStopGrapple();
 	}
 }
 

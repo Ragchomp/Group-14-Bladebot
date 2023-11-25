@@ -38,13 +38,13 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNormalJump);
 
 	//declare the OnDirectionalJump event
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDirectionalJump);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectionalJump, FVector, Direction);
 
 	//declare the OnCanWallJump event
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCanWallJump);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCanWallJump, FHitResult, WallHit);
 
 	//declare the OnWallJump event
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallJump);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWallJump, FHitResult, WallHit);
 
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")

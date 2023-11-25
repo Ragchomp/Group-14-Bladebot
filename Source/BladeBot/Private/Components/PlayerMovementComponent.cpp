@@ -46,11 +46,11 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	}
 
 	//check if we can wall jump and the player is falling
-	if (CanWallJump() && IsFalling())
+	if (CanWallJump())
 	{
 		//call the blueprint event
 		//OnWallJump();
-		OnCanWallJump.Broadcast();
+		OnCanWallJump.Broadcast(LastHit);
 	}
 
 	////check if the player is sliding and should stop sliding
@@ -455,7 +455,7 @@ void UPlayerMovementComponent::DoWallJump()
 
 	//call the blueprint event
 	//OnWallJump();
-	OnWallJump.Broadcast();
+	OnWallJump.Broadcast(LastHit);
 }
 
 void UPlayerMovementComponent::DisableWallJump()
@@ -472,11 +472,14 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 	//set the movement mode to falling
 	SetMovementMode(MOVE_Falling);
 
+	//the direction to apply the jump force
+	const FVector Direction = PlayerCamera->GetForwardVector();
+
 	//set the velocity
-	Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + PlayerCamera->GetForwardVector() * DirectionalJumpForce;
+	Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + Direction * DirectionalJumpForce;
 
 	//call the blueprint event
 	//OnDirectionalJump();
-	OnDirectionalJump.Broadcast();
+	OnDirectionalJump.Broadcast(Direction);
 }
 
