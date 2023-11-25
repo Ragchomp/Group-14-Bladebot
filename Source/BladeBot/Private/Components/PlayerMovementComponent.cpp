@@ -45,6 +45,14 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		UpdateGrappleVelocity(DeltaTime);
 	}
 
+	//check if we can wall jump and the player is falling
+	if (CanWallJump())
+	{
+		//call the blueprint event
+		//OnWallJump();
+		OnCanWallJump.Broadcast(LastHit);
+	}
+
 	////check if the player is sliding and should stop sliding
 	//if (bIsSliding && Velocity.Size() < MinSpeedForSlide)
 	//{
@@ -168,8 +176,19 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 		return true;
 	}
 
+	//store whether or not a normal jump was successful
+	const bool bNormalJump = Super::DoJump(bReplayingMoves);
+
+	//check if the normal jump was successful
+	if (bNormalJump)
+	{
+		//call the blueprint event
+		//OnNormalJump();
+		OnNormalJump.Broadcast();
+	}
+
 	//return the result of the parent implementation
-	return Super::DoJump(bReplayingMoves);
+	return bNormalJump;
 }
 
 FVector UPlayerMovementComponent::ConsumeInputVector()
@@ -264,6 +283,9 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 			//set the movement mode to flying
 			SetMovementMode(MOVE_Flying);
 		}
+
+		//set the rope length data
+		GrappleRopeLength = FVector::Dist(GetOwner()->GetActorLocation(), GrappleObject->GetGrapplePoint(GetCharacterOwner()));
 	}
 }
 
@@ -284,6 +306,9 @@ void UPlayerMovementComponent::StopGrapple()
 			//set the movement mode back to default
 			SetMovementMode(MOVE_Falling);
 		}
+
+		//set the GrappleRopeLength to 0
+		GrappleRopeLength = 0.f;
 	}
 }
 
@@ -369,10 +394,6 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
 	switch (GrappleMode)
 	{
-		case SetVelocity:
-			//set the velocity
-			Velocity = GrappleDirection * SetGrappleSpeed;
-		break;
 		case AddToVelocity:
 			//add the grapple vector to the character's velocity
 			Velocity += GrappleDirection * AddGrappleSpeed * DeltaTime;
@@ -420,11 +441,21 @@ void UPlayerMovementComponent::DoWallJump()
 	//get the normal of the hit
 	const FVector Normal = LastHit.Normal;
 
-	//add the wall jump force to the velocity
-	Velocity += Normal * WallJumpForce + FVector::ZAxisVector * WallJumpZVel;
+	//check if we should scale the wall jump force by the player's velocity
+	if (bScaleWallJumpForceByVelocity)
+	{
+		//scale the wall jump force by the player's velocity
+		Velocity += Velocity.GetSafeNormal() * Velocity.Size() * WallJumpForceVelocityScale + FVector::ZAxisVector * WallJumpZVel;
+	}
+	else
+	{
+		//add the wall jump force to the velocity
+		Velocity += Normal * WallJumpForce + FVector::ZAxisVector * WallJumpZVel;
+	}
 
-	////print debug message
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Wall Jump"));
+	//call the blueprint event
+	//OnWallJump();
+	OnWallJump.Broadcast(LastHit);
 }
 
 void UPlayerMovementComponent::DisableWallJump()
@@ -441,10 +472,14 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 	//set the movement mode to falling
 	SetMovementMode(MOVE_Falling);
 
-	//set the velocity
-	Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + PlayerCamera->GetForwardVector() * DirectionalJumpForce;
+	//the direction to apply the jump force
+	const FVector Direction = PlayerCamera->GetForwardVector();
 
-	////update the character's velocity
-	//UpdateComponentVelocity();
+	//set the velocity
+	Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + Direction * DirectionalJumpForce;
+
+	//call the blueprint event
+	//OnDirectionalJump();
+	OnDirectionalJump.Broadcast(Direction);
 }
 
