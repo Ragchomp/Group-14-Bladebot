@@ -326,6 +326,9 @@ void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 		}
 		//spawn the grappling hook
 		SpawnGrappleProjectile();
+
+		//call the blueprint event
+		OnStartGrapple();
 	}
 }
 
@@ -354,6 +357,9 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
+
+		//call the blueprint event
+		OnStopGrapple();
 	}
 }
 
@@ -548,6 +554,12 @@ void APlayerCharacter::Inits()
 	InputInit();
 	CharacterState = ECharacterState::ECS_Idle;
 	Tags.Add(FName("Player"));
+
+	//bind jump events
+	PlayerMovementComponent->OnNormalJump.AddDynamic(this, &APlayerCharacter::OnNormalJump);
+	PlayerMovementComponent->OnDirectionalJump.AddDynamic(this, &APlayerCharacter::OnDirectionalJump);
+	PlayerMovementComponent->OnCanWallJump.AddDynamic(this, &APlayerCharacter::OnCanWallJump);
+	PlayerMovementComponent->OnWallJump.AddDynamic(this, &APlayerCharacter::OnWallJump);
 }
 
 void APlayerCharacter::InputInit()

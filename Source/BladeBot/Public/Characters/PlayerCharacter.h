@@ -240,4 +240,28 @@ public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 
 	FORCEINLINE bool GetIsDashing() const { return bIsDashing; }
+
+	//blueprint event for when the player starts grappling
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+	void OnStartGrapple();
+
+	//blueprint event for when the player stops grappling
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+	void OnStopGrapple();
+
+	//blueprint event for when the player does a normal jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
+	void OnNormalJump();
+
+	//blueprint event for when the player does a directional jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
+	void OnDirectionalJump();
+
+	//blueprint event for when the player starts colliding with a wall and can wall jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
+	void OnCanWallJump();
+
+	//blueprint event for when the player wall jumps
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
+	void OnWallJump();
 };
