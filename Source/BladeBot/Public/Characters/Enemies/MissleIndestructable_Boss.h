@@ -38,6 +38,11 @@ private:
 	void BombTimerFinished();
 	void instantExplode();
 
+
+	// misc -----------
+public:
+	void updateMovementSpeedMod(float mod);
+private:
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;

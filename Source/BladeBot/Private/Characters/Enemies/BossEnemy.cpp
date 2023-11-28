@@ -82,6 +82,7 @@ float ABossEnemy::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent
 		//GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Red, TEXT("tok the damage"));
 		// Knockback effect on player if we should have it
 		tokdamageOnce++;
+		nextPhaseState(PhaseState);
 		JumpAway();
 		return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 	}
@@ -137,6 +138,14 @@ void ABossEnemy::JumpAway()
 void ABossEnemy::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if (PhaseState == EBossState::E_PhaseZero)
+		GEngine->AddOnScreenDebugMessage(4, 1.f, FColor::Green, TEXT("PhaseZero"));
+	else if (PhaseState == EBossState::E_PhaseOne)
+		GEngine->AddOnScreenDebugMessage(4, 1.f, FColor::Green, TEXT("PhaseOne"));
+	else if (PhaseState == EBossState::E_PhaseTwo)
+		GEngine->AddOnScreenDebugMessage(4, 1.f, FColor::Green, TEXT("PhaseTwo"));
+	else if (PhaseState == EBossState::E_PhaseThree)
+		GEngine->AddOnScreenDebugMessage(4, 1.f, FColor::Green, TEXT("PhaseThree"));
 
 }
 
@@ -206,6 +215,45 @@ FRotator ABossEnemy::MissleSpawnRotation()
 	return SpawnRotation;
 }
 
+bool ABossEnemy::missleIsIndestructable()
+{
+	float prob = FMath::RandRange(1, 100);
+	
+	if (PhaseState == EBossState::E_PhaseZero)
+		return false;
+
+	if (PhaseState == EBossState::E_PhaseOne)
+		if (prob < (IndestructableMissleProbabiliryPercent / (1 - IndestructableMissleProbabiliryPhaseMod))) return true;
+
+	if (PhaseState == EBossState::E_PhaseTwo)
+		if (prob < (IndestructableMissleProbabiliryPercent / (1 - (IndestructableMissleProbabiliryPhaseMod*2)))) return true;
+
+	if (PhaseState == EBossState::E_PhaseThree)
+		if (prob < (IndestructableMissleProbabiliryPercent / (1 - (IndestructableMissleProbabiliryPhaseMod * 3)))) return true;
+
+	
+	return false;
+}
+
+float ABossEnemy::calculateMissleMovementSpeedMod()
+{
+	float mod = 1.f;
+
+	if (PhaseState == EBossState::E_PhaseZero)
+		mod *= 1.f;
+
+	else if (PhaseState == EBossState::E_PhaseOne)
+		mod *= 6.2f;
+
+	else if (PhaseState == EBossState::E_PhaseTwo)
+		mod *= 10.3f;
+
+	else if (PhaseState == EBossState::E_PhaseThree)
+		mod *= 15.5f;
+
+	return mod;
+}
+
 void ABossEnemy::SpawnRocket()
 {
 	//VFX and Audio
@@ -216,13 +264,14 @@ void ABossEnemy::SpawnRocket()
 	// Spawn rocket
 	if(MissleDestuctable_BP && MissleIndestuctable_BP)
 	{
-		int whatToSpawn = FMath::RandRange(1, 10);
-		if(whatToSpawn == 1)
+	
+		if(missleIsIndestructable())
 		{
 			AMissleIndestructable_Boss* NewDoomMissle = GetWorld()->SpawnActor<AMissleIndestructable_Boss>(MissleIndestuctable_BP, MissleSpawnLocation(), MissleSpawnRotation());
 			if (NewDoomMissle && CombatTarget)
 			{
 				NewDoomMissle->SetCombatTarget(CombatTarget);
+				NewDoomMissle->updateMovementSpeedMod(calculateMissleMovementSpeedMod());
 			}
 		}
 		else
@@ -231,6 +280,7 @@ void ABossEnemy::SpawnRocket()
 			if (NewMissle && CombatTarget)
 			{
 				NewMissle->SetCombatTarget(CombatTarget);
+				NewMissle->updateMovementSpeedMod(calculateMissleMovementSpeedMod());
 			}
 		}
 
@@ -244,6 +294,17 @@ void ABossEnemy::RocketBarrageCooldown()
 	PlayAudioCoolDown(GetActorLocation());
 	GunState = ESGunState::ESGS_Shooting;
 	GetWorldTimerManager().SetTimer(RocketBarrageStartupTimer, this, &ABossEnemy::ShootRocketBarrage, RocketBarrageStartupTime);
+}
+
+void ABossEnemy::nextPhaseState(EBossState currentPhase)
+{
+	if (currentPhase == EBossState::E_PhaseZero)
+		PhaseState = EBossState::E_PhaseOne;
+	else if (currentPhase == EBossState::E_PhaseOne)
+		PhaseState = EBossState::E_PhaseTwo;
+	else if (currentPhase == EBossState::E_PhaseTwo)
+		PhaseState = EBossState::E_PhaseThree;
+	
 }
 
 // ------------ Misc ----------------

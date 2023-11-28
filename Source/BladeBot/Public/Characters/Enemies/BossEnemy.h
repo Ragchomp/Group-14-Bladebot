@@ -23,6 +23,7 @@ public:
 	// ------------ States ---------------------
 	EEnemyState EnemyState = EEnemyState::EES_Idle;
 	ESGunState GunState = ESGunState::ESGS_Idle;
+	EBossState PhaseState = EBossState::E_PhaseZero;
 
 protected:
 	virtual void BeginPlay() override;
@@ -39,15 +40,19 @@ protected:
 	// Combat ----------
 	void SeenAnEnemy();
 	void ShootRocketBarrage();
+
 	// Spawning ----------
 	FVector MissleSpawnLocation();
 	FRotator MissleSpawnRotation();
+	bool missleIsIndestructable();
+	float calculateMissleMovementSpeedMod();
 	void SpawnRocket();
+
 	// /Spawning ----------
 	void RocketBarrageCooldown();
 
 	// Other ----------
-
+	void nextPhaseState(EBossState currentPhase);
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
 		bool bFromSweep, const FHitResult& SweepResult) override;
@@ -154,6 +159,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
 		float MissleSpanwLocationoffSettMaxZ = 400.f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float IndestructableMissleProbabiliryPercent = 20;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constatnts")
+		float IndestructableMissleProbabiliryPhaseMod = 0.2;
 
 	UPROPERTY()
 		int tokdamageOnce = 0;
