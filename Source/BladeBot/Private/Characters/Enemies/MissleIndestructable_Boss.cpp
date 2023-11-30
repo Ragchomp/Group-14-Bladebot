@@ -100,3 +100,9 @@ void AMissleIndestructable_Boss::BombTimerFinished()
 	PlayAudioAttack(GetActorLocation());
 	Die();
 }
+
+void AMissleIndestructable_Boss::updateMovementSpeedMod(float mod)
+{
+	MovementSpeedMin *= mod;
+	MovementSpeedMax *= mod;
+}
