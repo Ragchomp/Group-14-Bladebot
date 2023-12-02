@@ -33,3 +33,12 @@ enum class ESGunState : uint8
 	ESGS_Shooting UMETA(DisplayName = "Shooting"),
 	ESGS_Cooling UMETA(DisplayName = "Cooling")
 };
+
+UENUM(BlueprintType)
+enum class EBossState : uint8
+{
+	E_PhaseZero UMETA(DisplayName = "PhaseOne"),
+	E_PhaseOne UMETA(DisplayName = "PhaseOne"),
+	E_PhaseTwo UMETA(DisplayName = "PhaseTwo"),
+	E_PhaseThree UMETA(DisplayName = "PhaseThree")
+};

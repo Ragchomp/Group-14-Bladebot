@@ -26,19 +26,19 @@ public:
 
 	FTimerHandle Seconds;
 	bool bDebugMode = false;
-	void CountTime();
-	bool CrosshairCheck() const;
+	//void CountTime();
+	//bool CrosshairCheck() const;
 
 	UFUNCTION(BlueprintCallable)
 	void SpawnGrappleProjectile();
 
-	void TimerInit();
+	//void TimerInit();
 	void InputInit();
 	void Inits();
 
 	/** Bools */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Bools")
-	bool TimerShouldTick = true;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Bools")
+	//bool TimerShouldTick = true;
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Bools|Others")
 	bool CanDie = true;
 
@@ -68,9 +68,6 @@ protected:
 	UFUNCTION()
 	void StopGrapple(const FInputActionValue& Value);
 
-	UFUNCTION()
-	void Attack(const FInputActionValue& Value);
-	void GetForwardCameraVector();
 	FVector CamForwardVector;
 
 	/** Input Calls */
@@ -91,9 +88,6 @@ protected:
 
 	UPROPERTY(editDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_StopGrapple;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
-	class UInputAction* IA_Attack;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = "Inputsystem|Actions")
 	class UInputAction* IA_DashAttack;
@@ -198,14 +192,14 @@ public:
 	UPlayerMovementComponent* PlayerMovementComponent;
 
 	/** HUD */
-	UPROPERTY()
-	class UPlayerOverlay* PlayerOverlay;
+	//UPROPERTY()
+	//class UPlayerOverlay* PlayerOverlay;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
-	float DisplaySeconds = 0.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	//float DisplaySeconds = 0.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
-	float DisplayMinutes = 0.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	//float DisplayMinutes = 0.f;
 
 	/** Grapple */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple|Constants")
@@ -215,10 +209,10 @@ public:
 	bool DestroyHookImmediately = false;
 
 	/** Damage */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float MovementSpeedToKill = 4000.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Timer|Constants")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
 
 	/** Audio */
@@ -233,7 +227,7 @@ public:
 private:
 	FTimerHandle RespawnTime;
 	virtual void Die() override;
-	void OverlayInit();
+	//void OverlayInit();
 
 	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 
@@ -246,4 +240,28 @@ public:
 	FORCEINLINE ECharacterState GetCharacterState() const { return CharacterState; }
 
 	FORCEINLINE bool GetIsDashing() const { return bIsDashing; }
+
+	//blueprint event for when the player starts grappling
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+	void OnStartGrapple();
+
+	//blueprint event for when the player stops grappling
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+	void OnStopGrapple(FVector GrappleHookLocation);
+
+	//blueprint event for when the player does a normal jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
+	void OnNormalJump();
+
+	//blueprint event for when the player does a directional jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
+	void OnDirectionalJump(FVector Direction);
+
+	//blueprint event for when the player starts colliding with a wall and can wall jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
+	void OnCanWallJump(FHitResult WallHit);
+
+	//blueprint event for when the player wall jumps
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
+	void OnWallJump(FHitResult WallHit);
 };

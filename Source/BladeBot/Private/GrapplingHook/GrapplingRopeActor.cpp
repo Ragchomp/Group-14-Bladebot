@@ -71,20 +71,11 @@ void AGrapplingRopeActor::Tick(float DeltaTime)
 	//update first and last points or Hitboxes
 	SetAttachedRopePointPositions();
 
-	//check if we're in the infinite rope length mode
-	if (RopeMode == InfiniteRopeLength)
-	{
-		CheckCollisionPoints();
-	}
+	//update the collision points
+	CheckCollisionPoints();
 
-	//check if we should use debug draw
-	if (bDrawDebugRope)
-	{
-		//draw the rope
-		DrawDebugRope();
-	}
 	//check if we don't have a valid Niagara system to render
-	else if (NiagaraSystem->IsValidLowLevelFast())
+	if (NiagaraSystem->IsValidLowLevelFast())
 	{
 		//render the rope
 		RenderRope();
@@ -98,18 +89,6 @@ void AGrapplingRopeActor::Tick(float DeltaTime)
 
 void AGrapplingRopeActor::Destroyed()
 {
-	//destroy all the physics constraints
-	for (UPhysicsConstraintComponent* PhysicsConstraint : PhysicsConstraints)
-	{
-		PhysicsConstraint->DestroyComponent();
-	}
-
-	//destroy all the hitboxes
-	for (USphereComponent* Hitbox : Hitboxes)
-	{
-		Hitbox->DestroyComponent();
-	}
-
 	//destroy all the niagara components
 	for (UNiagaraComponent* NiagaraComponent : NiagaraComponents)
 	{
@@ -146,7 +125,7 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 			GetWorld()->SweepSingleByChannel(Surrounding, RopePoints[Index - 1], RopePoints[Index + 1], FQuat(), ECC_Visibility, FCollisionShape::MakeSphere(RopeRadius), CollisionParams);
 
 			//check if the sweep returned a blocking hit or started inside an object
-			if (!Surrounding.bBlockingHit || Surrounding.bStartPenetrating)
+			if (!Surrounding.bBlockingHit && !Surrounding.bStartPenetrating)
 			{
 				//remove the collision point from the array
 				RopePoints.RemoveAt(Index);
@@ -188,29 +167,20 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 
 void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 {
-	//check if we're in the infinite rope length mode
-	if (FixedLength)
+	//check if we should use a socket on the instigator pawn
+	if (UseSocketOnInstigator)
 	{
-		//set the first hitbox's location to the instigator pawn's location
-		Hitboxes[0]->SetWorldLocation(GetInstigator()->GetActorLocation());
+		//set the start of the rope to the socket location
+		RopePoints[0] = InstigatorMesh->GetSocketLocation(InstigatorSocketName);
 	}
 	else
 	{
-		//check if we should use a socket on the instigator pawn
-		if (UseSocketOnInstigator)
-		{
-			//set the start of the rope to the socket location
-			RopePoints[0] = InstigatorMesh->GetSocketLocation(InstigatorSocketName);
-		}
-		else
-		{
-			//set the start of the rope to the instigator pawn's location
-			RopePoints[0] = GetInstigator()->GetActorLocation();
-		}
-
-		//set the end of the rope to the owner's location
-		RopePoints[RopePoints.Num() - 1] = Owner->GetActorLocation();
+		//set the start of the rope to the instigator pawn's location
+		RopePoints[0] = GetInstigator()->GetActorLocation();
 	}
+
+	//set the end of the rope to the owner's location
+	RopePoints[RopePoints.Num() - 1] = Owner->GetActorLocation();
 }
 
 void AGrapplingRopeActor::RenderRope()
@@ -265,184 +235,8 @@ void AGrapplingRopeActor::RenderRope()
 	}
 }
 
-void AGrapplingRopeActor::DrawDebugRope()
-{
-	//check which rope mode we're in
-	switch (RopeMode)
-	{
-		case InfiniteRopeLength:
-		{
-			//draw all the parts of the rope in between
-			for (int i = 0; i < RopePoints.Num() - 1; i++)
-			{
-				DrawDebugLine(GetWorld(), RopePoints[i], RopePoints[i + 1], FColor::Red, false, 0, 0, 3);
-			}
-			break;
-		}
-		case FixedLength:
-		{
-			//draw all the hitboxes
-			for (int i = 0; i < Hitboxes.Num() - 1; i++)
-			{
-				DrawDebugLine(GetWorld(), Hitboxes[i]->GetComponentLocation(), Hitboxes[i + 1]->GetComponentLocation(), FColor::Red, false, 0, 0, 3);
-			}
-
-			//check if we should draw the physics constraints
-			if (bDrawPhysicsConstraints)
-			{
-				//draw all the physics constraints
-				for (int i = 0; i < PhysicsConstraints.Num(); i++)
-				{
-					DrawDebugLine(GetWorld(), PhysicsConstraints[i]->GetComponentLocation(), PhysicsConstraints[i]->GetComponentLocation(), FColor::Red, false, 0, 0, 3);
-				}
-			}
-
-			break;
-		}
-		default: ;
-	}
-}
-
-void AGrapplingRopeActor::SetRopeMode(const ERopeMode NewRopeMode)
-{
-	if (NewRopeMode == RopeMode)
-	{
-		return;
-	}
-	if (NewRopeMode == InfiniteRopeLength)
-	{
-	}
-	//needs to deal with corners better
-	else
-	{
-		//check if we have any collision points to convert
-		if (RopePoints.IsEmpty())
-		{
-			return;
-		}
-
-		//fill the space between collision points with Hitboxes and physics constraints
-		for (int Index = 0; Index < RopePoints.Num(); ++Index)
-		{
-			//don't process the last collision point
-			if (!RopePoints.IsValidIndex(Index + 1))
-			{
-				break;
-			}
-
-			//Get start and end locations
-			FVector StartLocation = RopePoints[Index];
-			FVector EndLocation = RopePoints[Index + 1];
-
-			//Get the direction and distance between the 2 locations
-			FVector Direction = (EndLocation - StartLocation).GetSafeNormal();
-			const float Distance = FVector::Dist(StartLocation, EndLocation);
-
-			//SpawnDistance equal to RopeRadius * 3 (2 for the previous sphere and 1 for half of the current sphere) + HitboxSpacing
-			const float SpawnDistance = HitboxSpacing + 2 * RopeRadius;
-
-			//spawn the hitboxes
-			for (int Index2 = 0; Index2 < Distance; Index2++)
-			{
-				//if the distance between the 2 locations is less than the spawn distance, don't spawn a hitbox instead attach the last hitbox to the end location
-				if (Index2 * SpawnDistance > Distance)
-				{
-					//Spawn a new physics constraint
-					UPhysicsConstraintComponent* NewPhysicsConstraint = NewObject<UPhysicsConstraintComponent>(this, UPhysicsConstraintComponent::StaticClass());
-
-					//Set the constraint parameters
-					FVector LocDirection = Owner.Get()->GetActorLocation() - EndLocation;
-					NewPhysicsConstraint->SetWorldLocation(EndLocation + LocDirection / 2);
-					NewPhysicsConstraint->ConstraintActor1 = Owner;
-					NewPhysicsConstraint->ConstraintActor2 = this;
-					NewPhysicsConstraint->SetDisableCollision(true);
-					NewPhysicsConstraint->SetConstrainedComponents(nullptr, NAME_None, Hitboxes.Last(), NAME_None);
-
-					//Add the physics constraint to the array
-					PhysicsConstraints.Add(NewPhysicsConstraint);
-
-					//stop spawning hitboxes
-					break;
-				}
-
-				//Spawn a new hitbox
-				USphereComponent* NewSphere = NewObject<USphereComponent>(this, USphereComponent::StaticClass());
-
-				NewSphere->RegisterComponent();
-				NewSphere->AttachToComponent(RootComponent, FAttachmentTransformRules::KeepRelativeTransform);
-				NewSphere->InitSphereRadius(RopeRadius);
-				NewSphere->SetVisibility(true);
-
-				//Set Simulate Physics to true
-				NewSphere->SetSimulatePhysics(true);
-				NewSphere->SetEnableGravity(true);
-
-				//Set the radius of the sphere
-				NewSphere->SetSphereRadius(RopeRadius);
-
-				//Set the location of the Hitbox
-				NewSphere->SetWorldLocation(StartLocation + Direction * SpawnDistance * Index2);
-
-				//Set Collision Profile of the hitbox
-				NewSphere->SetCollisionProfileName("PhysicsActor");
-				NewSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-				NewSphere->SetCollisionResponseToAllChannels(ECR_Block);
-				NewSphere->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore);
-				NewSphere->SetCollisionResponseToChannel(ECC_Pawn, ECR_Ignore);
-
-				//Spawn a new physics constraint
-				UPhysicsConstraintComponent* NewPhysicsConstraint = NewObject<UPhysicsConstraintComponent>(this, UPhysicsConstraintComponent::StaticClass());
-
-				//if hitboxes is empty add a physics constraint to the attached actor
-				if (Hitboxes.IsEmpty())
-				{
-					//Set the constraint parameters
-					NewPhysicsConstraint->SetWorldLocation(StartLocation + Direction * (RopeRadius + HitboxSpacing / 2));
-					NewPhysicsConstraint->ConstraintActor1 = GetInstigator();
-					NewPhysicsConstraint->ConstraintActor2 = this;
-					NewPhysicsConstraint->SetDisableCollision(true);
-					NewPhysicsConstraint->SetConstrainedComponents(nullptr, NAME_None, NewSphere, NAME_None);
-				}
-				else
-				{
-					//else add a physics constraint to the previous hitbox
-					//Get the previous hitbox
-					USphereComponent* PreviousSphere = Hitboxes.Last();
-
-					//Set the constraint parameters
-					NewPhysicsConstraint->SetWorldLocation(PreviousSphere->GetComponentLocation() + Direction * (RopeRadius + HitboxSpacing / 2));
-					NewPhysicsConstraint->SetConstrainedComponents(PreviousSphere, NAME_None, NewSphere, NAME_None);
-				}
-
-				NewPhysicsConstraint->ConstraintInstance.ProfileInstance.bEnableProjection = false;
-
-				//Add the physics constraint to the array
-				PhysicsConstraints.Add(NewPhysicsConstraint);
-
-				//Add the hitbox to the array
-				Hitboxes.Add(NewSphere);
-			}
-		}
-
-		//Set the mass of the new sphere so it decreases with each sphere spawned in order to stabilize the physics of the rope
-		for (int Index = 0; Index < Hitboxes.Num(); ++Index)
-		{
-			Hitboxes[Index]->SetMassOverrideInKg(NAME_None, 100 / (Index + 1), true); //Mass = 1 / [Index + 1
-		}
-	}
-
-	//set the rope mode
-	RopeMode = NewRopeMode;
-}
-
 void AGrapplingRopeActor::OnOwnerDestroyed(AActor* DestroyedActor)
 {
-	//break all the physics constraints
-	for (UPhysicsConstraintComponent* PhysicsConstraint : PhysicsConstraints)
-	{
-		PhysicsConstraint->BreakConstraint();
-	}
-
 	//destroy ourselves
 	Destroy();
 }
