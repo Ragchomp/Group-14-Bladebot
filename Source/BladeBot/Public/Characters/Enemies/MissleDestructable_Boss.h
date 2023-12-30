@@ -32,14 +32,17 @@ private:
 	void Move(float DeltaTime);
 	void SetRandomMovementSpeed();
 	void SetRandomRotationSpeed();
-
 	//void LineTrace(FVector Target, FHitResult& OutHit);
 
 	// Combat ----------
 	void StartBombTimer();
 	void BombTimerFinished();
 	void instantExplode();
-	
+
+	// misc -----------
+public:
+	void updateMovementSpeedMod(float mod);
+private:
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
 		class AActor* CombatTarget;
