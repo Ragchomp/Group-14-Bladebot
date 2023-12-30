@@ -10,6 +10,8 @@
 #include "Math/InterpShorthand.h"
 #include "PlayerMovementComponent.generated.h"
 
+//should allow the player's speed to decrease when they are not pressing any movement keys while grappling?
+
 class UPlayerCameraComponent;
 class AGrapplingHookHead;
 
@@ -30,6 +32,10 @@ class BLADEBOT_API UPlayerMovementComponent : public UCharacterMovementComponent
 	GENERATED_BODY()
 
 public:
+
+	//temp code
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector ArrowDirection = FVector::RightVector;
 
 	//constructor
 	UPlayerMovementComponent();
@@ -65,6 +71,18 @@ public:
 	//whether or not to use the flying movement mode when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	bool bUseFlyingMovementMode = true;
+
+	//whether to apply a speed boost when stopping grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
+	bool bEndGrappleSpeedBoost = true;
+
+	//whether to apply the boost in the direction the player is looking or in the direction the player is moving
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
+	bool bEndGrappleBoostInLookDirection = true;
+
+	//the amount of boost to apply when stopping grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
+	float EndGrappleBoostAmount = 500.f;
 
 	//the interpolation speed when using the InterpToGrapple mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
@@ -134,11 +152,12 @@ public:
 	UPROPERTY()
 	UPlayerCameraComponent* PlayerCamera = nullptr;
 
+	//the rope that the character is grappling with
+	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
+	AGrapplingRopeActor* GrappleRope = nullptr;
+
 	//the collision shape to use when checking if the player can grapple to where they are aiming
 	ECollisionShape::Type CanGrappleCollisionShape = ECollisionShape::Sphere;
-
-	//the object that the character is grappling towards
-	IGrappleRopeInterface* GrappleObject = nullptr;
 
 	//vector pointing in the direction of the grapple
 	FVector GrappleDirection = FVector::ZeroVector;
@@ -173,11 +192,12 @@ public:
 	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual FVector ConsumeInputVector() override;
+	virtual float GetMaxAcceleration() const override;
 	//virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
-	void StartGrapple(AGrapplingRopeActor* GrappleRope);
+	void StartGrapple(AGrapplingRopeActor* InGrappleRope);
 
 	//function that stops the grapple
 	UFUNCTION(BlueprintCallable)

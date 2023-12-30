@@ -235,6 +235,21 @@ void AGrapplingRopeActor::RenderRope()
 	}
 }
 
+void AGrapplingRopeActor::EnforceRopeConstraint(AActor* AttachedActor, UMovementComponent* AttachedMovementComponent, float DeltaTime)
+{
+	//assume the attached actor is the instigator and get the grapple direction
+	const FVector GrappleDirection = GetGrapplePoint(AttachedActor) - AttachedActor->GetActorLocation();
+
+	//get the cross product of the rope direction and the attached actor's velocity
+	const FVector CrossProduct = FVector::CrossProduct(GrappleDirection, AttachedMovementComponent->Velocity);
+
+	//get the angle that we need to rotate the velocity by (generated entirely by copilot)
+	const float Angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(GrappleDirection, AttachedMovementComponent->Velocity) / (GrappleDirection.Size() * AttachedMovementComponent->Velocity.Size())));
+
+	//rotate the velocity by the cross product
+	AttachedMovementComponent->Velocity = AttachedMovementComponent->Velocity.RotateAngleAxis(Angle, CrossProduct);
+}
+
 void AGrapplingRopeActor::OnOwnerDestroyed(AActor* DestroyedActor)
 {
 	//destroy ourselves

@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NiagaraSystem.h"
 #include "Camera/CameraComponent.h"
 #include "Characters/StateControl.h"
 #include "Math/InterpShorthand.h"

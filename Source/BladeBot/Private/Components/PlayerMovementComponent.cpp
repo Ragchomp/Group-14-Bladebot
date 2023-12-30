@@ -16,9 +16,6 @@ void UPlayerMovementComponent::BeginPlay()
 	//call the parent implementation
 	Super::BeginPlay();
 
-	////set the original braking deceleration walking value
-	//OriginalBrakingVal = BrakingDecelerationWalking;
-
 	//array of player camera components
 	TArray<UPlayerCameraComponent*> PlayerCameras;
 
@@ -52,30 +49,6 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		//OnWallJump();
 		OnCanWallJump.Broadcast(LastHit);
 	}
-
-	////check if the player is sliding and should stop sliding
-	//if (bIsSliding && Velocity.Size() < MinSpeedForSlide)
-	//{
-	//	//set the sliding bools
-	//	bIsSliding = false;
-	//	bIsSlidingBraking = false;
-	//}
-
-	////check if the player is sliding
-	//if (bIsSliding)
-	//{
-	//	//check if the player is braking
-	//	if (bIsSlidingBraking)
-	//	{
-	//		//draw a debug sphere at the player's location
-	//		DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), 50.f, 8, FColor::Green, false, 0.0f);
-	//	}
-	//	else
-	//	{
-	//		//draw a debug sphere at the player's location
-	//		DrawDebugSphere(GetWorld(), GetOwner()->GetActorLocation(), 50.f, 8, FColor::Red, false, 0.0f);
-	//	}
-	//}
 }
 
 void UPlayerMovementComponent::Launch(FVector const& LaunchVel)
@@ -99,7 +72,6 @@ bool UPlayerMovementComponent::CanAttemptJump() const
 		//return whether the player can wall jump
 		return true;
 	}
-
 
 	//otherwise return whether both the parent implementation returns true and the player is not falling
 	return Super::CanAttemptJump() && !IsFalling();
@@ -144,14 +116,6 @@ void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remain
 		//reset the last hit
 		LastHit = FHitResult();
 	}
-
-	////check if the velocity is greater than the minimum speed for sliding
-	//if (Velocity.Size() >= MinSpeedForSlide)
-	//{
-	//	//set the sliding bools
-	//	bIsSliding = true;
-	//	bIsSlidingBraking = false;
-	//}
 }
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
@@ -183,7 +147,6 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 	if (bNormalJump)
 	{
 		//call the blueprint event
-		//OnNormalJump();
 		OnNormalJump.Broadcast();
 	}
 
@@ -208,33 +171,6 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 		GrappleMode = AddToVelocity;
 	}
 
-	////check if we're sliding
-	//if (bIsSliding)
-	//{
-	//	//check if the player is braking
-	//	if (FVector::DotProduct(ReturnVec, Velocity.GetSafeNormal()) < 0.f)
-	//	{
-	//		//set the sliding braking bool
-	//		bIsSlidingBraking = true;
-
-	//		//set the walking braking value
-	//		BrakingDecelerationWalking = SlideBrakingVal;
-	//	}
-	//	else
-	//	{
-	//		//set the walking braking value
-	//		BrakingDecelerationWalking = SlideStopBrakingVal;
-	//	}
-	//}
-	//else
-	//{
-	//	//set the sliding braking bool
-	//	bIsSlidingBraking = false;
-
-	//	//set the sliding braking bool
-	//	BrakingDecelerationWalking = OriginalBrakingVal;
-	//}
-
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
@@ -245,28 +181,19 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	return ReturnVec;
 }
 
-//void UPlayerMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
-//{
-//	//check if the player is sliding
-//	if (bIsSliding)
-//	{
-//		//call the parent implementation
-//		Super::ApplyVelocityBraking(DeltaTime, Friction, SlideBrakingVal);
-//	}
-//	//check if the player is sliding and braking
-//	else if (bIsSlidingBraking)
-//	{
-//		//call the parent implementation with the slide braking value
-//		Super::ApplyVelocityBraking(DeltaTime, Friction, SlideStopBrakingVal);
-//	}
-//	else
-//	{
-//		//call the parent implementation
-//		Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
-//	}
-//}
+float UPlayerMovementComponent::GetMaxAcceleration() const
+{
+	//Check if the player is grappling
+	if (bIsGrappling)
+	{
+		//return the max acceleration when grappling
+		return 4000;
+	}
 
-void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
+	return Super::GetMaxAcceleration();
+}
+
+void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
 {
 	//check if the player is already grappling
 	if (!bIsGrappling)
@@ -275,7 +202,7 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 		bIsGrappling = true;
 
 		//set the grapple object
-		GrappleObject = GrappleRope;
+		GrappleRope = InGrappleRope;
 
 		//check if we should use the flying movement mode
 		if (bUseFlyingMovementMode)
@@ -285,7 +212,7 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* GrappleRope)
 		}
 
 		//set the rope length data
-		GrappleRopeLength = FVector::Dist(GetOwner()->GetActorLocation(), GrappleObject->GetGrapplePoint(GetCharacterOwner()));
+		GrappleRopeLength = FVector::Dist(GetOwner()->GetActorLocation(), GrappleRope->GetGrapplePoint(GetCharacterOwner()));
 	}
 }
 
@@ -309,6 +236,25 @@ void UPlayerMovementComponent::StopGrapple()
 
 		//set the GrappleRopeLength to 0
 		GrappleRopeLength = 0.f;
+
+		//check if we should apply a speed boost
+		if (bEndGrappleSpeedBoost)
+		{
+			//check if we should apply the boost in the direction the player is looking
+			if (bEndGrappleBoostInLookDirection)
+			{
+				//get the player's camera forward vector
+				const FVector Forward = PlayerCamera->GetForwardVector();
+
+				//add the boost amount to the velocity
+				Velocity += Forward * EndGrappleBoostAmount;
+			}
+			else
+			{
+				//add the boost amount to the velocity
+				Velocity += Velocity.GetSafeNormal() * EndGrappleBoostAmount;
+			}
+		}
 	}
 }
 
@@ -377,6 +323,9 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float 
 
 void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
+	//get the current speed
+	const float OriginalSpeed = Velocity.Size();
+
 	//check if we're on the ground
 	if (IsWalking())
 	{
@@ -385,7 +334,7 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	}
 
 	//get the point the character is grappling to
-	const FVector GrapplePoint = GrappleObject->GetGrapplePoint(GetCharacterOwner());
+	const FVector GrapplePoint = GrappleRope->GetGrapplePoint(GetCharacterOwner());
 
 	//get the vector from the character to the grapple point
 	GrappleDirection = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
@@ -413,6 +362,37 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 					Velocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 			}
 		break;
+	}
+
+	////get the position the character will be at after moving with the current velocity
+	//const FVector FutureLoc = GetOwner()->GetActorLocation() + Velocity * DeltaTime;
+
+	////get the vector from the grapple point to the character's future location (change this to be clamped to the length of the rope)
+	//const FVector GrappleToFutureLoc = (GrapplePoint - FutureLoc).GetSafeNormal();
+
+	////get the clamped position
+	//const FVector ClampedPos = GrapplePoint - GrappleToFutureLoc;
+
+	////get the vector from the current location to the clamped position
+	//const FVector CurrentToClamped = (ClampedPos - GetOwner()->GetActorLocation()).GetSafeNormal();
+
+	////get the angle between the current velocity and the current to clamped vector
+	//const float Angle = FMath::RadiansToDegrees(FMath::Acos(FVector::DotProduct(Velocity.GetSafeNormal(), CurrentToClamped)));
+
+	////get the cross product of the current velocity and the grapple direction
+	//const FVector CrossProduct = FVector::CrossProduct(Velocity.GetSafeNormal(), GrappleDirection);
+
+	////draw debug arrow
+	//DrawDebugDirectionalArrow(GetWorld(), GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation() + CrossProduct * 100.f, 100.f, FColor::Blue, false, 0.0f, 0, 5.f);
+
+	////rotate the velocity by the cross product
+	//Velocity = Velocity.RotateAngleAxis(Angle, CrossProduct);
+
+	//check if the character's speed has decreased
+	if (Velocity.Size() < OriginalSpeed)
+	{
+		//set the velocity to the original speed
+		Velocity = Velocity.GetSafeNormal() * OriginalSpeed;
 	}
 
 	//update the character's velocity
