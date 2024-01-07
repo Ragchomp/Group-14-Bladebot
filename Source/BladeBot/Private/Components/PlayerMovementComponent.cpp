@@ -470,9 +470,6 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 
 		//call the blueprint event
 		OnCorrectedDirectionalJump.Broadcast(Direction, Velocity.GetSafeNormal());
-
-		//debug message
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Corrected: %f"), DotProduct));
 	}
 	else
 	{
