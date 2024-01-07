@@ -32,6 +32,9 @@ void UPlayerMovementComponent::BeginPlay()
 
 void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
+	//get the current speed
+	OriginalSpeed = Velocity.Size();
+
 	//call the parent implementation
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
@@ -210,9 +213,11 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
 			//set the movement mode to flying
 			SetMovementMode(MOVE_Flying);
 		}
-
-		//set the rope length data
-		GrappleRopeLength = FVector::Dist(GetOwner()->GetActorLocation(), GrappleRope->GetGrapplePoint(GetCharacterOwner()));
+		else
+		{
+			//set the gravity scale to 0
+			GravityScale = 0.f;
+		}
 	}
 }
 
@@ -233,9 +238,11 @@ void UPlayerMovementComponent::StopGrapple()
 			//set the movement mode back to default
 			SetMovementMode(MOVE_Falling);
 		}
-
-		//set the GrappleRopeLength to 0
-		GrappleRopeLength = 0.f;
+		else
+		{
+			//reset the gravity scale
+			GravityScale = 1.f;
+		}
 
 		//check if we should apply a speed boost
 		if (bEndGrappleSpeedBoost)
@@ -323,9 +330,6 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float 
 
 void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
-	//get the current speed
-	const float OriginalSpeed = Velocity.Size();
-
 	//check if we're on the ground
 	if (IsWalking())
 	{
@@ -449,17 +453,34 @@ void UPlayerMovementComponent::DisableWallJump()
 
 void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 {
+	//get the direction of the jump
+	const FVector Direction = PlayerCamera->GetForwardVector();
+
+	//get the dot product of the camera forward vector and the velocity
+	const float DotProduct = FVector::DotProduct(Direction, CurrentFloor.HitResult.ImpactNormal);
+
 	//set the movement mode to falling
 	SetMovementMode(MOVE_Falling);
 
-	//the direction to apply the jump force
-	const FVector Direction = PlayerCamera->GetForwardVector();
+	//check if the dot product is less than or equal to 0
+	if (DotProduct <= 0)
+	{
+		//set the velocity
+		Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + Velocity.GetSafeNormal() * DirectionalJumpForce;
 
-	//set the velocity
-	Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + Direction * DirectionalJumpForce;
+		//call the blueprint event
+		OnCorrectedDirectionalJump.Broadcast(Direction, Velocity.GetSafeNormal());
 
-	//call the blueprint event
-	//OnDirectionalJump();
-	OnDirectionalJump.Broadcast(Direction);
+		//debug message
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Corrected: %f"), DotProduct));
+	}
+	else
+	{
+		//set the velocity
+		Velocity += FVector::UpVector * (JumpZVel + JumpBoostAmount) + Direction * DirectionalJumpForce;
+
+		//call the blueprint event
+		OnDirectionalJump.Broadcast(Direction);
+	}
 }
 

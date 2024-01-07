@@ -11,6 +11,7 @@
 #include "PlayerMovementComponent.generated.h"
 
 //should allow the player's speed to decrease when they are not pressing any movement keys while grappling?
+//to do check if the dot product of directional jump direction and a vector paralell to the ground is less than 0.5 and if so, use the vector paralell to the ground instead of the camera forward vector
 
 class UPlayerCameraComponent;
 class AGrapplingHookHead;
@@ -40,17 +41,19 @@ public:
 	//constructor
 	UPlayerMovementComponent();
 
-	//declare the OnNormalJump event
+	//declare events
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNormalJump);
-
-	//declare the OnDirectionalJump event
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectionalJump, FVector, Direction);
-
-	//declare the OnCanWallJump event
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCorrectedDirectionalJump, FVector, OriginalDirection, FVector, CorrectedDirection);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCanWallJump, FHitResult, WallHit);
-
-	//declare the OnWallJump event
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWallJump, FHitResult, WallHit);
+
+	//delegate for the events
+	FOnNormalJump OnNormalJump;
+	FOnDirectionalJump OnDirectionalJump;
+	FOnCorrectedDirectionalJump OnCorrectedDirectionalJump;
+	FOnCanWallJump OnCanWallJump;
+	FOnWallJump OnWallJump;
 
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -162,26 +165,14 @@ public:
 	//vector pointing in the direction of the grapple
 	FVector GrappleDirection = FVector::ZeroVector;
 
-	//the length of the rope when the player started grappling
-	float GrappleRopeLength = 0.f;
-
 	//the last hit that the character had
 	FHitResult LastHit;
 
 	//the timer handle for the bunny hop timer
 	FTimerHandle WalljumpTimerHandle = FTimerHandle();
 
-	//the event for when the player does a normal jump
-	FOnNormalJump OnNormalJump;
-
-	//the event for when the player does a directional jump
-	FOnDirectionalJump OnDirectionalJump;
-
-	//the event for when the player starts colliding with a wall and can wall jump
-	FOnCanWallJump OnCanWallJump;
-
-	//the event for when the player wall jumps
-	FOnWallJump OnWallJump;
+	//the original speed of the character this frame
+	float OriginalSpeed = 0.f;
 
 	//override functions
 	virtual void BeginPlay() override;

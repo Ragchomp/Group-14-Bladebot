@@ -257,6 +257,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
 	void OnDirectionalJump(FVector Direction);
 
+	//blueprint event for when the player does a corrected directional jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
+	void OnCorrectedDirectionalJump(FVector OriginalDirection, FVector CorrectedDirection);
+
 	//blueprint event for when the player starts colliding with a wall and can wall jump
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
 	void OnCanWallJump(FHitResult WallHit);
