@@ -117,7 +117,7 @@ public:
 		float RotationSpeed = 0.02f;
 
 	UPROPERTY()
-	int32 CurrentTargetIndex = -1;
+		int32 CurrentTargetIndex = -1;
 
 	// ------------- Bools ------------
 
