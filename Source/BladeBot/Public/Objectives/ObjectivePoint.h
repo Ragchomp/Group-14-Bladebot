@@ -66,6 +66,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Audio")
 		class USoundBase* ChangedPassiveSound;
 
+	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	bool AlreadyHit = false;
+
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
