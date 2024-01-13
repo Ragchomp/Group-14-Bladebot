@@ -107,7 +107,7 @@ FVector AScarabEnemy::UpdateRandomTargetPosition()
 		
 	}
 
-	return RandomLocation;
+	return GetActorLocation();
 }
 
 void AScarabEnemy::MoveToTargetPosition()
