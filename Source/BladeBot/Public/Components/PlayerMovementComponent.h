@@ -10,6 +10,8 @@
 #include "Math/InterpShorthand.h"
 #include "PlayerMovementComponent.generated.h"
 
+// should override get max speed and get max acceleration to have better control over the player's movement
+
 class UPlayerCameraComponent;
 class AGrapplingHookHead;
 
@@ -34,17 +36,17 @@ public:
 	//constructor
 	UPlayerMovementComponent();
 
-	//declare the OnNormalJump event
+	//declare events
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNormalJump);
-
-	//declare the OnDirectionalJump event
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectionalJump, FVector, Direction);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCorrectedDirectionalJump, FVector, OriginalDirection, FVector, CorrectedDirection);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartGrapple);
 
-	//declare the OnCanWallJump event
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnCanWallJump, FHitResult, WallHit);
-
-	//declare the OnWallJump event
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWallJump, FHitResult, WallHit);
+	//delegate for the events
+	FOnNormalJump OnNormalJump;
+	FOnDirectionalJump OnDirectionalJump;
+	FOnCorrectedDirectionalJump OnCorrectedDirectionalJump;
+	FOnStartGrapple OnStartGrapple;
 
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -52,7 +54,7 @@ public:
 
 	//the grappling speed in add velocity mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float AddGrappleSpeed = 4000.f;
+	float AddGrappleSpeed = 6000.f;
 
 	//the grappling speed in interp velocity mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
@@ -66,6 +68,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	bool bUseFlyingMovementMode = true;
 
+	//whether to apply a speed boost when stopping grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
+	bool bEndGrappleSpeedBoost = true;
+
+	//whether to apply the boost in the direction the player is looking or in the direction the player is moving
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
+	bool bEndGrappleBoostInLookDirection = false;
+
+	//the amount of boost to apply when stopping grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
+	float EndGrappleBoostAmount = 1000.f;
+
 	//the interpolation speed when using the InterpToGrapple mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	float GrappleInterpSpeed = 1.5f;
@@ -77,6 +91,14 @@ public:
 	//the input modifier to apply to movement input when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
 	float GrappleMovementInputModifier = 1.f;
+
+	//the max acceleration to use when grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	float GrappleMaxAcceleration = 8000.f;
+
+	//the max speed to use when grappling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	float GrappleMaxSpeed = 4000.f;
 
 	//the max distance the Grappling hook can travel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
@@ -90,9 +112,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance");
 	TEnumAsByte<ECollisionChannel> CanGrappleTraceChannel = ECC_Visibility;
 
-	//the amount of force to apply in the direction the player is looking when jumping with the DirectionalJump boost type
+	//the amount of force to apply in the direction the player is looking when jumping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
 	float DirectionalJumpForce = 3000.f;
+
+	//the amount of boost to give to the character while a directional jump is providing force
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
+	float DirectionalJumpGlideForce = 500.f;
 
 	//the amount of boost to apply when boosting a jump
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
@@ -102,82 +128,59 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
 	float MinSpeedForSpeedBoost = 1000.f;
 
-	//whether or not the player can ever wall jump
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
-	bool bCanEverWallJump = true;
+	//the speed of rotation when using the Rotation mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
+	float RotationSpeed = 1.f;
 
-	//the time the player has to jump off of a wall after hitting it
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
-	float WallJumpTime = 0.1f;
-
-	//the force the player gets away from the wall when wall jumping
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
-	float WallJumpForce = 2000.f;
-
-	//the upwards force the player gets when wall jumping
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
-	float WallJumpZVel = 1000.f;
-
-	//whether or not the wall jump force should be based on the player's velocity
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
-	bool bScaleWallJumpForceByVelocity = true;
-
-	//the amount to scale the wall jump force by when using the ScaleWallJumpForceByVelocity option
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|Walljump")
-	float WallJumpForceVelocityScale = 0.1f;
-
-	//whether or not the player can wall jump right now
-	UPROPERTY(BlueprintReadOnly, Category = "Jumping|Walljump")
-	bool bCanWallJump = false;
+	//whether or not WASD effects the player's movement or the player's rotation
+	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	bool bRotationMode = false;
 
 	//reference to the player camera of the player character
 	UPROPERTY()
 	UPlayerCameraComponent* PlayerCamera = nullptr;
 
+	//the rope that the character is grappling with
+	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
+	AGrapplingRopeActor* GrappleRope = nullptr;
+
 	//the collision shape to use when checking if the player can grapple to where they are aiming
 	ECollisionShape::Type CanGrappleCollisionShape = ECollisionShape::Sphere;
-
-	//the object that the character is grappling towards
-	IGrappleRopeInterface* GrappleObject = nullptr;
 
 	//vector pointing in the direction of the grapple
 	FVector GrappleDirection = FVector::ZeroVector;
 
-	//the length of the rope when the player started grappling
-	float GrappleRopeLength = 0.f;
+	//whether or not last jump was a directional jump
+	bool bLastJumpWasDirectional = false;
 
-	//the last hit that the character had
-	FHitResult LastHit;
-
-	//the timer handle for the bunny hop timer
-	FTimerHandle WalljumpTimerHandle = FTimerHandle();
-
-	//the event for when the player does a normal jump
-	FOnNormalJump OnNormalJump;
-
-	//the event for when the player does a directional jump
-	FOnDirectionalJump OnDirectionalJump;
-
-	//the event for when the player starts colliding with a wall and can wall jump
-	FOnCanWallJump OnCanWallJump;
-
-	//the event for when the player wall jumps
-	FOnWallJump OnWallJump;
+	//the direction of the last directional jump
+	FVector LastDirectionalJumpDirection = FVector::UpVector;
 
 	//override functions
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
+	virtual FVector NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const override;
 	virtual void Launch(FVector const& LaunchVel) override;
-	virtual bool CanAttemptJump() const override;
-	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
 	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual FVector ConsumeInputVector() override;
-	//virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+	virtual bool ShouldRemainVertical() const override;
+	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const override;
+
+
+	virtual float GetMinAnalogSpeed() const override;
+	virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
+	virtual float GetMaxSpeed() const override;
+	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	virtual float GetMaxAcceleration() const override;
+	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+	virtual void PhysFlying(float deltaTime, int32 Iterations) override;
+	virtual void ApplyAccumulatedForces(float DeltaSeconds) override;
+
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
-	void StartGrapple(AGrapplingRopeActor* GrappleRope);
+	void StartGrapple(AGrapplingRopeActor* InGrappleRope);
 
 	//function that stops the grapple
 	UFUNCTION(BlueprintCallable)
@@ -197,44 +200,11 @@ public:
 	//sets the velocity of the player character when grappling
 	void UpdateGrappleVelocity(float DeltaTime);
 
-	//function for checking if the player can wall jump
-	UFUNCTION(BlueprintCallable)
-	bool CanWallJump() const;
-
-	//function for wall jumping
-	UFUNCTION(BlueprintCallable)
-	void DoWallJump();
-
-	//function for setting can wall jumo to false
-	UFUNCTION(BlueprintCallable)
-	void DisableWallJump();
-
 	//function for boosting jumps
 	UFUNCTION(BlueprintCallable)
 	void BoostJump(float JumpZVel);
 
-	////blueprint event for when the player starts grappling
-	//UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-	//void OnStartGrapple();
-
-	////blueprint event for when the player stops grappling
-	//UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-	//void OnStopGrapple();
-
-	////blueprint event for when the player does a normal jump
-	//UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
-	//void OnNormalJump();
-
-	////blueprint event for when the player does a directional jump
-	//UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
-	//void OnDirectionalJump();
-
-	////blueprint event for when the player starts colliding with a wall and can wall jump
-	//UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
-	//void OnCanWallJump();
-
-	////blueprint event for when the player wall jumps
-	//UFUNCTION(BlueprintImplementableEvent, Category = "Jumping|Walljump")
-	//void OnWallJump();
-
+	//function for toggling whether or not wasd effects the player's movement or the player's rotation
+	UFUNCTION(BlueprintCallable)
+	void ToggleRotationMode(bool InValue = false);
 };

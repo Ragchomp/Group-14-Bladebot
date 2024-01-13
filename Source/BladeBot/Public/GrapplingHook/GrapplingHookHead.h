@@ -110,6 +110,9 @@ public:
 	UFUNCTION()
 	void DoDestroy();
 
+	UFUNCTION()
+	void DoDestroy2(AActor* DestroyedActor = nullptr);
+
 	//handles a collision with a wall
 	UFUNCTION()
 	void HandleWallCollision(const FHitResult& Hit);

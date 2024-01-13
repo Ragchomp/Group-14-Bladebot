@@ -3,7 +3,6 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "NiagaraSystem.h"
 #include "Camera/CameraComponent.h"
 #include "Characters/StateControl.h"
 #include "Math/InterpShorthand.h"
@@ -21,21 +20,11 @@ struct FCameraStateStruct
 	GENERATED_BODY()
 
 	//constructors
-	explicit FCameraStateStruct(const EGrappleState InGrappleState = EGrappleState::EGS_Retracted, const bool InUseWithDashing =  false, const float InFov = 90.0f, const FPostProcessSettings InPostProcessSettings = FPostProcessSettings())
+	explicit FCameraStateStruct(const float InFov = 90.0f, const FPostProcessSettings InPostProcessSettings = FPostProcessSettings())
 	{
-		GrappleState = InGrappleState;
 		PostProcessSettings = InPostProcessSettings;
 		FieldOfView = InFov;
-		bUseWithDashing = InUseWithDashing;
 	}
-
-	//the grapple state to use this camera state for
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	EGrappleState GrappleState = EGrappleState::EGS_Retracted;
-
-	//whether or not this state is meant to be used when dashing
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool bUseWithDashing = false;
 
 	//the post process settings to use
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -64,71 +53,9 @@ class BLADEBOT_API UPlayerCameraComponent : public UCameraComponent
 	//constructor
 	UPlayerCameraComponent();
 
-	//array of camera states
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera")
-	TArray<FCameraStateStruct> CameraStates = {
-		FCameraStateStruct(EGrappleState::EGS_Retracted),
-		FCameraStateStruct(EGrappleState::EGS_InAir),
-		FCameraStateStruct(EGrappleState::EGS_Attached),
-		FCameraStateStruct(EGrappleState::EGS_Retracted, true),
-		FCameraStateStruct(EGrappleState::EGS_InAir, true),
-		FCameraStateStruct(EGrappleState::EGS_Attached, true),
-	};
-
-	////the velocity at which the camera speed lines will be used
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//float MinSpeedLinesVal = 30.f;
-
-	////whether or not to ignore the z axis when calculating the speed for the speed lines
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//bool bIgnoreZVel = true;
-
-	////the speed lines to use when the camera owner is moving fast
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//UNiagaraSystem* SpeedLines = nullptr;
-
-	////the parameter name for the speed lines's speed parameter
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//FName SpeedLinesSpeedParamName = "Speed";
-
-	////the in range for the speed lines's speed parameter
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//FVector2D SpeedLinesSpeedParamInRange = FVector2D(0.0f, 90.0f);
-
-	////the out range for the speed lines's speed parameter
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//FVector2D SpeedLinesSpeedParamOutRange = FVector2D(0.0f, 6000.0f);
-
-	////reference to the spawned speed lines
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Camera|SpeedLines")
-	//UNiagaraComponent* SpeedLinesRef = nullptr;
-
-	////whether of not to use the speed lines
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//bool bUseSpeedLines = false;
-
-	////debug value for the speed lines
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//float SpeedLinesDebugVal = 1000.0f;
-
-	////whether or not to use the debug value for the speed lines
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Camera|SpeedLines")
-	//bool bUseDebugVal = true;
-
 	//the current camera state
-	UPROPERTY(BlueprintReadOnly, Category = "Camera")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Player Camera")
 	FCameraStateStruct CurrentCameraState;
 
-	//reference to the owner as a player character
-	UPROPERTY(BlueprintReadOnly, Category = "Camera")
-	APlayerCharacter* PlayerCharacterRef = nullptr;
-
-
-	//overrides
-	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-
-	//updates the camera state
-	UFUNCTION(BlueprintCallable, Category = "Camera")
-	void UpdateCameraState(AGrapplingHookHead* GrapplingHook, const float DeltaTime);
 };

@@ -10,16 +10,17 @@ AObjectivePoint::AObjectivePoint()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-	ObjectveMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ObjectiveMesh"));
-	SetRootComponent(ObjectveMesh);
-
-	AfterActivationMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AfterActivationMesh"));
-	AfterActivationMesh->SetupAttachment(ObjectveMesh);
-	AfterActivationMesh->SetVisibility(false);
-	AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	CollisionMesh = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
-	CollisionMesh->SetupAttachment(ObjectveMesh);
+	SetRootComponent(CollisionMesh);
+
+	ObjectveMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ObjectiveMesh"));
+	ObjectveMesh->SetupAttachment(CollisionMesh);
+
+	AfterActivationMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AfterActivationMesh"));
+	AfterActivationMesh->SetupAttachment(CollisionMesh);
+	AfterActivationMesh->SetVisibility(false);
+	AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
 	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
 	NiagaraComp->SetupAttachment(GetRootComponent());
@@ -45,10 +46,16 @@ float AObjectivePoint::TakeDamage(float DamageAmount, FDamageEvent const& Damage
 	//if(DamageCauser.isAttaccking()){}
 	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Collision"));
 
-	ObjectveMesh->SetVisibility(false);
-	ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	AfterActivationMesh->SetVisibility(true);
-	AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	if(AlreadyHit == false)
+	{
+		Tags.Add(FName("ObjectiveComplete"));
+		ObjectveMesh->SetVisibility(false);
+		ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		AfterActivationMesh->SetVisibility(true);
+		AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		AlreadyHit = true;
+	}
+	
 
 
 	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
