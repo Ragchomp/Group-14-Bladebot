@@ -108,7 +108,7 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 {
 	//setup collision parameters for traces and sweeps
 	FCollisionQueryParams CollisionParams;
-	CollisionParams.AddIgnoredActor(GetInstigator());
+	//CollisionParams.AddIgnoredActor(GetInstigator());
 	CollisionParams.AddIgnoredActor(Owner);
 
 	//iterate through all the collision points
