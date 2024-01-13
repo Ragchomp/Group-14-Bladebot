@@ -10,7 +10,6 @@
 #include "Components/CameraArmComponent.h"
 #include "Components/PlayerMovementComponent.h"
 #include "EnhancedInputComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
 
 //Gameplay Statics
 #include "Controllers/BladebotPlayerController.h"
@@ -18,9 +17,10 @@
 #include <EnhancedInputSubsystems.h>
 #include "BladebotGameMode.h"
 #include "EngineUtils.h"
-#include "NiagaraFunctionLibrary.h"
 #include "BladeBot/Spawning/SpawnPoint.h"
+#include "Components/BoxComponent.h"
 #include "Components/PlayerCameraComponent.h"
+#include "Components/SphereComponent.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(
 	ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
@@ -44,6 +44,8 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	CameraArm = CreateDefaultSubobject<UCameraArmComponent>(TEXT("CameraArm"));
 	Camera = CreateDefaultSubobject<UPlayerCameraComponent>(TEXT("Camera"));
 	Attributes = CreateDefaultSubobject<UAttributeComponent>(TEXT("AttributeComponent"));
+	SpinAttackHitbox = CreateDefaultSubobject<USphereComponent>(TEXT("SpinAttackHitbox"));
+	SpinAttackSwordHitbox = CreateDefaultSubobject<UBoxComponent>(TEXT("SpinAttackSwordHitbox"));
 
 	//setup attachments
 	CameraArm->SetupAttachment(GetRootComponent());
@@ -75,10 +77,10 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	//add the player tag
 	Tags.Add(FName("Player"));
 
-	//DashInit
-	MaximumDashEnergy = 200.f;
-	EnergyRegenerationRate = 1;
-	DashEnergy = MaximumDashEnergy;
+	////DashInit
+	//MaximumDashEnergy = 200.f;
+	//EnergyRegenerationRate = 1;
+	//DashEnergy = MaximumDashEnergy;
 }
 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
@@ -111,6 +113,10 @@ void APlayerCharacter::BeginPlay()
 	Inits();
 	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
 
+	//spin attack hitboxes overlaps setup
+	SpinAttackHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::SpinAttackStartOverlap);
+	SpinAttackSwordHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::SpinAttackStartOverlap);
+
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
 
@@ -132,19 +138,16 @@ void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputCompone
 	if (UEnhancedInputComponent* EnhancedInputComponent = CastChecked<UEnhancedInputComponent>(InInputComponent))
 	{
 		//bind the input actions
-		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this,
-			&APlayerCharacter::GroundMovement);
-		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this,
-			&APlayerCharacter::CameraMovement);
+		EnhancedInputComponent->BindAction(IA_GroundMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::GroundMovement);
+		EnhancedInputComponent->BindAction(IA_CameraMovement, ETriggerEvent::Triggered, this, &APlayerCharacter::CameraMovement);
 		EnhancedInputComponent->BindAction(IA_DoJump, ETriggerEvent::Triggered, this, &APlayerCharacter::DoJump);
-		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this,
-			&APlayerCharacter::ShootGrapple);
-		EnhancedInputComponent->BindAction(IA_StopGrapple, ETriggerEvent::Triggered, this,
-			&APlayerCharacter::StopGrapple);
-		EnhancedInputComponent->BindAction(IA_DashAttack, ETriggerEvent::Triggered, this,
-			&APlayerCharacter::PlayerDashAttack);
-		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this,
-			&APlayerCharacter::CallRestartPlayer);
+		EnhancedInputComponent->BindAction(IA_StopJump, ETriggerEvent::Triggered, this, &APlayerCharacter::StopJumpInput);
+		EnhancedInputComponent->BindAction(IA_ShootGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::ShootGrapple);
+		EnhancedInputComponent->BindAction(IA_StopGrapple, ETriggerEvent::Triggered, this, &APlayerCharacter::StopGrapple);
+		EnhancedInputComponent->BindAction(IA_SpinAttack, ETriggerEvent::Triggered, this, &APlayerCharacter::DoSpinAttack);
+		EnhancedInputComponent->BindAction(IA_RespawnButton, ETriggerEvent::Triggered, this, &APlayerCharacter::CallRestartPlayer);
+		EnhancedInputComponent->BindAction(IA_RotationToggleOn, ETriggerEvent::Triggered, this, &APlayerCharacter::RotationToggleOn);
+		EnhancedInputComponent->BindAction(IA_RotationToggleOff, ETriggerEvent::Triggered, this, &APlayerCharacter::RotationToggleOff);
 		//EnhancedInputComponent->BindAction(IA_KillSelf, ETriggerEvent::Triggered, this, &APlayerCharacter::Destroyed);
 	}
 }
@@ -162,115 +165,78 @@ void APlayerCharacter::Tick(float DeltaTime)
 	//	PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
 	//}
 
-	EnergyRegeneration();
-}
-
-bool APlayerCharacter::CanJumpInternal_Implementation() const
-{
-	//check if we are allowed to attempt to jump and we're wall jumping
-	if (GetCharacterMovement()->IsJumpAllowed() && PlayerMovementComponent->bCanWallJump)
-	{
-		return true;
-	}
-	//return the parent implementation
-	return Super::CanJumpInternal_Implementation();
-}
-
-bool APlayerCharacter::CanUseInput(const FInputActionValue& Value)
-{
-	//check if the input is used and if the character is not dead
-	return Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead;
-}
-
-void APlayerCharacter::InputDebugMessage(const UInputAction* InputAction, const FString& DebugMessage)
-{
-	//check if debug mode is on
-	if (bDebugMode == true)
-	{
-		//print the debug message
-		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, InputAction->GetName().Append(DebugMessage));
-	}
+	//EnergyRegeneration();
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 {
-	//check if we can use the input
-	if (CanUseInput(Value))
+	//check if we can't use inputs
+	if (CharacterState == ECharacterState::ECS_Dead)
 	{
-		//get the vector direction from the input value
-		const FVector2D VectorDirection = Value.Get<FVector2D>();
-
-		//get the control rotation and set the pitch and roll to zero
-		const FRotator ControlPlayerRotationYaw = GetControlRotation();
-		const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
-
-		//check if the player is grappling
-		if (PlayerMovementComponent->bIsGrappling)
-		{
-			//get the up vector from the control rotation
-			const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Z);
-
-			//get the X axis for the movement input
-			const FVector MovementXAxis = FVector::CrossProduct(PlayerDirectionYaw_Upwards_Downwards.GetSafeNormal(), PlayerMovementComponent->GrappleDirection.GetSafeNormal()).GetSafeNormal();
-
-			//get the right vector from the control rotation
-			const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
-
-			//get the X axis for the movement input
-			const FVector MovementYAxis = FVector::CrossProduct((PlayerDirectionYaw_Left_Right * -1).GetSafeNormal(), PlayerMovementComponent->GrappleDirection.GetSafeNormal()).GetSafeNormal();
-
-			//add upwards/downwards movement input
-			AddMovementInput(MovementYAxis, VectorDirection.Y);
-
-			//add left/right movement input
-			AddMovementInput(MovementXAxis, VectorDirection.X);
-		}
-		////check if we're on the ground and moving against the current velocity
-		//else if (const float DotProduct = FVector2D::DotProduct(FVector2D(GetVelocity().X, GetVelocity().Y), VectorDirection); GetCharacterMovement()->IsMovingOnGround() && !GetVelocity().IsNearlyZero() && DotProduct < 0.f)
-		//{
-		//	//draw a green debug sphere
-		//	DrawDebugSphere(GetWorld(), GetActorLocation(), 50.f, 8, FColor::Green, false, 0.1f);
-
-		//	//get the forward vector from the control rotation
-		//	const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
-
-		//	//get the right vector from the control rotation
-		//	const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
-
-		//	//add forward/backwards movement input
-		//	AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
-
-		//	//add left/right movement input
-		//	AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
-
-		//	//set the breaking deceleration
-		//	GetCharacterMovement()->BrakingDecelerationWalking = 2048.f;
-		//}
-		else
-		{
-			//get the forward vector from the control rotation
-			const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
-
-			//get the right vector from the control rotation
-			const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
-
-			//add forward/backwards movement input
-			AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
-
-			//add left/right movement input
-			AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
-		}
+		return;
 	}
+
+	//get the vector direction from the input value
+	const FVector2D VectorDirection = Value.Get<FVector2D>();
+
+	//check if we're in the rotation mode
+	if (PlayerMovementComponent->bRotationMode)
+	{
+		//add w and s movement input
+		AddMovementInput(FVector(PlayerMovementComponent->RotationSpeed, 0, 0), VectorDirection.Y);
+
+		//add a and d movement input
+		AddMovementInput(FVector(0, 0, PlayerMovementComponent->RotationSpeed), VectorDirection.X);
+
+		return;
+	}
+
+	//get the control rotation and set the pitch and roll to zero
+	const FRotator ControlPlayerRotationYaw = GetControlRotation();
+	const FRotator YawPlayerRotation(0.f, ControlPlayerRotationYaw.Yaw, 0.f);
+
+	//check if the player is grappling
+	if (PlayerMovementComponent->bIsGrappling)
+	{
+		//get the up vector from the control rotation
+		const FVector PlayerDirectionYaw_Upwards_Downwards = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Z);
+
+		//get the X axis for the movement input
+		const FVector MovementXAxis = FVector::CrossProduct(PlayerDirectionYaw_Upwards_Downwards.GetSafeNormal(), PlayerMovementComponent->GrappleDirection.GetSafeNormal()).GetSafeNormal();
+
+		//get the right vector from the control rotation
+		const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
+
+		//get the X axis for the movement input
+		const FVector MovementYAxis = FVector::CrossProduct((PlayerDirectionYaw_Left_Right * -1).GetSafeNormal(), PlayerMovementComponent->GrappleDirection.GetSafeNormal()).GetSafeNormal();
+
+		//add upwards/downwards movement input
+		AddMovementInput(MovementYAxis, VectorDirection.Y);
+
+		//add left/right movement input
+		AddMovementInput(MovementXAxis, VectorDirection.X);
+
+		return;
+	}
+
+	//get the forward vector from the control rotation
+	const FVector PlayerDirectionYaw_Forward_Backward = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::X);
+
+	//get the right vector from the control rotation
+	const FVector PlayerDirectionYaw_Left_Right = FRotationMatrix(YawPlayerRotation).GetUnitAxis(EAxis::Y);
+
+	//add forward/backwards movement input
+	AddMovementInput(PlayerDirectionYaw_Forward_Backward, VectorDirection.Y);
+
+	//add left/right movement input
+	AddMovementInput(PlayerDirectionYaw_Left_Right, VectorDirection.X);
 }
 
 void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 {
 	//check if we can use the input
-	if (CanUseInput(Value))
+	if (Value.IsNonZero() && CharacterState != ECharacterState::ECS_Dead)
 	{
-		//print debug message
-		InputDebugMessage(IA_CameraMovement);
-
 		//get the look axis input
 		const FVector2D LookAxisInput = Value.Get<FVector2D>();
 
@@ -283,14 +249,103 @@ void APlayerCharacter::CameraMovement(const FInputActionValue& Value)
 void APlayerCharacter::DoJump(const FInputActionValue& Value)
 {
 	//check if we can use the input
-	if (CanUseInput(Value))
+	if (CharacterState == ECharacterState::ECS_Dead)
 	{
-		//call the jump function
-		Jump();
-
-		//print debug message
-		InputDebugMessage(IA_DoJump);
+		return;
 	}
+
+	//call the jump function
+	Jump();
+}
+
+void APlayerCharacter::StopJumpInput(const FInputActionValue& Value)
+{
+	//check if we can use the input
+	if (CharacterState == ECharacterState::ECS_Dead)
+	{
+		return;
+	}
+
+	//call the stop jump function
+	StopJumping();
+}
+
+void APlayerCharacter::RotationToggleOn(const FInputActionValue& Value)
+{
+	//check if we can use the input
+	if (CharacterState != ECharacterState::ECS_Dead)
+	{
+		//toggle the rotation mode
+		PlayerMovementComponent->ToggleRotationMode(true);
+	}
+}
+
+void APlayerCharacter::RotationToggleOff(const FInputActionValue& Value)
+{
+	//check if we can use the input
+	if (CharacterState != ECharacterState::ECS_Dead)
+	{
+		//toggle the rotation mode
+		PlayerMovementComponent->ToggleRotationMode(false);
+	}
+}
+
+void APlayerCharacter::DoSpinAttack(const FInputActionValue& Value)
+{
+	//check if we're not dead
+	if (CharacterState != ECharacterState::ECS_Dead)
+	{
+		//set the character state to spin attacking
+		bIsSpinAttacking = true;
+
+		//set timer to reset the spin attack flag
+		GetWorldTimerManager().SetTimer(SpinAttackTimer, this, &APlayerCharacter::SpinAttackEnd, SpinAttackDuration, false);
+
+		//call the on spin attack event
+		OnSpinAttackBegin();
+	}
+}
+
+void APlayerCharacter::SpinAttackStartOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	//check if we're not spin attacking
+	if (!bIsSpinAttacking)
+	{
+		//return
+		return;
+	}
+
+	//check if the other actor has already been overlapped by one of the spin attack hitboxes
+	if (SpinAttackOverlappedActors.Contains(OtherActor))
+	{
+		//return
+		return;
+	}
+
+	//add the other actor to the overlapped actors array
+	SpinAttackOverlappedActors.Add(OtherActor);
+
+	//call the blueprint event
+	OnSpinAttackHit(OverlappedComponent, OtherActor, OtherComponent, OtherBodyIndex, bFromSweep, SweepResult);
+}
+
+void APlayerCharacter::SpinAttackEnd()
+{
+	//check if we're not spin attacking
+	if (!bIsSpinAttacking)
+	{
+		//return
+		return;
+	}
+
+	//set bIsSpinAttacking to false
+	bIsSpinAttacking = false;
+
+	//empty the overlapped actors array
+	SpinAttackOverlappedActors.Empty();
+
+	//call the blueprint event
+	OnSpinAttackEnd();
 }
 
 //bool APlayerCharacter::CrosshairCheck() const
@@ -313,116 +368,111 @@ void APlayerCharacter::DoJump(const FInputActionValue& Value)
 void APlayerCharacter::ShootGrapple(const FInputActionValue& Value)
 {
 	//check if the input is used and if the character is not dead
-	if (CanUseInput(Value))
+	if (CharacterState == ECharacterState::ECS_Dead)
 	{
-		//check if there is an existing grappling hook
-		if (GrapplingHookRef)
-		{
-			//destroy the grappling hook
-			GrapplingHookRef->Destroy();
-
-			//print debug message
-			InputDebugMessage(IA_ShootGrapple, TEXT(" Destroyed"));
-		}
-		//spawn the grappling hook
-		SpawnGrappleProjectile();
-
-		//call the blueprint event
-		OnStartGrapple();
+		return;
 	}
+
+	//check if there is an existing grappling hook
+	if (GrapplingHookRef)
+	{
+		//destroy the grappling hook
+		GrapplingHookRef->Destroy();
+	}
+
+	//spawn the grappling hook
+	SpawnGrappleProjectile();
 }
 
 void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 {
-	if (CharacterState != ECharacterState::ECS_Dead)
+	//check if we're dead
+	if(CharacterState == ECharacterState::ECS_Dead)
 	{
-		//check if there is an existing grappling hook
-		if (GrapplingHookRef)
-		{
-			//call the blueprint event
-			OnStopGrapple(GrapplingHookRef->GetActorLocation());
-
-			//check if we should destroy the hook immediately
-			if (DestroyHookImmediately)
-			{
-				//destroy the grappling hook
-				GrapplingHookRef->Destroy();
-			}
-			else
-			{
-				//set the grappling hook to destroy on impact
-				GrapplingHookRef->bDestroyOnImpact = true;
-			}
-		}
-
-		//print debug message
-		InputDebugMessage(IA_StopGrapple);
-
-		//stop the player grapple
-		PlayerMovementComponent->StopGrapple();
+		return;
 	}
-}
 
-void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
-{
-	if (/*(GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration ||*/ DashEnergy > 100)
+	//stop grappling
+	PlayerMovementComponent->StopGrapple();
+
+	//check if there is an existing grappling hook
+	if (!GrapplingHookRef)
 	{
-		//check if we can use the input
-		if (CanUseInput(Value))
-		{
-			// Print debug message
-			InputDebugMessage(IA_DashAttack);
-
-			// Get the camera manager
-			const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
-				PlayerCameraManager;
-
-			// Get the camera forward vector
-			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
-
-			// Play the dash sound
-			UGameplayStatics::PlaySound2D(this, DashSound);
-
-			// Play niagara effect at socket location
-			UNiagaraFunctionLibrary::SpawnSystemAttached(DashEffect, Camera, FName("Dash"), FVector(EffectXLocation, EffectYLocation, EffectZLocation), FRotator(EffectPitch, EffectYaw, EffectRoll), EAttachLocation::KeepRelativeOffset, true);
-
-			// Get velocity from PlayerMovementComponent
-			const FVector Velocity = PlayerMovementComponent->Velocity;
-
-			//launch the character
-			this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
-
-			PlayerMovementComponent->Velocity *= Velocity.GetSafeNormal() * FMath::Clamp(Velocity.Length(), FMath::Min(Velocity.Size(), MaxDashSpeed), FMath::Max(Velocity.Size(), MaxDashSpeed));
-
-			// Update the last action time
-			LastActionTime = GetWorld()->GetTimeSeconds();
-
-			// Decrement the amount of dashes
-			DashEnergy -= 100;
-
-			// Set a timer to reset the cooldown flag after CooldownDuration seconds
-			FTimerHandle CooldownTimerHandle;
-			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashOne,
-				DashDuration, false);
-			GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash One Used")));
-
-			//Enable is dashing
-			bIsDashing = true;
-		}
+		return;
 	}
+
+	//check if we should destroy the hook immediately
+	if (DestroyHookImmediately)
+	{
+		//destroy the grappling hook
+		GrapplingHookRef->Destroy();
+
+		//prevent further execution
+		return;
+	}
+
+	//set the grappling hook to destroy on impact if it isn't already
+	GrapplingHookRef->bDestroyOnImpact = true;
 }
 
-void APlayerCharacter::ResetCooldownDashOne()
-{
-	GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Dash One Ready")));
-	bIsDashing = false;
-}
-
-void APlayerCharacter::EnergyRegeneration()
-{
-	DashEnergy += 1 * EnergyRegenerationRate;
-	DashEnergy = FMath::Clamp(DashEnergy, 0, MaximumDashEnergy);
-}
+//void APlayerCharacter::PlayerDashAttack(const FInputActionValue& Value)
+//{
+//	if (/*(GetWorld()->GetTimeSeconds() - LastActionTime) >= CooldownDuration ||*/ DashEnergy > 100)
+//	{
+//		//check if we can use the input
+//		if (CharacterState != ECharacterState::ECS_Dead)
+//		{
+//
+//			// Get the camera manager
+//			const APlayerCameraManager* CamManager = GetNetOwningPlayer()->GetPlayerController(GetWorld())->
+//				PlayerCameraManager;
+//
+//			// Get the camera forward vector
+//			const FVector CamForwardVec = CamManager->GetCameraRotation().Vector();
+//
+//			// Play the dash sound
+//			UGameplayStatics::PlaySound2D(this, DashSound);
+//
+//			// Play niagara effect at socket location
+//			UNiagaraFunctionLibrary::SpawnSystemAttached(DashEffect, Camera, FName("Dash"), FVector(EffectXLocation, EffectYLocation, EffectZLocation), FRotator(EffectPitch, EffectYaw, EffectRoll), EAttachLocation::KeepRelativeOffset, true);
+//
+//			// Get velocity from PlayerMovementComponent
+//			const FVector Velocity = PlayerMovementComponent->Velocity;
+//
+//			//launch the character
+//			this->LaunchCharacter(CamForwardVec * 100.f * DashSpeed, true, true);
+//
+//			PlayerMovementComponent->Velocity *= Velocity.GetSafeNormal() * FMath::Clamp(Velocity.Length(), FMath::Min(Velocity.Size(), MaxDashSpeed), FMath::Max(Velocity.Size(), MaxDashSpeed));
+//
+//			// Update the last action time
+//			LastActionTime = GetWorld()->GetTimeSeconds();
+//
+//			// Decrement the amount of dashes
+//			DashEnergy -= 100;
+//
+//			// Set a timer to reset the cooldown flag after CooldownDuration seconds
+//			FTimerHandle CooldownTimerHandle;
+//			GetWorldTimerManager().SetTimer(CooldownTimerHandle, this, &APlayerCharacter::ResetCooldownDashOne,
+//				DashDuration, false);
+//			GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, FString::Printf(TEXT("Dash One Used")));
+//
+//			//Enable is dashing
+//			bIsDashing = true;
+//		}
+//	}
+//}
+//
+//void APlayerCharacter::ResetCooldownDashOne()
+//{
+//	GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Dash One Ready")));
+//	bIsDashing = false;
+//}
+//
+//void APlayerCharacter::EnergyRegeneration()
+//{
+//	DashEnergy += 1 * EnergyRegenerationRate;
+//	DashEnergy = FMath::Clamp(DashEnergy, 0, MaximumDashEnergy);
+//}
 
 void APlayerCharacter::Destroyed()
 {
@@ -449,14 +499,10 @@ void APlayerCharacter::CallRestartPlayer()
 	//Getting Pawn Controller reference
 	const TObjectPtr<AController> ControllerReference = GetController();
 
-	DashEnergy = MaximumDashEnergy;
+	//DashEnergy = MaximumDashEnergy;
 
 	//Destroying Player
 	Destroyed();
-	if (GrapplingHookRef->IsValidLowLevel())
-	{
-		GrapplingHookRef->Destroy();
-	}
 
 	//Getting the World and GameMode in the world to invoke the restart player function
 	if (const TObjectPtr<UWorld> World = GetWorld())
@@ -464,6 +510,9 @@ void APlayerCharacter::CallRestartPlayer()
 		if (const TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
 		{
 			GameMode->RestartPlayer(ControllerReference);
+
+			//call the blueprint event
+			OnRespawn();
 		}
 	}
 	Destroy();
@@ -484,11 +533,17 @@ void APlayerCharacter::Die()
 	//set the character state to dead
 	CharacterState = ECharacterState::ECS_Dead;
 
-	//print debug message
-	if (bDebugMode == true)
-	{
-		GEngine->AddOnScreenDebugMessage(1, 1, FColor::Red, TEXT("Dead"));
-	}
+	//call the blueprint event
+	OnDeath();
+}
+
+void APlayerCharacter::StopJumping()
+{
+	//call the parent implementation
+	Super::StopJumping();
+
+	//call the blueprint event
+	OnJumpStop();
 }
 
 //void APlayerCharacter::CountTime()
@@ -542,6 +597,9 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 		//stop the player grapple
 		PlayerMovementComponent->StopGrapple();
+
+		//call the blueprint event
+		OnShootGrapple();
 	}
 }
 
@@ -552,14 +610,13 @@ void APlayerCharacter::Inits()
 	//OverlayInit();
 	//TimerInit();
 	InputInit();
-	CharacterState = ECharacterState::ECS_Idle;
-	Tags.Add(FName("Player"));
 
-	//bind jump events
-	PlayerMovementComponent->OnNormalJump.AddDynamic(this, &APlayerCharacter::OnNormalJump);
-	PlayerMovementComponent->OnDirectionalJump.AddDynamic(this, &APlayerCharacter::OnDirectionalJump);
-	PlayerMovementComponent->OnCanWallJump.AddDynamic(this, &APlayerCharacter::OnCanWallJump);
-	PlayerMovementComponent->OnWallJump.AddDynamic(this, &APlayerCharacter::OnWallJump);
+	//bind blueprint events
+	PlayerMovementComponent->OnNormalJump.AddDynamic(this, &APlayerCharacter::OnNormalJumpStart);
+	PlayerMovementComponent->OnDirectionalJump.AddDynamic(this, &APlayerCharacter::OnDirectionalJumpStart);
+	PlayerMovementComponent->OnCorrectedDirectionalJump.AddDynamic(this, &APlayerCharacter::OnCorrectedDirectionalJump);
+	PlayerMovementComponent->OnStartGrapple.AddDynamic(this, &APlayerCharacter::OnStartGrapple);
+	//PlayerMovementComponent->OnWallJump.AddDynamic(this, &APlayerCharacter::OnWallJump);
 }
 
 void APlayerCharacter::InputInit()
