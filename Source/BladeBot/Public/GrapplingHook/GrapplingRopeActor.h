@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "NiagaraComponent.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/MovementComponent.h"
 #include "GrapplingRopeActor.generated.h"
 
 //maybe add a rope tension force to the player when grappling to make it feel more like a real grapple and force the character to move either towards the grapple point or in a swing arc around it
@@ -22,21 +23,6 @@ class IGrappleRopeInterface
 
 public:
 	virtual FVector GetGrapplePoint(AActor* TravelingActor) const{return FVector::ZeroVector;}
-};
-
-//struct for force data
-USTRUCT(BlueprintType)
-struct FRopeForceData
-{
-	GENERATED_BODY()
-
-	//the force to apply
-	UPROPERTY(BlueprintReadWrite)
-	FVector Force = FVector::ZeroVector;
-
-	//the point to apply the force at
-	UPROPERTY(BlueprintReadWrite)
-	FVector Point = FVector::ZeroVector;
 };
 
 UCLASS()
@@ -121,6 +107,9 @@ public:
 
 	//renders the rope using the niagara system
 	void RenderRope();
+
+	//enforce rope constraint on an attached actor
+	void EnforceRopeConstraint(AActor* AttachedActor, UMovementComponent* AttachedMovementComponent, float DeltaTime);
 
 	//called when the owner of this rope is destroyed
 	UFUNCTION()

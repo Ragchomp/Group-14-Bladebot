@@ -5,6 +5,7 @@
 //Components
 #include "Characters/PlayerCharacter.h"
 #include "Components/PlayerMovementComponent.h"
+#include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "GrapplingHook/GrapplingRopeActor.h"
@@ -59,6 +60,9 @@ void AGrapplingHookHead::BeginPlay()
 	//bind the onoverlap function to the PlayerHitbox's overlap event
 	PlayerHitbox->OnComponentBeginOverlap.AddDynamic(this, &AGrapplingHookHead::OnOverlapBegin);
 	PlayerHitbox->OnComponentEndOverlap.AddDynamic(this, &AGrapplingHookHead::OnOverlapEnd);
+
+	//destroy ourselves if our instigator is destroyed
+	GetInstigator()->OnDestroyed.AddDynamic(this, &AGrapplingHookHead::DoDestroy2);
 
 	//spawn parameters for the rope actor
 	FActorSpawnParameters SpawnParameters;
@@ -206,15 +210,29 @@ void AGrapplingHookHead::DoDestroy()
 	//destroy ourselves
 	Destroy();
 
-	//check if we have a player movement component
-	if (PlayerMovementComponent)
+	//check if we do not have a player movement component
+	if (!PlayerMovementComponent)
 	{
-		//stop the player grapple
-		PlayerMovementComponent->StopGrapple();
-
-		APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetInstigator());
-		PlayerCharacter->GrapplingHookRef = nullptr;
+		return;
 	}
+
+	//stop the player grapple
+	PlayerMovementComponent->StopGrapple();
+
+	//get the player character
+	APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetInstigator());
+
+	//call the player characters blueprint event
+	PlayerCharacter->OnStopGrapple(GetActorLocation(), HasHitWall());
+
+	//set the player character's grappling hook reference to null
+	PlayerCharacter->GrapplingHookRef = nullptr;
+}
+
+void AGrapplingHookHead::DoDestroy2(AActor* DestroyedActor)
+{
+	//call do destroy
+	DoDestroy();
 }
 
 void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
