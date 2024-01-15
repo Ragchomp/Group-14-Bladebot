@@ -83,7 +83,7 @@ void AStaticEnemy::SeenAnEnemy()
 		PlayVFXChargeUp(GetActorLocation());
 		PlayAudioChargeUp(GetActorLocation());
 		GetWorldTimerManager().SetTimer(LaserSetTargetTimer, this, &AStaticEnemy::SetTarget, ChargupUntilSetTargetTimer);
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Setting target"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Setting target"));
 	}
 
 	// Make Combattarget focus
@@ -113,7 +113,7 @@ void AStaticEnemy::SetTarget()
 		FVector ShootDirection = (TargetLocation - StartLocation).GetSafeNormal();
 		LaserTargetPosition = StartLocation + ShootDirection * LaserMaxRange;
 		GetWorldTimerManager().SetTimer(LaserChargeUpTimer, this, &AStaticEnemy::LaserChargeUpComplete, ChargupAfterTargetSetTimer);
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Target Set"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Target Set"));
 	}
 	else
 	{
@@ -121,7 +121,7 @@ void AStaticEnemy::SetTarget()
 		PlayAudioCoolDown(GetActorLocation());
 		GunState = ESGunState::ESGS_Cooling;
 		GetWorldTimerManager().SetTimer(LaserCoolDownTimer, this, &AStaticEnemy::LaserCoolDownComplete, CooldownTimer);
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Cooling down"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Cooling down"));
 	}
 }
 
@@ -133,7 +133,7 @@ void AStaticEnemy::LaserChargeUpComplete()
 
 	FHitResult OutHit;
 	SphereTrace(OutHit, GetActorLocation(), LaserTargetPosition, LaserRadius);
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Shot at player"));
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Shot at player"));
 
 	PlayVFXAttack(GetActorLocation());
 	PlayAudioAttack(GetActorLocation());
@@ -142,7 +142,7 @@ void AStaticEnemy::LaserChargeUpComplete()
 	PlayAudioCoolDown(GetActorLocation());
 	GunState = ESGunState::ESGS_Cooling;
 	GetWorldTimerManager().SetTimer(LaserCoolDownTimer, this, &AStaticEnemy::LaserCoolDownComplete, CooldownTimer);
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Cooling down"));
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Cooling down"));
 }
 
 void AStaticEnemy::LaserCoolDownComplete()
@@ -150,14 +150,14 @@ void AStaticEnemy::LaserCoolDownComplete()
 	if (GunState != ESGunState::ESGS_Cooling) return;
 
 	GunState = ESGunState::ESGS_Idle;
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Cooldown complete"));
+	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Cooldown complete"));
 	if (EnemyState == EEnemyState::EES_Attacking && CombatTarget)
 	{
 		GunState = ESGunState::ESGS_Chargeing;
 		PlayVFXChargeUp(GetActorLocation());
 		PlayAudioChargeUp(GetActorLocation());
 		GetWorldTimerManager().SetTimer(LaserSetTargetTimer, this, &AStaticEnemy::SetTarget, ChargupUntilSetTargetTimer);
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Started new targeting sequence"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Started new targeting sequence"));
 	}
 }
 
@@ -196,7 +196,7 @@ void AStaticEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* O
 	if (Player && Player->ActorHasTag(FName("Player")))
 	{
 		CombatTarget = Player;
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Detected player"));
+		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Detected player"));
 		SeenAnEnemy();
 	}
 }
@@ -206,5 +206,5 @@ void AStaticEnemy::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* 
 {
 	Super::EndOverlap(OverlappedComponent, OtherActor, OtherComp, OtherBodyIndex);
 	EnemyLeft();
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player left range"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player left range"));
 }
