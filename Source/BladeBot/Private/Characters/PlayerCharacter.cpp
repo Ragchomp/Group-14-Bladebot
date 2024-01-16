@@ -86,19 +86,14 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 float APlayerCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator,
 	AActor* DamageCauser)
 {
-	//check if we have a valid attribute component and player overlay
-	if (Attributes /*&& PlayerOverlay*/)
+	//check if we have a valid attribute component
+	if (Attributes)
 	{
 		//call the attribute component's receive damage function
 		Attributes->ReceiveDamage(DamageAmount);
 
-		////update the health bar
-		//PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
-
-		//check if the player is dead
 		if (Attributes->IsNotAlive())
 		{
-			//die
 			Die();
 		}
 	}
@@ -156,14 +151,6 @@ void APlayerCharacter::Tick(float DeltaTime)
 {
 	//call the parent implementation
 	Super::Tick(DeltaTime);
-
-	////update the grappling crosshair
-	////if PlayerOverlay is valid update the player overlay's crosshair
-	//if (PlayerOverlay)
-	//{
-	//	//update the grappling crosshair
-	//	PlayerOverlay->EnableGrapplingCrosshair(CrosshairCheck());
-	//}
 
 	//EnergyRegeneration();
 }
@@ -546,30 +533,22 @@ void APlayerCharacter::StopJumping()
 	OnJumpStop();
 }
 
-//void APlayerCharacter::CountTime()
-//{
-//	//could use timespan instead of int probably
-//
-//	//if the timer shouldn't tick, don't do anything
-//	if (TimerShouldTick == false)
-//	{
-//		return;
-//	}
-//
-//	//increment the seconds
-//	DisplaySeconds++;
-//
-//	//convert seconds to minutes
-//	if (DisplaySeconds > 60)
-//	{
-//		DisplayMinutes++;
-//		DisplaySeconds = 0;
-//	}
-//
-//	//set the seconds and minutes on the player overlay
-//	PlayerOverlay->SetSeconds(DisplaySeconds);
-//	PlayerOverlay->SetMinutes(DisplayMinutes);
-//}
+void APlayerCharacter::CountTime()
+{
+	//if the timer shouldn't tick return
+	if (TimerShouldTick == false)
+		return;
+
+	//increment the seconds
+	Seconds++;
+
+	//convert seconds to minutes
+	if (Seconds >= 60)
+	{
+		Minutes++;
+		Seconds = 0;
+	}
+}
 
 void APlayerCharacter::SpawnGrappleProjectile()
 {
@@ -607,8 +586,7 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 void APlayerCharacter::Inits()
 {
-	//OverlayInit();
-	//TimerInit();
+	TimerInit();
 	InputInit();
 
 	//bind blueprint events
@@ -631,42 +609,19 @@ void APlayerCharacter::InputInit()
 	}
 }
 
-//void APlayerCharacter::OverlayInit()
-//{
-//	APlayerController* PlayerController = Cast<APlayerController>(GetController());
-//
-//	if (PlayerController)
-//	{
-//		AMainHUD* MainHUD = Cast<AMainHUD>(PlayerController->GetHUD());
-//
-//		if (MainHUD)
-//		{
-//			PlayerOverlay = MainHUD->GetMainOverlay();
-//
-//			if (PlayerOverlay && Attributes)
-//			{
-//				PlayerOverlay->SetHealthBarPercent(Attributes->GetHealthPercent());
-//				PlayerOverlay->SetSeconds(DisplaySeconds);
-//				PlayerOverlay->SetMinutes(DisplayMinutes);
-//				PlayerOverlay->EnableGrapplingCrosshair(false);
-//			}
-//		}
-//	}
-//}
-
-//void APlayerCharacter::TimerInit()
-//{
-//	GetWorldTimerManager().SetTimer(Seconds, this, &APlayerCharacter::CountTime, 1.f, true);
-//}
+void APlayerCharacter::TimerInit()
+{
+	// Each second it increases seconds float by one forever.
+	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f,true);
+}
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
-	const FHitResult& SweepResult)
+                                 UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
+                                 const FHitResult& SweepResult)
 {
 	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill &&
 		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
 	{
-		//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Killed em")));
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
 	}
 }
