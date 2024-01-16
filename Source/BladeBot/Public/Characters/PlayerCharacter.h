@@ -101,6 +101,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
 
+	/** Time manager*/
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Seconds = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Minutes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	bool TimerShouldTick = true;
+
+	FTimerHandle TimerHandeler;
+
 	/** Audio */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	FName SpeedParameterName = "Speed";
@@ -201,8 +213,9 @@ public:
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
+	void CountTime();
 
-	//void TimerInit();
+	void TimerInit();
 	void InputInit();
 	void Inits();
 
