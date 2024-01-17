@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "AsyncRootMovement.h"
 #include "CollisionQueryParams.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GrapplingHook/GrapplingRopeActor.h"
 #include "CollisionShape.h"
 #include "Math/InterpShorthand.h"
+#include "PhysicalMaterials/PhysicalMaterial.h"
 #include "PlayerMovementComponent.generated.h"
-
-// should override get max speed and get max acceleration to have better control over the player's movement
 
 class UPlayerCameraComponent;
 class AGrapplingHookHead;
@@ -136,6 +136,50 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	bool bRotationMode = false;
 
+	//the amount of time to hang before starting to slide down a wall latching wall
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	float WallLatchHangTime = 0.5f;
+
+	//wall latch fall movement params
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	FAsyncRootMovementParams WallLatchFallMovementParams = FAsyncRootMovementParams();
+
+	//wall latch launch movement params
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector::DownVector);
+
+	//the material that activates wall latching when the player is touching it
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	TObjectPtr<UMaterialInstance> WallLatchMaterial;
+
+	//whether or not the player is wall latching
+	UPROPERTY(BlueprintReadOnly, Category = "Wall Latch")
+	bool bIsWallLatching = false;
+
+	//how far to the right or left of the player to check for wall running walls
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
+	float WallRunningCheckDistance = 70;
+
+	//how much force to apply to the player to make them stick to the wall when wall running
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
+	float WallRunningAttachForce = 1000.f;
+
+	//the material that activates wall latching when the wall running trace hits it
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
+	TObjectPtr<UMaterialInstance> WallRunningMaterial;
+
+	//the movement params to use when wall run jumping
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
+	FAsyncRootMovementParams WallRunJumpMovementParams = FAsyncRootMovementParams(FVector::UpVector);
+
+	//the current hit result(if any) from the wall running trace
+	UPROPERTY(BlueprintReadOnly, Category = "Wall Running")
+	FHitResult WallRunningHitResult;
+
+	//whether or not the player is wall running
+	UPROPERTY(BlueprintReadOnly, Category = "Wall Running")
+	bool bIsWallRunning = false;
+
 	//reference to the player camera of the player character
 	UPROPERTY()
 	UPlayerCameraComponent* PlayerCamera = nullptr;
@@ -156,6 +200,9 @@ public:
 	//the direction of the last directional jump
 	FVector LastDirectionalJumpDirection = FVector::UpVector;
 
+	//timer handle for the wall latch timer
+	FTimerHandle WallLatchFallTimerHandle;
+
 	//override functions
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
@@ -166,7 +213,8 @@ public:
 	virtual FVector ConsumeInputVector() override;
 	virtual bool ShouldRemainVertical() const override;
 	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const override;
-
+	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
+	virtual float GetGravityZ() const override;
 
 	virtual float GetMinAnalogSpeed() const override;
 	virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
@@ -176,7 +224,6 @@ public:
 	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 	virtual void PhysFlying(float deltaTime, int32 Iterations) override;
 	virtual void ApplyAccumulatedForces(float DeltaSeconds) override;
-
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
@@ -207,4 +254,20 @@ public:
 	//function for toggling whether or not wasd effects the player's movement or the player's rotation
 	UFUNCTION(BlueprintCallable)
 	void ToggleRotationMode(bool InValue = false);
+
+	//function to stop wall latching
+	UFUNCTION(BlueprintCallable)
+	void StopWallLatch();
+
+	//function to launch off wall latching walls
+	UFUNCTION(BlueprintCallable)
+	void LaunchOffWallLatch();
+
+	//function that updates and returns whether or not the player is wall running
+	UFUNCTION(BlueprintCallable)
+	bool DoWallRunning(float DeltaTime);
+
+	//function to do a wall running jump
+	UFUNCTION(BlueprintCallable)
+	void DoWallRunJump(FHitResult InWallHit);
 };

@@ -2,7 +2,7 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/PhysicsVolume.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UPlayerMovementComponent::UPlayerMovementComponent()
 {
@@ -45,6 +45,9 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		//set the grapple velocity
 		UpdateGrappleVelocity(DeltaTime);
 	}
+
+	//do wall running checks and updates
+	bIsWallRunning = DoWallRunning(DeltaTime);
 
 	////print whether or not we're exceeding the current max speed
 	//GEngine->AddOnScreenDebugMessage(-1, 0.f, IsExceedingMaxSpeed(GetMaxSpeed()) ? FColor::Green : FColor::Red, FString::Printf(TEXT("Exceeding Max Speed: %s"), IsExceedingMaxSpeed(GetMaxSpeed()) ? TEXT("True") : TEXT("False")));
@@ -98,6 +101,26 @@ void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remain
 
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 {
+	//check if we're wall latching
+	if (bIsWallLatching)
+	{
+		//launch off the wall latch
+		LaunchOffWallLatch();
+
+		//return true
+		return true;
+	}
+
+	//check if we're wall running
+	if (bIsWallRunning)
+	{
+		//do a wall run jump
+		DoWallRunJump(WallRunningHitResult);
+
+		//return true
+		return true;
+	}
+
 	//check if we're moving fast enough to do a boosted jump and we're on the ground
 	if (Velocity.Length() >= MinSpeedForSpeedBoost && !IsFalling())
 	{
@@ -211,6 +234,48 @@ bool UPlayerMovementComponent::IsValidLandingSpot(const FVector& CapsuleLocation
 	return false;
 }
 
+void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
+{
+	//check if we don't have a wall latch physics material
+	if(!WallLatchMaterial)
+	{
+		//print a debug message
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, FString::Printf(TEXT("Wall Latch Physics Material not set in character")));
+
+		return;
+	}
+
+	//check if the hit is not a wall latch physics material
+	if (int32 SectionIndex; Hit.GetComponent()->GetMaterialFromCollisionFaceIndex(Hit.FaceIndex,SectionIndex) != WallLatchMaterial.Get())
+	{
+		//call the parent implementation
+		Super::HandleImpact(Hit, TimeSlice, MoveDelta);
+
+		//prevent further execution
+		return;
+	}
+
+	//print debug message
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Wall latching"));
+
+	//set bIsWallLatching to true
+	bIsWallLatching = true;
+
+	//start falling
+	UAsyncRootMovement::AsyncRootMovement(this,this, WallLatchFallMovementParams);
+}
+
+float UPlayerMovementComponent::GetGravityZ() const
+{
+	//check if the player is grappling, wall latching, or wall running
+	if (bIsGrappling || bIsWallLatching || bIsWallRunning)
+	{
+		return 0.f;
+	}
+
+	return Super::GetGravityZ();
+}
+
 float UPlayerMovementComponent::GetMinAnalogSpeed() const
 {
 	return Super::GetMinAnalogSpeed();
@@ -284,11 +349,6 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
 		//set the movement mode to flying
 		SetMovementMode(MOVE_Flying);
 	}
-	else
-	{
-		//set the gravity scale to 0
-		GravityScale = 0.f;
-	}
 
 	//call the start grapple event
 	OnStartGrapple.Broadcast();
@@ -310,11 +370,6 @@ void UPlayerMovementComponent::StopGrapple()
 		{
 			//set the movement mode back to default
 			SetMovementMode(MOVE_Falling);
-		}
-		else
-		{
-			//reset the gravity scale
-			GravityScale = 1.f;
 		}
 
 		//check if we should apply a speed boost
@@ -487,7 +542,6 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 
 }
 
-
 void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 {
 	//get the direction of the jump
@@ -522,6 +576,116 @@ void UPlayerMovementComponent::ToggleRotationMode(bool InValue)
 {
 	//set the rotation mode
 	bRotationMode = InValue;
+}
+
+void UPlayerMovementComponent::StopWallLatch()
+{
+	//check if the player is not wall latching
+	if (!bIsWallLatching)
+	{
+		return;
+	}
+
+	//set is wall latching to false
+	bIsWallLatching = false;
+
+	//enable movement
+	SetMovementMode(MOVE_Falling);
+
+	//clear the wall latch fall timer handle
+	GetWorld()->GetTimerManager().ClearTimer(WallLatchFallTimerHandle);
+}
+
+void UPlayerMovementComponent::LaunchOffWallLatch()
+{
+	//check if the player is not wall latching
+	if (!bIsWallLatching)
+	{
+		return;
+	}
+
+	//set is wall latching to false
+	bIsWallLatching = false;
+
+	//enable movement
+	SetMovementMode(MOVE_Falling);
+
+	//clear the wall latch fall timer handle
+	GetWorld()->GetTimerManager().ClearTimer(WallLatchFallTimerHandle);
+
+	//get the player's camera forward vector
+	const FVector Forward = PlayerCamera->GetForwardVector();
+
+	//set the direction to launch in
+	WallLatchLaunchMovementParams.WorldDirection = Forward;
+
+	//activate the root motion
+	UAsyncRootMovement::AsyncRootMovement(this, this, WallLatchLaunchMovementParams);
+}
+
+bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
+{
+	//do a line trace to see if there is a wall on either side of the player
+	GetWorld()->LineTraceSingleByChannel(WallRunningHitResult, GetOwner()->GetActorLocation() - GetOwner()->GetActorRightVector() * WallRunningCheckDistance, GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * WallRunningCheckDistance, ECC_Visibility);
+
+	//check if the line trace didn't hit anything
+	if (!WallRunningHitResult.bBlockingHit)
+	{
+		return false;
+	}
+
+	//check if the line trace didn't hit a wall running material
+	if (int32 SectionIndex; !WallRunningHitResult.GetComponent()->GetMaterialFromCollisionFaceIndex(WallRunningHitResult.ElementIndex, SectionIndex) == WallRunningMaterial)
+	{
+		return false;
+	}
+
+	//get the surface normal of the hit
+	const FVector SurfaceNormal = WallRunningHitResult.ImpactNormal;
+
+	//get vector parallel to the surface
+	const FVector ParallelVector = FVector::CrossProduct(SurfaceNormal, WallRunningHitResult.GetComponent()->GetUpVector()).GetSafeNormal();
+
+	//get the dot product of the velocity and the parallel vector
+	const float DotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), ParallelVector);
+
+	//draw a debug line
+	UKismetSystemLibrary::DrawDebugLine(GetWorld(), GetOwner()->GetActorLocation() - ParallelVector * WallRunningCheckDistance, GetOwner()->GetActorLocation() + ParallelVector * WallRunningCheckDistance, FColor::Red, 5.5f, 5.f);
+
+	//set the velocity to the parallel vector with the speed and direction we were moving at and add the wall running attach force
+	Velocity = ParallelVector.GetSafeNormal() * Velocity.Size() * FMath::Sign(DotProduct) + WallRunningAttachForce * -SurfaceNormal * DeltaTime;
+
+	//print debug message
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, FString::Printf(TEXT("Wall Running Attach Force: %s"), *SurfaceNormal.ToString()));
+
+	return true;
+}
+
+void UPlayerMovementComponent::DoWallRunJump(FHitResult InWallHit)
+{
+	//check if the player is not wall running
+	if (!bIsWallRunning)
+	{
+		return;
+	}
+
+	//set is wall running to false
+	bIsWallRunning = false;
+
+	//enable movement
+	SetMovementMode(MOVE_Falling);
+
+	//get the wall jump's direction
+	const FVector Direction = PlayerCamera->GetForwardVector();
+
+	//set the direction to launch in
+	WallRunJumpMovementParams.WorldDirection = Direction;
+
+	//activate the root motion
+	UAsyncRootMovement::AsyncRootMovement(this, this, WallRunJumpMovementParams);
+
+	//print debug message
+	GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Green, FString::Printf(TEXT("Wall Run Jump Direction: %s"), *Direction.ToString()));
 }
 
 

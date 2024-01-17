@@ -8,7 +8,7 @@ public class BladeBot : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GeometryCollectionEngine", "Niagara", "UMG", "AIModule" });
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GeometryCollectionEngine", "Niagara", "UMG", "AIModule", "PhysicsCore" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "CableComponent", "NavigationSystem" });
 
