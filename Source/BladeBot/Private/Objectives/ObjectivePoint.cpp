@@ -4,6 +4,7 @@
 #include "Components/SphereComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
+#include "Characters/PlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
 
 AObjectivePoint::AObjectivePoint()
@@ -31,6 +32,10 @@ void AObjectivePoint::BeginPlay()
 	Super::BeginPlay();
 	// only for now since this is what the player uses to detect. Will be changed once player is availible.
 	Tags.Add(FName("Enemy"));
+	PlayAudioPassive(GetActorLocation());
+	PlayVFXPassive(GetActorLocation());
+
+	CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AObjectivePoint::OnOverlap);
 }
 
 void AObjectivePoint::Tick(float DeltaTime)
@@ -39,26 +44,31 @@ void AObjectivePoint::Tick(float DeltaTime)
 	UpdateVFXLocationRotation();
 }
 
-float AObjectivePoint::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator,
-	AActor* DamageCauser)
+void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// if player has to attack in order to change it. 
-	//if(DamageCauser.isAttaccking()){}
-	//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Collision"));
 
-	if(AlreadyHit == false)
+	if (AlreadyHit == false)
 	{
-		Tags.Add(FName("ObjectiveComplete"));
-		ObjectveMesh->SetVisibility(false);
-		ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-		AfterActivationMesh->SetVisibility(true);
-		AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		AlreadyHit = true;
+		APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+
+		if (Player && Player->ActorHasTag(FName("Player")))
+		{
+			Tags.Add(FName("ObjectiveComplete"));
+			ObjectveMesh->SetVisibility(false);
+			ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			AfterActivationMesh->SetVisibility(true);
+			AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+			PlayAudioChange(GetActorLocation());
+			PlayVFXChange(GetActorLocation());
+			AlreadyHit = true;
+			ObjectiveComplete = true;
+
+			Player->CheckIfObjectivesComplete(this);
+		}
+		
 	}
-	
-
-
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 }
 
 void AObjectivePoint::UpdateVFXLocationRotation()
