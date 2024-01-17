@@ -21,6 +21,7 @@
 #include "Components/BoxComponent.h"
 #include "Components/PlayerCameraComponent.h"
 #include "Components/SphereComponent.h"
+#include "Objectives/ObjectivePoint.h"
 
 APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) : Super(
 	ObjectInitializer.SetDefaultSubobjectClass<UPlayerMovementComponent>(CharacterMovementComponentName))
@@ -122,6 +123,8 @@ void APlayerCharacter::BeginPlay()
 	{
 		SetActorLocation(SpawnPoint->GetActorLocation());
 	}
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AObjectivePoint::StaticClass(), Objectives);
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -548,6 +551,38 @@ void APlayerCharacter::CountTime()
 		Minutes++;
 		Seconds = 0;
 	}
+}
+
+void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
+{
+	NumCompletes++;
+
+	if(Objective->OrderIndex == expextedOrder)
+	{
+		expextedOrder++;
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("In order"));
+	}
+	else
+	{
+
+		Tags.Remove(FName("ObjectiveComplete"));
+		Objective->ObjectveMesh->SetVisibility(true);
+		Objective->ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+		Objective->AfterActivationMesh->SetVisibility(false);
+		Objective->AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+		Objective->AlreadyHit = false;
+		Objective->ObjectiveComplete = false;
+
+		NumCompletes--;
+	}
+
+	if (NumCompletes == Objectives.Num())
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
+		GameComplete = true;
+	}
+
 }
 
 void APlayerCharacter::SpawnGrappleProjectile()
