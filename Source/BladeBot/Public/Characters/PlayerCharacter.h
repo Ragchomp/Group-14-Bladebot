@@ -147,6 +147,18 @@ public:
 	//timer handle for the spin attack
 	FTimerHandle SpinAttackTimer = FTimerHandle();
 
+	// Objective Variables
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	TArray<AActor*> Objectives;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int NumCompletes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int expextedOrder = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	bool GameComplete = false;
 
 	/**
 	 * Dash Variables
@@ -214,6 +226,9 @@ public:
 	virtual void Die() override;
 	virtual void StopJumping() override;
 	void CountTime();
+	UFUNCTION()
+	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
+
 
 	void TimerInit();
 	void InputInit();
