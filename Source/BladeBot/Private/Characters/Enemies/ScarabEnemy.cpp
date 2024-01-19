@@ -54,6 +54,7 @@ void AScarabEnemy::BeginPlay()
 	GunState = ESGunState::ESGS_Idle;
 	MovementTarget = GetActorLocation();
 
+
 	Tags.Add(FName("Enemy"));
 
 	DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AScarabEnemy::OnOverlap);

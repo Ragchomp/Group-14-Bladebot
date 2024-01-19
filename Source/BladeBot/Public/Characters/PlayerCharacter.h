@@ -101,6 +101,18 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
 
+	/** Time manager*/
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Seconds = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Minutes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	bool TimerShouldTick = true;
+
+	FTimerHandle TimerHandeler;
+
 	/** Audio */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	FName SpeedParameterName = "Speed";
@@ -135,6 +147,18 @@ public:
 	//timer handle for the spin attack
 	FTimerHandle SpinAttackTimer = FTimerHandle();
 
+	// Objective Variables
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	TArray<AActor*> Objectives;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int NumCompletes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int expextedOrder = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	bool GameComplete = false;
 
 	/**
 	 * Dash Variables
@@ -201,8 +225,12 @@ public:
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
+	void CountTime();
+	UFUNCTION()
+	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
 
-	//void TimerInit();
+
+	void TimerInit();
 	void InputInit();
 	void Inits();
 
