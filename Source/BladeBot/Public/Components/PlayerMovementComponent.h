@@ -88,13 +88,21 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
 	bool bIsGrappling = false;
 
-	//the input modifier to apply to movement input when grappling
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
-	float GrappleMovementInputModifier = 1.f;
+	//storage for the dot product of the character's velocity and the velocity that was added from grappling last frame
+	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
+	float GrappleDotProduct = 0.f;
 
 	//the max acceleration to use when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
 	float GrappleMaxAcceleration = 8000.f;
+
+	//the float curve to use when applying the grapple velocity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	UCurveFloat* GrappleVelocityCurve = nullptr;
+
+	//the float curve to use when applying the grapple wasd movement
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	UCurveFloat* GrappleMovementInputCurve = nullptr;
 
 	//the max speed to use when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")

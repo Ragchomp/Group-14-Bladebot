@@ -162,15 +162,9 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 		//rotate the character
 		GetOwner()->AddActorWorldRotation(FRotator(GetCharacterOwner()->GetPendingMovementInputVector().X, GetCharacterOwner()->GetPendingMovementInputVector().Y, GetCharacterOwner()->GetPendingMovementInputVector().Z), false, nullptr);
 
-		////set the input modifier to 0 (to disable movement)
-		//AnalogInputModifier = 0.f;
-
 		//return zero vector
 		return FVector::ZeroVector;
 	}
-
-	////reenable movement
-	//AnalogInputModifier = 1.f;
 
 	//Store the input vector
 	FVector ReturnVec = Super::ConsumeInputVector();
@@ -190,8 +184,18 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
-		//apply the grapple movement input modifier
-		ReturnVec *= GrappleMovementInputModifier;
+		//check if we have a valid grapple movement input curve
+		if (GrappleMovementInputCurve)
+		{
+			//get the dot product of the current velocity and the return vector
+			const float DotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), ReturnVec.GetSafeNormal());
+
+			//get the grapple movement input curve value
+			const float GrappleMovementInputCurveValue = GrappleMovementInputCurve->GetFloatValue(DotProduct);
+
+			//multiply the return vector by the grapple movement input curve value
+			ReturnVec *= GrappleMovementInputCurveValue;
+		}
 	}
 
 	//return the return vector
@@ -426,15 +430,12 @@ float UPlayerMovementComponent::GetGrappleDistanceLeft() const
 
 void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
 {
-	//get the player controller
-	const APlayerController* PC = GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld());
-
 	//get the camera location and rotation
 	FVector CameraLocation;
 	FRotator CameraRotation;
 
 	//set the camera location and rotation
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld())->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	//get the forward vector of the camera rotation
 	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
@@ -471,8 +472,8 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	//get the vector from the character to the grapple point
 	GrappleDirection = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
 
-	////storage for the velocity that will be applied from the grapple
-	//FVector GrappleVelocity = FVector::ZeroVector;
+	//storage for the velocity that will be applied from the grapple
+	FVector GrappleVelocity = FVector::ZeroVector;
 
 	//check how we should set the velocity
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
@@ -480,8 +481,24 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	{
 		case AddToVelocity:
 			//add the grapple vector to the character's velocity
-			Velocity += GrappleDirection * AddGrappleSpeed * DeltaTime;
-			//GrappleVelocity = GrappleDirection * AddGrappleSpeed * DeltaTime;
+			GrappleVelocity = GrappleDirection * AddGrappleSpeed * DeltaTime;
+
+			//get the dot product of the character's velocity and the grapple velocity
+			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
+
+			//check if we have a valid grapple velocity curve
+			if (GrappleVelocityCurve)
+			{
+				//get the grapple velocity curve value
+				const float GrappleVelocityCurveValue = GrappleVelocityCurve->GetFloatValue(GrappleDotProduct);
+
+				//multiply the grapple velocity by the grapple velocity curve value
+				GrappleVelocity *= GrappleVelocityCurveValue;
+			}
+
+			//apply the grapple velocity
+			Velocity += GrappleVelocity;
+
 		break;
 		case InterpVelocity:
 			// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
@@ -489,43 +506,26 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 			{
 				case Constant:
 					//interpolate the velocity
-					Velocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
-					//GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 				break;
 				case InterpTo:
 					//interpolate the velocity
-					Velocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
-					//GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 				break;
 				case InterpStep:
 					//interpolate the velocity
-					Velocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
-					//GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 				break;
 			}
+
+			//get the dot product of the character's velocity and the grapple velocity
+			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
+
+			//apply the grapple velocity
+			Velocity = GrappleVelocity;
+
 		break;
 	}
-
-	////get the dot product of the character's velocity and the grapple velocity
-	//const float DotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
-
-	////print the grapple velocity
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, FString::Printf(TEXT("Grapple Velocity: %s"), *GrappleVelocity.ToString()));
-
-	////print the dot product
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Dot Product: %f"), DotProduct));
-
-	//float Length = GrappleVelocity.Length();
-
-	////check if the dot product is greater than 0.5 or less than or equal to -0.5
-	//if (DotProduct > 0.5f || DotProduct <= -0.5f && Length < 10000)
-	//{
-	//	//apply the grapple velocity
-	//	Velocity += GrappleVelocity;
-	//}
-
-	////print whether or not we applied the grapple velocity
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, DotProduct > 0.5f || DotProduct <= -0.5f ? FColor::Green : FColor::Red, FString::Printf(TEXT("Applied Grapple Velocity: %s"), DotProduct > 0.5f || DotProduct <= -0.5f ? TEXT("True") : TEXT("False")));
 
 	//update the character's velocity
 	UpdateComponentVelocity();
@@ -533,9 +533,6 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	//check if we're not in the rotation mode
 	if (!bRotationMode)
 	{
-		////rotate the character
-		//GetOwner()->AddActorWorldRotation(FRotator(GrappleDirection.X, GrappleDirection.Y, 0.f), false, nullptr);
-
 		//set the rotation of the character to the grapple direction
 		GetOwner()->SetActorRotation(GrappleDirection.Rotation());
 	}
@@ -676,7 +673,7 @@ void UPlayerMovementComponent::DoWallRunJump(FHitResult InWallHit)
 	SetMovementMode(MOVE_Falling);
 
 	//get the wall jump's direction
-	const FVector Direction = PlayerCamera->GetForwardVector();
+	const FVector Direction = InWallHit.ImpactNormal;
 
 	//set the direction to launch in
 	WallRunJumpMovementParams.WorldDirection = Direction;

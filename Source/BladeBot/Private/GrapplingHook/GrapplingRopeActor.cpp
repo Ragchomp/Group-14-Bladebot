@@ -68,11 +68,11 @@ void AGrapplingRopeActor::Tick(float DeltaTime)
 	//call the parent implementation
 	Super::Tick(DeltaTime);
 
-	//update first and last points or Hitboxes
-	SetAttachedRopePointPositions();
-
 	//update the collision points
 	CheckCollisionPoints();
+
+	//update first and last points or Hitboxes
+	SetAttachedRopePointPositions();
 
 	//check if we don't have a valid Niagara system to render
 	if (NiagaraSystem->IsValidLowLevelFast())
@@ -181,6 +181,9 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 
 	//set the end of the rope to the owner's location
 	RopePoints[RopePoints.Num() - 1] = Owner->GetActorLocation();
+
+	//draw a debug sphere at the socket location
+	DrawDebugSphere(GetWorld(), RopePoints[0], 10.f, 12, FColor::Red, false, 0.f);
 }
 
 void AGrapplingRopeActor::RenderRope()
