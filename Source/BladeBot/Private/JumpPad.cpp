@@ -1,19 +1,16 @@
-// Fill out your copyright notice in the Description page of Project Settings.
 
-
+// Classes
 #include "JumpPad.h"
 
+// Components
 #include "NiagaraComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 
-class APlayerCharacter;
-// Sets default values
 AJumpPad::AJumpPad()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionMesh = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CollisionMesh"));
@@ -24,24 +21,56 @@ AJumpPad::AJumpPad()
 
 	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
 	NiagaraComp->SetupAttachment(GetRootComponent());
-
 }
 
-// Called when the game starts or when spawned
 void AJumpPad::BeginPlay()
 {
 	Super::BeginPlay();
-	CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AJumpPad::OnOverlap);
+
 	PlayVFXPassive(GetActorLocation());
 	PlayAudioPassive(GetActorLocation());
+	CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AJumpPad::OnOverlap);
 }
 
-// Called every frame
 void AJumpPad::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	UpdateVFXLocationRotation();
 }
+
+
+void AJumpPad::throwPlayer(APlayerCharacter* Player, FVector ThrowAngle, float _throwPower)
+{
+	Player->PlayerMovementComponent->AddImpulse(ThrowAngle * _throwPower);
+	PlayVFXActivate(GetActorLocation());
+	PlayAudioActivate(GetActorLocation());
+}
+
+void AJumpPad::canJumpAgain()
+{
+	Jumped = false;
+}
+
+void AJumpPad::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	if (Jumped == false)
+	{
+		APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+
+		if (Player && Player->ActorHasTag(FName("Player")))
+		{
+			// Throws player if it touches collision mesh. 
+			throwPlayer(Player, throwAngle, throwPower);
+		}
+		// Sets jumped bool so that function does not repeat.
+		Jumped = true;
+		// Resets Jumped to false when x seconds has gone. 
+		GetWorldTimerManager().SetTimer(JumpResetTimerHandeler, this, &AJumpPad::canJumpAgain, JumppadCooldown);
+	}
+}
+
+// VFX -----------------------------
 
 void AJumpPad::UpdateVFXLocationRotation()
 {
@@ -109,35 +138,5 @@ void AJumpPad::PlayAudioActivate(const FVector& Location)
 			ActivateSound,
 			Location
 		);
-	}
-}
-
-void AJumpPad::throwPlayer(APlayerCharacter* Player, FVector ThrowAngle, float _throwPower)
-{
-	Player->PlayerMovementComponent->AddImpulse(ThrowAngle*_throwPower);
-	PlayVFXActivate(GetActorLocation());
-	PlayAudioActivate(GetActorLocation());
-}
-
-void AJumpPad::canJumpAgain()
-{
-	Jumped = false;
-}
-
-void AJumpPad::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-                         UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	if(Jumped == false)
-	{
-		APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-
-		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("ShouldJumpPlayer"));
-
-		if (Player && Player->ActorHasTag(FName("Player")))
-		{
-			throwPlayer(Player, throwAngle, throwPower);
-		}
-		Jumped = true;
-		GetWorldTimerManager().SetTimer(JumpResetTimerHandeler, this, &AJumpPad::canJumpAgain, 1);
 	}
 }

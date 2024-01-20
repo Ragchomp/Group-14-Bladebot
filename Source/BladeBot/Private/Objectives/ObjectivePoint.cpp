@@ -1,5 +1,8 @@
 
+// Classes
 #include "Objectives/ObjectivePoint.h"
+
+// Components
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "NiagaraFunctionLibrary.h"
@@ -9,7 +12,6 @@
 
 AObjectivePoint::AObjectivePoint()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionMesh = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
@@ -23,6 +25,11 @@ AObjectivePoint::AObjectivePoint()
 	AfterActivationMesh->SetVisibility(false);
 	AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	DisabledMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DisabledMesh"));
+	DisabledMesh->SetupAttachment(CollisionMesh);
+	DisabledMesh->SetVisibility(false);
+	DisabledMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
 	NiagaraComp->SetupAttachment(GetRootComponent());
 }
@@ -30,10 +37,14 @@ AObjectivePoint::AObjectivePoint()
 void AObjectivePoint::BeginPlay()
 {
 	Super::BeginPlay();
-	// only for now since this is what the player uses to detect. Will be changed once player is availible.
-	Tags.Add(FName("Enemy"));
+
+
+	Tags.Add(FName("Object"));
 	PlayAudioPassive(GetActorLocation());
 	PlayVFXPassive(GetActorLocation());
+
+	if(isDisabled == true)
+		SetInactive();
 
 	CollisionMesh->OnComponentBeginOverlap.AddDynamic(this, &AObjectivePoint::OnOverlap);
 }
@@ -41,18 +52,19 @@ void AObjectivePoint::BeginPlay()
 void AObjectivePoint::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	// updates live location/rotation for VFX
 	UpdateVFXLocationRotation();
 }
 
 void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-
+	// if player touches the overlap mesh it becomes active and changes to the active mesh if enabled through player character.
 	if (AlreadyHit == false)
 	{
 		APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-		if (Player && Player->ActorHasTag(FName("Player")))
+		if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
 		{
 			Tags.Add(FName("ObjectiveComplete"));
 			ObjectveMesh->SetVisibility(false);
@@ -67,9 +79,39 @@ void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 
 			Player->CheckIfObjectivesComplete(this);
 		}
-		
 	}
 }
+
+void AObjectivePoint::SetInactive()
+{
+	if (ActorHasTag(FName("ObjectiveComplete"))) return;
+	
+	ObjectveMesh->SetVisibility(false);
+	ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	AfterActivationMesh->SetVisibility(false);
+	AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	DisabledMesh->SetVisibility(true);
+	DisabledMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+
+	Tags.Add(FName("ObjectiveDisabled"));
+	isDisabled = true;
+}
+
+void AObjectivePoint::SetActive()
+{
+	ObjectveMesh->SetVisibility(true);
+	ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	AfterActivationMesh->SetVisibility(false);
+	AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	DisabledMesh->SetVisibility(false);
+	DisabledMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
+	if(this->ActorHasTag("ObjectiveDisabled"))
+		Tags.Remove("ObjectiveDisabled");
+	isDisabled = false;
+}
+
+// VGX ------------------------------------------
 
 void AObjectivePoint::UpdateVFXLocationRotation()
 {
