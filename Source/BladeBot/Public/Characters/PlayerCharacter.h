@@ -95,8 +95,6 @@ public:
 	bool DestroyHookImmediately = false;
 
 	/** Damage */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
-	float MovementSpeedToKill = 4000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
@@ -149,7 +147,7 @@ public:
 
 	// Objective Variables
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
-	TArray<AActor*> Objectives;
+	TArray<AActor*> ValidObjectives;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	int NumCompletes = 0;
@@ -228,7 +226,8 @@ public:
 	void CountTime();
 	UFUNCTION()
 	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
-
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+		void ObjectiveComplete();
 
 	void TimerInit();
 	void InputInit();
