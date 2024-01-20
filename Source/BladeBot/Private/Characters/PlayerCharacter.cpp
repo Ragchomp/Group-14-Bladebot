@@ -124,7 +124,18 @@ void APlayerCharacter::BeginPlay()
 		SetActorLocation(SpawnPoint->GetActorLocation());
 	}
 
+	TArray<AActor*> Objectives;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AObjectivePoint::StaticClass(), Objectives);
+
+	for(int i = 0; i < Objectives.Num(); i++)
+	{
+		if(!Objectives[i]->ActorHasTag("ObjectiveDisabled"))
+		{
+			ValidObjectives.Add(Objectives[i]);
+		}
+	}
+	
+
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -577,9 +588,10 @@ void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 		NumCompletes--;
 	}
 
-	if (NumCompletes == Objectives.Num())
+	if (NumCompletes == ValidObjectives.Num())
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
+		ObjectiveComplete();
 		GameComplete = true;
 	}
 
@@ -654,8 +666,8 @@ void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActo
                                  UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
                                  const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill &&
-		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
+	if (OtherActor && (OtherActor->ActorHasTag(FName("Enemy")) || OtherActor->ActorHasTag(FName("Object"))) &&
+		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic && bIsSpinAttacking)
 	{
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
 	}

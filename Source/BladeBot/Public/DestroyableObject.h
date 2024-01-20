@@ -2,29 +2,28 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "ObjectivePoint.generated.h"
+#include "DestroyableObject.generated.h"
 
 UCLASS()
-class BLADEBOT_API AObjectivePoint : public AActor
+class BLADEBOT_API ADestroyableObject : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
-	AObjectivePoint();
+	ADestroyableObject();
 
-	// Functions -----------------------
-
+	// Functions ------------------------------
+protected:
 	virtual void BeginPlay() override;
 
+public:	
 	virtual void Tick(float DeltaTime) override;
 
 	UFUNCTION()
 		virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	UFUNCTION(BlueprintCallable)
-		void SetInactive();
-		UFUNCTION(BlueprintCallable)
-		void SetActive();
+		virtual void ChangeMesh();
 
 	// VFX Functions
 	UFUNCTION(BlueprintCallable)
@@ -36,7 +35,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayVFXChangedPassive(const FVector& PlayLocation);
 
-	// Audio functions
+	// Audio Functions
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioPassive(const FVector& Location);
 	UFUNCTION(BlueprintCallable)
@@ -45,21 +44,6 @@ public:
 		virtual void PlayAudioChangedPassive(const FVector& Location);
 
 	// References ------------------------------
-
-	UPROPERTY(EditAnywhere)
-	class UStaticMeshComponent* ObjectveMesh;
-
-	UPROPERTY(EditAnywhere)
-	class UStaticMeshComponent* AfterActivationMesh;
-
-	UPROPERTY(EditAnywhere)
-		class UStaticMeshComponent* DisabledMesh;
-
-	UPROPERTY(EditAnywhere)
-	class USphereComponent* CollisionMesh;
-
-	UPROPERTY(EditAnywhere)
-		class UNiagaraComponent* NiagaraComp;
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
 		class UNiagaraSystem* VFXPassive;
@@ -79,17 +63,20 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Audio")
 		class USoundBase* ChangedPassiveSound;
 
+	UPROPERTY(EditAnywhere)
+		class UStaticMeshComponent* ActiveMesh;
+
+	UPROPERTY(EditAnywhere)
+		class UStaticMeshComponent* ChangedMesh;
+
+	UPROPERTY(EditAnywhere)
+		class USphereComponent* CollisionMesh;
+
+	UPROPERTY(EditAnywhere)
+		class UNiagaraComponent* NiagaraComp;
+
 	// Constants ------------------------------
 
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
-	bool AlreadyHit = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool ObjectiveComplete = false;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int OrderIndex = 1;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool isDisabled = false;
+	bool alreadyHit = false;
 };
+
