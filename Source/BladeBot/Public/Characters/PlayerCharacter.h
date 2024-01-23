@@ -95,11 +95,21 @@ public:
 	bool DestroyHookImmediately = false;
 
 	/** Damage */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
-	float MovementSpeedToKill = 4000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
+
+	/** Time manager*/
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Seconds = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Minutes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	bool TimerShouldTick = true;
+
+	FTimerHandle TimerHandeler;
 
 	/** Audio */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
@@ -135,6 +145,18 @@ public:
 	//timer handle for the spin attack
 	FTimerHandle SpinAttackTimer = FTimerHandle();
 
+	// Objective Variables
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	TArray<AActor*> ValidObjectives;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int NumCompletes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int expextedOrder = 1;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	bool GameComplete = false;
 
 	/**
 	 * Dash Variables
@@ -201,8 +223,13 @@ public:
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
+	void CountTime();
+	UFUNCTION()
+	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+		void ObjectiveComplete();
 
-	//void TimerInit();
+	void TimerInit();
 	void InputInit();
 	void Inits();
 
