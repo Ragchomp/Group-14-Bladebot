@@ -167,6 +167,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//EnergyRegeneration();
+	// Time test
+	//GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Millies: %f"),Millisecs));
+	//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Secs: %f"), Seconds));
+	//GEngine->AddOnScreenDebugMessage(3, 1, FColor::Green, FString::Printf(TEXT("Mins: %f"), Minutes));
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -554,7 +558,13 @@ void APlayerCharacter::CountTime()
 		return;
 
 	//increment the seconds
-	Seconds++;
+	Millisecs++;
+
+	if (Millisecs >= 1000)
+	{
+		Seconds++;
+		Millisecs = 0;
+	}
 
 	//convert seconds to minutes
 	if (Seconds >= 60)
@@ -659,7 +669,7 @@ void APlayerCharacter::InputInit()
 void APlayerCharacter::TimerInit()
 {
 	// Each second it increases seconds float by one forever.
-	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f,true);
+	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f/1000,true);
 }
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
