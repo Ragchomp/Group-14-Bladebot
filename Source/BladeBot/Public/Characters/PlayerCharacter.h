@@ -100,6 +100,10 @@ public:
 	float Damage = 1.f;
 
 	/** Time manager*/
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Millisecs = 0;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Time")
 	float Seconds = 0;
 
