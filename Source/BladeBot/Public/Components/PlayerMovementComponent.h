@@ -78,7 +78,7 @@ public:
 
 	//the amount of boost to apply when stopping grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
-	float EndGrappleBoostAmount = 1000.f;
+	FAsyncRootMovementParams EndGrappleBoostMovementParams = FAsyncRootMovementParams(FVector::UpVector);
 
 	//the interpolation speed when using the InterpToGrapple mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
@@ -103,6 +103,10 @@ public:
 	//the float curve to use when applying the grapple wasd movement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
 	UCurveFloat* GrappleMovementInputCurve = nullptr;
+
+	//the movement input modifier to use when processing the grapple movement input curve
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	float GrappleMovementInputModifier = 1.f;
 
 	//the max speed to use when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
@@ -160,9 +164,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
 	TObjectPtr<UMaterialInstance> WallLatchMaterial;
 
+	//the radius of the sphere to use when checking for wall latching walls
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	float WallLatchCheckRadius = 50.f;
+
+	//the cooldown between wall latches (needed to prevent wall latching from overriding the launch)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	float WallLatchCooldown = 0.5f;
+
 	//whether or not the player is wall latching
 	UPROPERTY(BlueprintReadOnly, Category = "Wall Latch")
 	bool bIsWallLatching = false;
+
+	//the wall latch hit result
+	UPROPERTY(BlueprintReadOnly, Category = "Wall Latch")
+	FHitResult WallLatchHitResult;
 
 	//how far to the right or left of the player to check for wall running walls
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
@@ -179,6 +195,10 @@ public:
 	//the movement params to use when wall run jumping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
 	FAsyncRootMovementParams WallRunJumpMovementParams = FAsyncRootMovementParams(FVector::UpVector);
+
+	//the cooldown between wall jumps (needed to prevent wall running from overriding wall jumping)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
+	float WallJumpCooldown = 0.5f;
 
 	//the current hit result(if any) from the wall running trace
 	UPROPERTY(BlueprintReadOnly, Category = "Wall Running")
@@ -211,17 +231,21 @@ public:
 	//timer handle for the wall latch timer
 	FTimerHandle WallLatchFallTimerHandle;
 
+	//the time that the player started a wall jump
+	float LastWallJumpTime = 0;
+
+	//the last time the player launched out of a wall latch
+	float LastWallLatchLaunchTime = 0;
+
 	//override functions
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual FVector NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const override;
 	virtual void Launch(FVector const& LaunchVel) override;
-	virtual void ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations) override;
 	virtual bool DoJump(bool bReplayingMoves) override;
 	virtual FVector ConsumeInputVector() override;
 	virtual bool ShouldRemainVertical() const override;
 	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const override;
-	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
 	virtual float GetGravityZ() const override;
 
 	virtual float GetMinAnalogSpeed() const override;
@@ -271,6 +295,10 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void LaunchOffWallLatch();
 
+	//function to handle wall latching
+	UFUNCTION(BlueprintCallable)
+	bool DoWallLatch(float DeltaTime);
+
 	//function that updates and returns whether or not the player is wall running
 	UFUNCTION(BlueprintCallable)
 	bool DoWallRunning(float DeltaTime);
@@ -278,4 +306,11 @@ public:
 	//function to do a wall running jump
 	UFUNCTION(BlueprintCallable)
 	void DoWallRunJump(FHitResult InWallHit);
+
+	//function to be used to override canjump internal in the character class
+	bool CanJumpAnyway() const;
+
+	////function that's called when we wall jump to prevent the character from jumping again
+	//UFUNCTION()
+	//void OnWallJumpComplete();
 };

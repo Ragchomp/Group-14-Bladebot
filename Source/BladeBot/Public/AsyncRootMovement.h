@@ -152,6 +152,9 @@ class UAsyncRootMovement : public UCancellableAsyncAction
     UPROPERTY(BlueprintAssignable)
         FMovementEvent OnFail;
 
+    //storage for the root motion force
+    TSharedPtr<FRootMotionSource_ConstantForce> ConstantForce;
+
 public:
     /**
      * Apply root motion movement to passed Character Movement Component

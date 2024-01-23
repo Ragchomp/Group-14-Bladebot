@@ -45,7 +45,7 @@ void UAsyncRootMovement::Activate()
     if (const UWorld* World = GetWorld())
     {
         // Create a root motion source
-        TSharedPtr<FRootMotionSource_ConstantForce> ConstantForce = MakeShared<FRootMotionSource_ConstantForce>();
+        ConstantForce = MakeShared<FRootMotionSource_ConstantForce>();
         ConstantForce->InstanceName = FName("ConstantForce");
         ConstantForce->AccumulateMode = bIsAdditive ? ERootMotionAccumulateMode::Additive : ERootMotionAccumulateMode::Override;
         ConstantForce->Priority = 5;

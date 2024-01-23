@@ -547,6 +547,19 @@ void APlayerCharacter::StopJumping()
 	OnJumpStop();
 }
 
+bool APlayerCharacter::CanJumpInternal_Implementation() const
+{
+	//check if the player movement component says we can jump
+	if (PlayerMovementComponent->CanJumpAnyway())
+	{
+		//return true
+		return true;
+	}
+
+	//otherwise return the parent implementation
+	return Super::CanJumpInternal_Implementation();
+}
+
 void APlayerCharacter::CountTime()
 {
 	//if the timer shouldn't tick return
