@@ -2,7 +2,7 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/PhysicsVolume.h"
+#include "Kismet/KismetSystemLibrary.h"
 
 UPlayerMovementComponent::UPlayerMovementComponent()
 {
@@ -46,15 +46,29 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 		UpdateGrappleVelocity(DeltaTime);
 	}
 
-	////print whether or not we're exceeding the current max speed
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, IsExceedingMaxSpeed(GetMaxSpeed()) ? FColor::Green : FColor::Red, FString::Printf(TEXT("Exceeding Max Speed: %s"), IsExceedingMaxSpeed(GetMaxSpeed()) ? TEXT("True") : TEXT("False")));
+	//do wall running checks and updates
+	bIsWallRunning = DoWallRunning(DeltaTime);
 
-	////print the current max speed
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Current Max Speed: %f"), GetMaxSpeed()));
+	//do wall latch checks and updates
+	bIsWallLatching = DoWallLatch(DeltaTime);
 }
 
 FVector UPlayerMovementComponent::NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const
 {
+	//check if we'er wall running
+	if (bIsWallRunning)
+	{
+		//return zero vector
+		return InitialVelocity;
+	}
+
+	//check if we're wall latching
+	if (bIsWallLatching)
+	{
+		//return zero vector
+		return FVector::ZeroVector;
+	}
+
 	//store the result of the parent implementation
 	FVector Result = Super::NewFallVelocity(InitialVelocity, Gravity, DeltaTime);
 
@@ -63,9 +77,6 @@ FVector UPlayerMovementComponent::NewFallVelocity(const FVector& InitialVelocity
 	{
 		//add the directional jump glide force to the result
 		Result += LastDirectionalJumpDirection * DirectionalJumpGlideForce * DeltaTime;
-
-		//print debug message
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, FString::Printf(TEXT("Jump Force Time Remaining: %f"), GetCharacterOwner()->JumpForceTimeRemaining));
 	}
 
 	return Result;
@@ -84,20 +95,28 @@ void UPlayerMovementComponent::Launch(FVector const& LaunchVel)
 	}
 }
 
-void UPlayerMovementComponent::ProcessLanded(const FHitResult& Hit, float remainingTime, int32 Iterations)
-{
-	//get the rotation we would be at if we were to be standing on the floor we just landed on
-	const FRotator FloorRotation = CurrentFloor.HitResult.ImpactNormal.Rotation();
-
-	//set the rotation to be the floor rotation
-	GetOwner()->SetActorRotation(FloorRotation);
-
-	//call the parent implementation
-	Super::ProcessLanded(Hit, remainingTime, Iterations);
-}
-
 bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 {
+	//check if we're wall latching
+	if (bIsWallLatching)
+	{
+		//launch off the wall latch
+		LaunchOffWallLatch();
+
+		//return true
+		return true;
+	}
+
+	//check if we're wall running
+	if (bIsWallRunning)
+	{
+		//do a wall run jump
+		DoWallRunJump(WallRunningHitResult);
+
+		//return true
+		return true;
+	}
+
 	//check if we're moving fast enough to do a boosted jump and we're on the ground
 	if (Velocity.Length() >= MinSpeedForSpeedBoost && !IsFalling())
 	{
@@ -133,21 +152,22 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 
 FVector UPlayerMovementComponent::ConsumeInputVector()
 {
+	//check if we're wall latching
+	if (bIsWallLatching)
+	{
+		//return zero vector
+		return FVector::ZeroVector;
+	}
+
 	//check if we're in the rotation mode
 	if (bRotationMode)
 	{
 		//rotate the character
 		GetOwner()->AddActorWorldRotation(FRotator(GetCharacterOwner()->GetPendingMovementInputVector().X, GetCharacterOwner()->GetPendingMovementInputVector().Y, GetCharacterOwner()->GetPendingMovementInputVector().Z), false, nullptr);
 
-		////set the input modifier to 0 (to disable movement)
-		//AnalogInputModifier = 0.f;
-
 		//return zero vector
 		return FVector::ZeroVector;
 	}
-
-	////reenable movement
-	//AnalogInputModifier = 1.f;
 
 	//Store the input vector
 	FVector ReturnVec = Super::ConsumeInputVector();
@@ -167,8 +187,18 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	//check if the player is grappling
 	if (bIsGrappling)
 	{
-		//apply the grapple movement input modifier
-		ReturnVec *= GrappleMovementInputModifier;
+		//check if we have a valid grapple movement input curve
+		if (GrappleMovementInputCurve)
+		{
+			//get the dot product of the current grapple direction and the return vector
+			const float DotProduct = FVector::DotProduct(GrappleDirection.GetSafeNormal(), ReturnVec.GetSafeNormal());
+
+			//get the grapple movement input curve value
+			const float GrappleMovementInputCurveValue = GrappleMovementInputCurve->GetFloatValue(DotProduct);
+
+			//multiply the return vector by the grapple movement input curve value
+			ReturnVec *= GrappleMovementInputCurveValue * GrappleMovementInputModifier;
+		}
 	}
 
 	//return the return vector
@@ -202,13 +232,24 @@ bool UPlayerMovementComponent::IsValidLandingSpot(const FVector& CapsuleLocation
 	}
 
 	//check if the surface normal is facing up and the surface is walkable
-	if (Hit.ImpactNormal.Z >= 0.7f && IsWalkable(Hit))
+	if (Hit.ImpactNormal.Z >= GetWalkableFloorZ() && IsWalkable(Hit))
 	{
 		//return true
 		return true;
 	}
 
 	return false;
+}
+
+float UPlayerMovementComponent::GetGravityZ() const
+{
+	//check if the player is grappling, wall latching, or wall running
+	if (bIsGrappling || bIsWallLatching || bIsWallRunning)
+	{
+		return 0.f;
+	}
+
+	return Super::GetGravityZ();
 }
 
 float UPlayerMovementComponent::GetMinAnalogSpeed() const
@@ -223,6 +264,13 @@ bool UPlayerMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
 
 float UPlayerMovementComponent::GetMaxSpeed() const
 {
+	//check if we're wall latching
+	if (bIsWallLatching)
+	{
+		//return zero
+		return 0.f;
+	}
+
 	//Check if the player is grappling
 	if (bIsGrappling)
 	{
@@ -239,6 +287,13 @@ void UPlayerMovementComponent::CalcVelocity(float DeltaTime, float Friction, boo
 
 float UPlayerMovementComponent::GetMaxAcceleration() const
 {
+	//check if we're wall latching
+	if (bIsWallLatching)
+	{
+		//return zero
+		return 0.f;
+	}
+
 	//Check if the player is grappling
 	if (bIsGrappling)
 	{
@@ -284,11 +339,6 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
 		//set the movement mode to flying
 		SetMovementMode(MOVE_Flying);
 	}
-	else
-	{
-		//set the gravity scale to 0
-		GravityScale = 0.f;
-	}
 
 	//call the start grapple event
 	OnStartGrapple.Broadcast();
@@ -311,11 +361,6 @@ void UPlayerMovementComponent::StopGrapple()
 			//set the movement mode back to default
 			SetMovementMode(MOVE_Falling);
 		}
-		else
-		{
-			//reset the gravity scale
-			GravityScale = 1.f;
-		}
 
 		//check if we should apply a speed boost
 		if (bEndGrappleSpeedBoost)
@@ -323,17 +368,17 @@ void UPlayerMovementComponent::StopGrapple()
 			//check if we should apply the boost in the direction the player is looking
 			if (bEndGrappleBoostInLookDirection)
 			{
-				//get the player's camera forward vector
-				const FVector Forward = PlayerCamera->GetForwardVector();
-
-				//add the boost amount to the velocity
-				Velocity += Forward * EndGrappleBoostAmount;
+				//set the direction to launch in
+				EndGrappleBoostMovementParams.WorldDirection = PlayerCamera->GetForwardVector();
 			}
 			else
 			{
 				//add the boost amount to the velocity
-				Velocity += Velocity.GetSafeNormal() * EndGrappleBoostAmount;
+				EndGrappleBoostMovementParams.WorldDirection = Velocity.GetSafeNormal();
 			}
+
+			//activate the root motion
+			UAsyncRootMovement::AsyncRootMovement(this, this, EndGrappleBoostMovementParams)->Activate();
 		}
 	}
 }
@@ -371,15 +416,12 @@ float UPlayerMovementComponent::GetGrappleDistanceLeft() const
 
 void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
 {
-	//get the player controller
-	const APlayerController* PC = GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld());
-
 	//get the camera location and rotation
 	FVector CameraLocation;
 	FRotator CameraRotation;
 
 	//set the camera location and rotation
-	PC->GetPlayerViewPoint(CameraLocation, CameraRotation);
+	GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld())->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	//get the forward vector of the camera rotation
 	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
@@ -416,8 +458,8 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	//get the vector from the character to the grapple point
 	GrappleDirection = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
 
-	////storage for the velocity that will be applied from the grapple
-	//FVector GrappleVelocity = FVector::ZeroVector;
+	//storage for the velocity that will be applied from the grapple
+	FVector GrappleVelocity = FVector::ZeroVector;
 
 	//check how we should set the velocity
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
@@ -425,8 +467,24 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	{
 		case AddToVelocity:
 			//add the grapple vector to the character's velocity
-			Velocity += GrappleDirection * AddGrappleSpeed * DeltaTime;
-			//GrappleVelocity = GrappleDirection * AddGrappleSpeed * DeltaTime;
+			GrappleVelocity = GrappleDirection * AddGrappleSpeed * DeltaTime;
+
+			//get the dot product of the character's velocity and the grapple velocity
+			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
+
+			//check if we have a valid grapple velocity curve
+			if (GrappleVelocityCurve)
+			{
+				//get the grapple velocity curve value
+				const float GrappleVelocityCurveValue = GrappleVelocityCurve->GetFloatValue(GrappleDotProduct);
+
+				//multiply the grapple velocity by the grapple velocity curve value
+				GrappleVelocity *= GrappleVelocityCurveValue;
+			}
+
+			//apply the grapple velocity
+			Velocity += GrappleVelocity;
+
 		break;
 		case InterpVelocity:
 			// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
@@ -434,43 +492,26 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 			{
 				case Constant:
 					//interpolate the velocity
-					Velocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
-					//GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 				break;
 				case InterpTo:
 					//interpolate the velocity
-					Velocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
-					//GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 				break;
 				case InterpStep:
 					//interpolate the velocity
-					Velocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
-					//GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
 				break;
 			}
+
+			//get the dot product of the character's velocity and the grapple velocity
+			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
+
+			//apply the grapple velocity
+			Velocity = GrappleVelocity;
+
 		break;
 	}
-
-	////get the dot product of the character's velocity and the grapple velocity
-	//const float DotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
-
-	////print the grapple velocity
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Cyan, FString::Printf(TEXT("Grapple Velocity: %s"), *GrappleVelocity.ToString()));
-
-	////print the dot product
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, FColor::Yellow, FString::Printf(TEXT("Dot Product: %f"), DotProduct));
-
-	//float Length = GrappleVelocity.Length();
-
-	////check if the dot product is greater than 0.5 or less than or equal to -0.5
-	//if (DotProduct > 0.5f || DotProduct <= -0.5f && Length < 10000)
-	//{
-	//	//apply the grapple velocity
-	//	Velocity += GrappleVelocity;
-	//}
-
-	////print whether or not we applied the grapple velocity
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, DotProduct > 0.5f || DotProduct <= -0.5f ? FColor::Green : FColor::Red, FString::Printf(TEXT("Applied Grapple Velocity: %s"), DotProduct > 0.5f || DotProduct <= -0.5f ? TEXT("True") : TEXT("False")));
 
 	//update the character's velocity
 	UpdateComponentVelocity();
@@ -478,15 +519,11 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	//check if we're not in the rotation mode
 	if (!bRotationMode)
 	{
-		////rotate the character
-		//GetOwner()->AddActorWorldRotation(FRotator(GrappleDirection.X, GrappleDirection.Y, 0.f), false, nullptr);
-
 		//set the rotation of the character to the grapple direction
 		GetOwner()->SetActorRotation(GrappleDirection.Rotation());
 	}
 
 }
-
 
 void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 {
@@ -522,6 +559,160 @@ void UPlayerMovementComponent::ToggleRotationMode(bool InValue)
 {
 	//set the rotation mode
 	bRotationMode = InValue;
+}
+
+void UPlayerMovementComponent::StopWallLatch()
+{
+	//check if the player is not wall latching
+	if (!bIsWallLatching)
+	{
+		return;
+	}
+
+	//set is wall latching to false
+	bIsWallLatching = false;
+
+	//enable movement
+	SetMovementMode(MOVE_Falling);
+
+	//clear the wall latch fall timer handle
+	GetWorld()->GetTimerManager().ClearTimer(WallLatchFallTimerHandle);
+}
+
+void UPlayerMovementComponent::LaunchOffWallLatch()
+{
+	//set is wall latching to false
+	bIsWallLatching = false;
+
+	//set last wall latch launch time
+	LastWallLatchLaunchTime = GetWorld()->GetTimeSeconds();
+
+	//enable movement
+	SetMovementMode(MOVE_Falling);
+
+	//clear the wall latch fall timer handle
+	GetWorld()->GetTimerManager().ClearTimer(WallLatchFallTimerHandle);
+
+	//get the player's camera forward vector
+	const FVector Forward = PlayerCamera->GetForwardVector();
+
+	//set the direction to launch in
+	WallLatchLaunchMovementParams.WorldDirection = Forward;
+
+	//activate the root motion
+	UAsyncRootMovement::AsyncRootMovement(this, this, WallLatchLaunchMovementParams)->Activate();
+}
+
+bool UPlayerMovementComponent::DoWallLatch(float DeltaTime)
+{
+
+	//do a sphere trace to see if there is a wall near the player
+	GetWorld()->SweepSingleByChannel(WallLatchHitResult, GetOwner()->GetActorLocation(), GetOwner()->GetActorLocation(), FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(WallLatchCheckRadius));
+
+	//check if the sphere trace didn't hit anything
+	if (!WallLatchHitResult.bBlockingHit)
+	{
+		return false;
+	}
+
+	//check if the sphere trace didn't hit a wall latch material
+	if (WallLatchHitResult.GetComponent()->GetMaterial(WallLatchHitResult.ElementIndex) != WallLatchMaterial)
+	{
+		return false;
+	}
+
+	//check if we're jumping to prevent the wall latching from activating and overriding the jump
+	if (LastWallLatchLaunchTime != 0 && GetWorld()->GetTimeSeconds() > WallLatchCooldown && GetWorld()->GetTimeSeconds() < WallLatchCooldown + LastWallLatchLaunchTime)
+	{
+		return false;
+	}
+
+	//return true
+	return true;
+}
+
+bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
+{
+	//do a line trace to see if there is a wall on either side of the player
+	GetWorld()->LineTraceSingleByChannel(WallRunningHitResult, GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * WallRunningCheckDistance * -1, GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * WallRunningCheckDistance, ECC_Visibility);
+
+	//check if the line trace didn't hit anything
+	if (!WallRunningHitResult.bBlockingHit)
+	{
+		return false;
+	}
+
+	//check if the line trace didn't hit a wall running material
+	if (WallRunningHitResult.GetComponent()->GetMaterial(WallRunningHitResult.ElementIndex) != WallRunningMaterial)
+	{
+		return false;
+	}
+
+	//check if we're jumping to prevent the wall running from activating and overriding the jump
+	if (LastWallJumpTime != 0 && GetWorld()->GetTimeSeconds() < WallJumpCooldown + LastWallJumpTime)
+	{
+		return false;
+	}
+
+	//get the surface normal of the hit
+	const FVector SurfaceNormal = WallRunningHitResult.ImpactNormal;
+
+	//get vector parallel to the surface
+	const FVector ParallelVector = FVector::CrossProduct(SurfaceNormal, WallRunningHitResult.GetComponent()->GetUpVector()).GetSafeNormal();
+
+	//get the dot product of the velocity and the parallel vector
+	const float DotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), ParallelVector);
+
+	//set the velocity to the parallel vector with the speed and direction we were moving at and add the wall running attach force
+	Velocity = ParallelVector.GetSafeNormal() * Velocity.Size() * FMath::Sign(DotProduct) + WallRunningAttachForce * -SurfaceNormal * DeltaTime;
+
+	return true;
+}
+
+void UPlayerMovementComponent::DoWallRunJump(FHitResult InWallHit)
+{
+	//check if the player is not wall running
+	if (!bIsWallRunning)
+	{
+		return;
+	}
+
+	//set is wall running to false
+	bIsWallRunning = false;
+
+	//enable movement
+	SetMovementMode(MOVE_Falling);
+
+	//get the wall jump's direction
+	FVector Direction = InWallHit.ImpactNormal;
+
+	//check if the direction is away from the wall
+	if (FVector::DotProduct(Direction, (GetOwner()->GetActorLocation() - InWallHit.Location).GetSafeNormal()) < 0)
+	{
+		//set the direction to the opposite of the wall jump's direction
+		Direction *= -1;
+	}
+
+	//set the direction to launch in
+	WallRunJumpMovementParams.WorldDirection = Direction;
+
+	//activate the root motion
+	UAsyncRootMovement::AsyncRootMovement(this, this, WallRunJumpMovementParams)->Activate();
+
+	//set the wall jump start time
+	LastWallJumpTime = GetWorld()->GetTimeSeconds();
+}
+
+bool UPlayerMovementComponent::CanJumpAnyway() const
+{
+	//check if we're wall running or wall latching
+	if (bIsWallRunning || bIsWallLatching)
+	{
+		return true;
+	}
+
+	//otherwise return false
+	return false;
 }
 
 
