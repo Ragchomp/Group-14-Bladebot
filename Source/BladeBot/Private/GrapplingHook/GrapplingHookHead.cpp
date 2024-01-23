@@ -127,7 +127,7 @@ void AGrapplingHookHead::Tick(float DeltaTime)
 	if (bUseMaxDistance)
 	{
 		//check if we've reached the max distance
-		if (FVector::Dist(DistanceCheckLocation, GetActorLocation()) >= MaxDistance)
+		if (FVector::Dist(DistanceCheckLocation, GetActorLocation()) >= MaxDistance && GrappleState == EGrappleState::EGS_InAir)
 		{
 			//destroy ourselves
 			DoDestroy();

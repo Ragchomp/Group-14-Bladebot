@@ -6,6 +6,7 @@
 #include "Components/PlayerMovementComponent.h"
 #include "PlayerCharacter.generated.h"
 
+class AObjectivePoint;
 struct FInputActionValue;
 class UCameraArmComponent;
 
@@ -227,11 +228,14 @@ public:
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
+	virtual bool CanJumpInternal_Implementation() const override;
+
+
 	void CountTime();
 	UFUNCTION()
 	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-		void ObjectiveComplete();
+	void ObjectiveComplete();
 
 	void TimerInit();
 	void InputInit();
