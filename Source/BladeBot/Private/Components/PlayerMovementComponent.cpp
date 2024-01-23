@@ -49,13 +49,8 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 	//do wall running checks and updates
 	bIsWallRunning = DoWallRunning(DeltaTime);
 
+	//do wall latch checks and updates
 	bIsWallLatching = DoWallLatch(DeltaTime);
-
-	////print whether the player is wall running or not
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, bIsWallRunning ? FColor::Green : FColor::Red, FString::Printf(TEXT("Is Wall Running: %s"), bIsWallRunning ? TEXT("True") : TEXT("False")));
-
-	////print whether the player is wall latching or not
-	//GEngine->AddOnScreenDebugMessage(-1, 0.f, bIsWallLatching ? FColor::Green : FColor::Red, FString::Printf(TEXT("Is Wall Latching: %s"), bIsWallLatching ? TEXT("True") : TEXT("False")));
 }
 
 FVector UPlayerMovementComponent::NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const
@@ -639,7 +634,7 @@ bool UPlayerMovementComponent::DoWallLatch(float DeltaTime)
 bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
 {
 	//do a line trace to see if there is a wall on either side of the player
-	GetWorld()->LineTraceSingleByChannel(WallRunningHitResult, GetOwner()->GetActorLocation() - GetOwner()->GetActorRightVector() * WallRunningCheckDistance, GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * WallRunningCheckDistance, ECC_Visibility);
+	GetWorld()->LineTraceSingleByChannel(WallRunningHitResult, GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * WallRunningCheckDistance * -1, GetOwner()->GetActorLocation() + GetOwner()->GetActorRightVector() * WallRunningCheckDistance, ECC_Visibility);
 
 	//check if the line trace didn't hit anything
 	if (!WallRunningHitResult.bBlockingHit)
