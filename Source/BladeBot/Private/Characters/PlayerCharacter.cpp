@@ -124,7 +124,18 @@ void APlayerCharacter::BeginPlay()
 		SetActorLocation(SpawnPoint->GetActorLocation());
 	}
 
+	TArray<AActor*> Objectives;
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AObjectivePoint::StaticClass(), Objectives);
+
+	for(int i = 0; i < Objectives.Num(); i++)
+	{
+		if(!Objectives[i]->ActorHasTag("ObjectiveDisabled"))
+		{
+			ValidObjectives.Add(Objectives[i]);
+		}
+	}
+	
+
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -156,6 +167,10 @@ void APlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//EnergyRegeneration();
+	// Time test
+	//GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Millies: %f"),Millisecs));
+	//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Secs: %f"), Seconds));
+	//GEngine->AddOnScreenDebugMessage(3, 1, FColor::Green, FString::Printf(TEXT("Mins: %f"), Minutes));
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -536,6 +551,19 @@ void APlayerCharacter::StopJumping()
 	OnJumpStop();
 }
 
+bool APlayerCharacter::CanJumpInternal_Implementation() const
+{
+	//check if the player movement component says we can jump
+	if (PlayerMovementComponent->CanJumpAnyway())
+	{
+		//return true
+		return true;
+	}
+
+	//otherwise return the parent implementation
+	return Super::CanJumpInternal_Implementation();
+}
+
 void APlayerCharacter::CountTime()
 {
 	//if the timer shouldn't tick return
@@ -543,7 +571,13 @@ void APlayerCharacter::CountTime()
 		return;
 
 	//increment the seconds
-	Seconds++;
+	Millisecs++;
+
+	if (Millisecs >= 1000)
+	{
+		Seconds++;
+		Millisecs = 0;
+	}
 
 	//convert seconds to minutes
 	if (Seconds >= 60)
@@ -577,9 +611,10 @@ void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 		NumCompletes--;
 	}
 
-	if (NumCompletes == Objectives.Num())
+	if (NumCompletes == ValidObjectives.Num())
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
+		ObjectiveComplete();
 		GameComplete = true;
 	}
 
@@ -647,15 +682,15 @@ void APlayerCharacter::InputInit()
 void APlayerCharacter::TimerInit()
 {
 	// Each second it increases seconds float by one forever.
-	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f,true);
+	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f/1000,true);
 }
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                  UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
                                  const FHitResult& SweepResult)
 {
-	if (OtherActor && OtherActor->ActorHasTag(FName("Enemy")) && GetVelocity().Size() > MovementSpeedToKill &&
-		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic)
+	if (OtherActor && (OtherActor->ActorHasTag(FName("Enemy")) || OtherActor->ActorHasTag(FName("Object"))) &&
+		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic && bIsSpinAttacking)
 	{
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
 	}

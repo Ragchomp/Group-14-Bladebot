@@ -6,6 +6,7 @@
 #include "Components/PlayerMovementComponent.h"
 #include "PlayerCharacter.generated.h"
 
+class AObjectivePoint;
 struct FInputActionValue;
 class UCameraArmComponent;
 
@@ -95,13 +96,15 @@ public:
 	bool DestroyHookImmediately = false;
 
 	/** Damage */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
-	float MovementSpeedToKill = 4000.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
 
 	/** Time manager*/
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Millisecs = 0;
+	
 	UPROPERTY(BlueprintReadOnly, Category = "Time")
 	float Seconds = 0;
 
@@ -149,7 +152,7 @@ public:
 
 	// Objective Variables
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
-	TArray<AActor*> Objectives;
+	TArray<AActor*> ValidObjectives;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	int NumCompletes = 0;
@@ -225,10 +228,14 @@ public:
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
+	virtual bool CanJumpInternal_Implementation() const override;
+
+
 	void CountTime();
 	UFUNCTION()
 	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
-
+	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
+	void ObjectiveComplete();
 
 	void TimerInit();
 	void InputInit();

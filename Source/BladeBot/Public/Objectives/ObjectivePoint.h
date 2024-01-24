@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -12,13 +10,23 @@ class BLADEBOT_API AObjectivePoint : public AActor
 	GENERATED_BODY()
 	
 public:	
-	// Sets default values for this actor's properties
 	AObjectivePoint();
 
-	// Called when the game starts or when spawned
-	virtual void BeginPlay() override;
-	//virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+	// Functions -----------------------
 
+	virtual void BeginPlay() override;
+
+	virtual void Tick(float DeltaTime) override;
+
+	UFUNCTION()
+		virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	UFUNCTION(BlueprintCallable)
+		void SetInactive();
+		UFUNCTION(BlueprintCallable)
+		void SetActive();
+
+	// VFX Functions
 	UFUNCTION(BlueprintCallable)
 		virtual void UpdateVFXLocationRotation();
 	UFUNCTION(BlueprintCallable)
@@ -28,6 +36,7 @@ public:
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayVFXChangedPassive(const FVector& PlayLocation);
 
+	// Audio functions
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioPassive(const FVector& Location);
 	UFUNCTION(BlueprintCallable)
@@ -35,13 +44,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 		virtual void PlayAudioChangedPassive(const FVector& Location);
 
-	void getOrderIndex();
+	// References ------------------------------
 
 	UPROPERTY(EditAnywhere)
 	class UStaticMeshComponent* ObjectveMesh;
 
 	UPROPERTY(EditAnywhere)
 	class UStaticMeshComponent* AfterActivationMesh;
+
+	UPROPERTY(EditAnywhere)
+		class UStaticMeshComponent* DisabledMesh;
 
 	UPROPERTY(EditAnywhere)
 	class USphereComponent* CollisionMesh;
@@ -67,6 +79,8 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Audio")
 		class USoundBase* ChangedPassiveSound;
 
+	// Constants ------------------------------
+
 	UPROPERTY(EditAnywhere,BlueprintReadOnly)
 	bool AlreadyHit = false;
 
@@ -76,11 +90,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int OrderIndex = 1;
 
-
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
-	UFUNCTION()
-		virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool isDisabled = false;
 };

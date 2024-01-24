@@ -108,9 +108,6 @@ public:
 	//renders the rope using the niagara system
 	void RenderRope();
 
-	//enforce rope constraint on an attached actor
-	void EnforceRopeConstraint(AActor* AttachedActor, UMovementComponent* AttachedMovementComponent, float DeltaTime);
-
 	//called when the owner of this rope is destroyed
 	UFUNCTION()
 	void OnOwnerDestroyed(AActor* DestroyedActor);
