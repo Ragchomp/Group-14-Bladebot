@@ -191,7 +191,7 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 		if (GrappleMovementInputCurve)
 		{
 			//get the dot product of the current grapple direction and the return vector
-			const float DotProduct = FVector::DotProduct(GrappleDirection.GetSafeNormal(), ReturnVec.GetSafeNormal());
+			const float DotProduct = FVector::DotProduct(GetOwner()->GetActorUpVector(), ReturnVec.GetSafeNormal());
 
 			//get the grapple movement input curve value
 			const float GrappleMovementInputCurveValue = GrappleMovementInputCurve->GetFloatValue(DotProduct);
