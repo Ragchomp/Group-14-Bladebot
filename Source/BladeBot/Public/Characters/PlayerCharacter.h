@@ -143,12 +143,29 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
 	TArray<AActor*> SpinAttackOverlappedActors;
 
+	//movement parameters for the spin attack
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
+	FAsyncRootMovementParams SpinAttackMovementParams = FAsyncRootMovementParams(FVector::ZeroVector, 0,0,0.5f,true);
+
+	//the speed we clamp the player's speed to when they do a spin attack and don't hit anything
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
+	float SpinAttackPunishmentSpeed = 1000.f;
+
+	//whether or not we've hit an enemy with the current or last spin attack
+	UPROPERTY(BlueprintReadOnly, Category = "SpinAttack")
+	bool bHitEnemyWithSpinAttack = false;
+
 	//whether or not we're currently doing a spin attack
 	UPROPERTY(BlueprintReadOnly, Category = "SpinAttack")
 	bool bIsSpinAttacking = false;
 
+	//whether or not we can do a spin attack (excluding whether or not we're currently doing a spin attack)
+	UPROPERTY(BlueprintReadOnly, Category = "SpinAttack")
+	bool bCanSpinAttack = true;
+
 	//timer handle for the spin attack
 	FTimerHandle SpinAttackTimer = FTimerHandle();
+	FTimerHandle SpinAttackCooldownTimer = FTimerHandle();
 
 	// Objective Variables
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
@@ -296,10 +313,13 @@ public:
 	void DoSpinAttack(const FInputActionValue& Value);
 
 	UFUNCTION()
-	void SpinAttackStartOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void SpinAttackEnd();
 
 	UFUNCTION()
-	void SpinAttackEnd();
+	void SpinAttackCooldownEnd();
+
+	UFUNCTION()
+	void SpinAttackMovementEnd();
 
 	/**
 	 * Dash Function(s)
@@ -353,13 +373,45 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
 	void OnSpinAttackBegin();
 
-	//blueprint event for when the spin attack hits something (todo: prvent hitting the same thing twice)
+	//blueprint event for when the spin attack hits an enemy (called for each enemy hit)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
 	void OnSpinAttackHit(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	//blueprint event for when the spin attack hits something that isn't an enemy (called for each non-enemy hit)
+	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
+	void OnSpinAttackHitNonEnemy(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
 
 	//blueprint event for when the spin attack ends
 	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
 	void OnSpinAttackEnd();
+
+	//blueprint event for when the spin attack cooldown ends
+	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
+	void OnSpinAttackCooldownEnd();
+
+	//blueprint event for when the player starts wall latching
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wall Latch")
+	void OnWallLatch(FHitResult HitResult);
+
+	//blueprint event for when the player falls off a wall latch
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wall Latch")
+	void OnWallLatchFall();
+
+	//blueprint event for when the player launches off a wall latch
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wall Latch")
+	void OnWallLatchLaunch();
+
+	//blueprint event for when the player starts wall running
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wall Run")
+	void OnWallRunStart(FHitResult HitResult);
+
+	//blueprint event for when the player does a wall run jump
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wall Run")
+	void OnWallRunJump();
+
+	//blueprint event for when the player stops wall running
+	UFUNCTION(BlueprintImplementableEvent, Category = "Wall Run")
+	void OnWallRunFinish();
 
 	//blueprint event for when the player dies
 	UFUNCTION(BlueprintImplementableEvent, Category = "Death")
@@ -368,4 +420,6 @@ public:
 	//blueprint event for when the player respawns
 	UFUNCTION(BlueprintImplementableEvent, Category = "Death")
 	void OnRespawn();
+
+
 };
