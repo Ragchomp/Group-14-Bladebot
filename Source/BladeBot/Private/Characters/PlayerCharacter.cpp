@@ -167,10 +167,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//EnergyRegeneration();
-	// Time test
-	//GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Millies: %f"),Millisecs));
-	//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Secs: %f"), Seconds));
-	//GEngine->AddOnScreenDebugMessage(3, 1, FColor::Green, FString::Printf(TEXT("Mins: %f"), Minutes));
+
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -564,29 +561,6 @@ bool APlayerCharacter::CanJumpInternal_Implementation() const
 	return Super::CanJumpInternal_Implementation();
 }
 
-void APlayerCharacter::CountTime()
-{
-	//if the timer shouldn't tick return
-	if (TimerShouldTick == false)
-		return;
-
-	//increment the seconds
-	Millisecs++;
-
-	if (Millisecs >= 1000)
-	{
-		Seconds++;
-		Millisecs = 0;
-	}
-
-	//convert seconds to minutes
-	if (Seconds >= 60)
-	{
-		Minutes++;
-		Seconds = 0;
-	}
-}
-
 void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 {
 	NumCompletes++;
@@ -656,7 +630,6 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 void APlayerCharacter::Inits()
 {
-	TimerInit();
 	InputInit();
 
 	//bind blueprint events
@@ -677,12 +650,6 @@ void APlayerCharacter::InputInit()
 			PlayerController->GetLocalPlayer());
 		if (Subsystem) Subsystem->AddMappingContext(IMC, 0);
 	}
-}
-
-void APlayerCharacter::TimerInit()
-{
-	// Each second it increases seconds float by one forever.
-	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f/1000,true);
 }
 
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,

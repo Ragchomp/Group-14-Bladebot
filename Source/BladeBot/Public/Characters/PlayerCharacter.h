@@ -100,22 +100,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Damage|Constants")
 	float Damage = 1.f;
 
-	/** Time manager*/
-
-	UPROPERTY(BlueprintReadOnly, Category = "Time")
-	float Millisecs = 0;
-	
-	UPROPERTY(BlueprintReadOnly, Category = "Time")
-	float Seconds = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Time")
-	float Minutes = 0;
-
-	UPROPERTY(BlueprintReadOnly, Category = "Time")
-	bool TimerShouldTick = true;
-
-	FTimerHandle TimerHandeler;
-
 	/** Audio */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	FName SpeedParameterName = "Speed";
@@ -231,13 +215,12 @@ public:
 	virtual bool CanJumpInternal_Implementation() const override;
 
 
-	void CountTime();
+	
 	UFUNCTION()
 	void CheckIfObjectivesComplete(AObjectivePoint* Objective);
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
 	void ObjectiveComplete();
 
-	void TimerInit();
 	void InputInit();
 	void Inits();
 
