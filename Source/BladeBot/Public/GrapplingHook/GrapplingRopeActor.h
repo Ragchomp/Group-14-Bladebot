@@ -35,6 +35,10 @@ public:
 	//constructor
 	AGrapplingRopeActor();
 
+	//whether or not to use debug drawing
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Debug")
+	bool bUseDebugDrawing = true;
+
 	//the radius of the rope
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope")
 	float RopeRadius = 10.f;
