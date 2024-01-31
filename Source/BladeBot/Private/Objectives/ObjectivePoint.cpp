@@ -111,7 +111,7 @@ void AObjectivePoint::SetActive()
 	isDisabled = false;
 }
 
-// VGX ------------------------------------------
+// VFX ------------------------------------------
 
 void AObjectivePoint::UpdateVFXLocationRotation()
 {
