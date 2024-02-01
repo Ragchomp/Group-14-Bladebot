@@ -24,6 +24,8 @@ public:
 	//Spawning the player
 	virtual void RestartPlayer(AController* NewPlayer) override;
 
+	virtual void Tick(float DeltaSeconds) override;
+
 protected:
 	virtual void BeginPlay() override;
 
@@ -33,5 +35,25 @@ protected:
 
 	//Signature to bind the delegate
 	FOnPlayerDeathSignature OnPlayerDeathSignature;
+
+	void TimerInit();
+
+	void CountTime();
+
+	/** Time manager*/
+public:
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Millisecs = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Seconds = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	float Minutes = 0;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Time")
+	bool TimerShouldTick = true;
+
+	FTimerHandle TimerHandeler;
 
 };
