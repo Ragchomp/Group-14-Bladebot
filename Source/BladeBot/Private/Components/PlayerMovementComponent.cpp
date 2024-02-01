@@ -208,11 +208,12 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 bool UPlayerMovementComponent::ShouldRemainVertical() const
 {
 	//check if we're in the rotation mode
-	if (MovementMode != MOVE_Walking)
+	if (MovementMode != MOVE_Walking && bRotationMode)
 	{
 		//return false
 		return false;
 	}
+
 
 	return Super::ShouldRemainVertical();
 }
@@ -557,6 +558,12 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 
 void UPlayerMovementComponent::ToggleRotationMode(bool InValue)
 {
+	//check if we're trying to enable the rotation mode and we're not supposed to be able to
+	if (InValue && !bCanActivateRotationMode)
+	{
+		return;
+	}
+
 	//set the rotation mode
 	bRotationMode = InValue;
 }
@@ -577,6 +584,9 @@ void UPlayerMovementComponent::StopWallLatch()
 
 	//clear the wall latch fall timer handle
 	GetWorld()->GetTimerManager().ClearTimer(WallLatchFallTimerHandle);
+
+	//broadcast the blueprint event
+	OnWallLatchFall.Broadcast();
 }
 
 void UPlayerMovementComponent::LaunchOffWallLatch()
@@ -601,6 +611,9 @@ void UPlayerMovementComponent::LaunchOffWallLatch()
 
 	//activate the root motion
 	UAsyncRootMovement::AsyncRootMovement(this, this, WallLatchLaunchMovementParams)->Activate();
+
+	//broadcast the blueprint event
+	OnWallLatchLaunch.Broadcast();
 }
 
 bool UPlayerMovementComponent::DoWallLatch(float DeltaTime)
@@ -615,8 +628,8 @@ bool UPlayerMovementComponent::DoWallLatch(float DeltaTime)
 		return false;
 	}
 
-	//check if the sphere trace didn't hit a wall latch material
-	if (WallLatchHitResult.GetComponent()->GetMaterial(WallLatchHitResult.ElementIndex) != WallLatchMaterial)
+	//check if the actor the trace hits doesn't have the wall latch tag
+	if (!WallLatchHitResult.GetActor()->ActorHasTag(WallLatchTag))
 	{
 		return false;
 	}
@@ -627,8 +640,24 @@ bool UPlayerMovementComponent::DoWallLatch(float DeltaTime)
 		return false;
 	}
 
+	//broadcast the blueprint event
+	OnWallLatch.Broadcast(WallLatchHitResult);
+
 	//return true
 	return true;
+}
+
+void UPlayerMovementComponent::CheckForWallRunFinish()
+{
+	//check if we we're wall running
+	if (bIsWallRunning)
+	{
+		//stop wall running
+		bIsWallRunning = false;
+
+		//broadcast the blueprint event
+		OnWallRunFinish.Broadcast();
+	}
 }
 
 bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
@@ -639,18 +668,27 @@ bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
 	//check if the line trace didn't hit anything
 	if (!WallRunningHitResult.bBlockingHit)
 	{
+		//check for wall run finish
+		CheckForWallRunFinish();
+
 		return false;
 	}
 
-	//check if the line trace didn't hit a wall running material
-	if (WallRunningHitResult.GetComponent()->GetMaterial(WallRunningHitResult.ElementIndex) != WallRunningMaterial)
+	//check if the line trace didn't hit an actor with the wall running tag
+	if (!WallRunningHitResult.GetActor()->ActorHasTag(WallRunningTag))
 	{
+		//check for wall run finish
+		CheckForWallRunFinish();
+
 		return false;
 	}
 
 	//check if we're jumping to prevent the wall running from activating and overriding the jump
 	if (LastWallJumpTime != 0 && GetWorld()->GetTimeSeconds() < WallJumpCooldown + LastWallJumpTime)
 	{
+		//check for wall run finish
+		CheckForWallRunFinish();
+
 		return false;
 	}
 
@@ -665,6 +703,9 @@ bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
 
 	//set the velocity to the parallel vector with the speed and direction we were moving at and add the wall running attach force
 	Velocity = ParallelVector.GetSafeNormal() * Velocity.Size() * FMath::Sign(DotProduct) + WallRunningAttachForce * -SurfaceNormal * DeltaTime;
+
+	//broadcast the blueprint event
+	OnWallRunStart.Broadcast(WallRunningHitResult);
 
 	return true;
 }
@@ -701,6 +742,9 @@ void UPlayerMovementComponent::DoWallRunJump(FHitResult InWallHit)
 
 	//set the wall jump start time
 	LastWallJumpTime = GetWorld()->GetTimeSeconds();
+
+	//broadcast the blueprint event
+	OnWallRunJump.Broadcast();
 }
 
 bool UPlayerMovementComponent::CanJumpAnyway() const

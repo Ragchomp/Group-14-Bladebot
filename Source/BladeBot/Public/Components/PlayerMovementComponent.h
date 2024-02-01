@@ -41,12 +41,24 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectionalJump, FVector, Direction);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCorrectedDirectionalJump, FVector, OriginalDirection, FVector, CorrectedDirection);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartGrapple);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWallLatch, FHitResult, HitResult);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallLatchLaunch);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallLatchFall);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWallRunStart, FHitResult, HitResult);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallRunJump);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallRunFinish);
 
 	//delegate for the events
 	FOnNormalJump OnNormalJump;
 	FOnDirectionalJump OnDirectionalJump;
 	FOnCorrectedDirectionalJump OnCorrectedDirectionalJump;
 	FOnStartGrapple OnStartGrapple;
+	FOnWallLatch OnWallLatch;
+	FOnWallLatchLaunch OnWallLatchLaunch;
+	FOnWallLatchFall OnWallLatchFall;
+	FOnWallRunStart OnWallRunStart;
+	FOnWallRunJump OnWallRunJump;
+	FOnWallRunFinish OnWallRunFinish;
 
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -144,6 +156,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
 	float RotationSpeed = 1.f;
 
+	//whether or not we can activate rotation mode right now
+	UPROPERTY(BlueprintReadOnly, Category = "Movement|Rotation")
+	bool bCanActivateRotationMode = true;
+
 	//whether or not WASD effects the player's movement or the player's rotation
 	UPROPERTY(BlueprintReadOnly, Category = "Movement")
 	bool bRotationMode = false;
@@ -160,9 +176,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
 	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector::DownVector);
 
-	//the material that activates wall latching when the player is touching it
+	//the tag that activates wall latching when the player is touching an actor with this tag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
-	TObjectPtr<UMaterialInstance> WallLatchMaterial;
+	FName WallLatchTag = FName(TEXT("Latch"));
 
 	//the radius of the sphere to use when checking for wall latching walls
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
@@ -188,9 +204,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
 	float WallRunningAttachForce = 1000.f;
 
-	//the material that activates wall latching when the wall running trace hits it
+	//the tag that activates wall latching when the wall running trace hits an actor with this tag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
-	TObjectPtr<UMaterialInstance> WallRunningMaterial;
+	FName WallRunningTag = FName(TEXT("Run"));
 
 	//the movement params to use when wall run jumping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Running")
@@ -204,9 +220,13 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Wall Running")
 	FHitResult WallRunningHitResult;
 
-	//whether or not the player is wall running
+	//whether or not we're is wall running
 	UPROPERTY(BlueprintReadOnly, Category = "Wall Running")
 	bool bIsWallRunning = false;
+
+	//whether or not we should remain vertical right now (excluding rotation mode == true)
+	UPROPERTY()
+	bool bShouldRemainVertical = false;
 
 	//reference to the player camera of the player character
 	UPROPERTY()
@@ -236,6 +256,8 @@ public:
 
 	//the last time the player launched out of a wall latch
 	float LastWallLatchLaunchTime = 0;
+
+
 
 	//override functions
 	virtual void BeginPlay() override;
@@ -298,6 +320,7 @@ public:
 	//function to handle wall latching
 	UFUNCTION(BlueprintCallable)
 	bool DoWallLatch(float DeltaTime);
+	void CheckForWallRunFinish();
 
 	//function that updates and returns whether or not the player is wall running
 	UFUNCTION(BlueprintCallable)
