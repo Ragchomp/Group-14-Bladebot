@@ -36,9 +36,18 @@ protected:
 	//Signature to bind the delegate
 	FOnPlayerDeathSignature OnPlayerDeathSignature;
 
-	void TimerInit();
+	UFUNCTION(BlueprintCallable)
+	void StartTimer();
+
+	UFUNCTION(BlueprintCallable)
+	void StopTimer();
+
+	UFUNCTION(BlueprintCallable)
+	void ResetTimer();
 
 	void CountTime();
+
+
 
 	/** Time manager*/
 public:
