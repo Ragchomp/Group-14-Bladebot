@@ -110,8 +110,11 @@ void APlayerCharacter::BeginPlay()
 	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
 
 	//spin attack hitboxes overlaps setup
-	SpinAttackHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::SpinAttackStartOverlap);
-	SpinAttackSwordHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::SpinAttackStartOverlap);
+	SpinAttackHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
+	SpinAttackSwordHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
+
+	//spin attack movement params setup
+	SpinAttackMovementParams.OnComplete.AddDynamic(this, &APlayerCharacter::SpinAttackMovementEnd);
 
 	//set the character state to idle
 	CharacterState = ECharacterState::ECS_Idle;
@@ -134,8 +137,6 @@ void APlayerCharacter::BeginPlay()
 			ValidObjectives.Add(Objectives[i]);
 		}
 	}
-	
-
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -167,10 +168,7 @@ void APlayerCharacter::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//EnergyRegeneration();
-	// Time test
-	//GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Millies: %f"),Millisecs));
-	//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Secs: %f"), Seconds));
-	//GEngine->AddOnScreenDebugMessage(3, 1, FColor::Green, FString::Printf(TEXT("Mins: %f"), Minutes));
+
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -298,40 +296,26 @@ void APlayerCharacter::RotationToggleOff(const FInputActionValue& Value)
 void APlayerCharacter::DoSpinAttack(const FInputActionValue& Value)
 {
 	//check if we're not dead
-	if (CharacterState != ECharacterState::ECS_Dead)
+	if (CharacterState != ECharacterState::ECS_Dead && bCanSpinAttack)
 	{
-		//set the character state to spin attacking
+		//set the spin attack flag to true
 		bIsSpinAttacking = true;
+
+		//set the cqan spin attack flag to false
+		bCanSpinAttack = false;
+
+		//prevent the player from activating rotation mode
+		PlayerMovementComponent->bCanActivateRotationMode = false;
 
 		//set timer to reset the spin attack flag
 		GetWorldTimerManager().SetTimer(SpinAttackTimer, this, &APlayerCharacter::SpinAttackEnd, SpinAttackDuration, false);
 
+		//set the player's rotation
+		SetActorRotation(FRotator(0.f, GetControlRotation().Yaw, GetControlRotation().Roll));
+
 		//call the on spin attack event
 		OnSpinAttackBegin();
 	}
-}
-
-void APlayerCharacter::SpinAttackStartOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	//check if we're not spin attacking
-	if (!bIsSpinAttacking)
-	{
-		//return
-		return;
-	}
-
-	//check if the other actor has already been overlapped by one of the spin attack hitboxes
-	if (SpinAttackOverlappedActors.Contains(OtherActor))
-	{
-		//return
-		return;
-	}
-
-	//add the other actor to the overlapped actors array
-	SpinAttackOverlappedActors.Add(OtherActor);
-
-	//call the blueprint event
-	OnSpinAttackHit(OverlappedComponent, OtherActor, OtherComponent, OtherBodyIndex, bFromSweep, SweepResult);
 }
 
 void APlayerCharacter::SpinAttackEnd()
@@ -346,11 +330,45 @@ void APlayerCharacter::SpinAttackEnd()
 	//set bIsSpinAttacking to false
 	bIsSpinAttacking = false;
 
+	//re enable the player's ability to activate rotation mode
+	PlayerMovementComponent->bCanActivateRotationMode = true;
+
 	//empty the overlapped actors array
 	SpinAttackOverlappedActors.Empty();
 
+	//set a timer to end the cooldown of the character's spin attack
+	GetWorldTimerManager().SetTimer(SpinAttackCooldownTimer, this, &APlayerCharacter::SpinAttackCooldownEnd, SpinAttackCooldownTime, false);
+
+	//set the direction of the spin attack movement
+	SpinAttackMovementParams.WorldDirection = GetControlRotation().Vector();
+
+	//get the spin attack movement
+	UAsyncRootMovement::AsyncRootMovement(this, PlayerMovementComponent, SpinAttackMovementParams);
+
 	//call the blueprint event
 	OnSpinAttackEnd();
+}
+
+void APlayerCharacter::SpinAttackCooldownEnd()
+{
+	//set bCanSpinAttack to true
+	bCanSpinAttack = true;
+
+	//call the blueprint event
+	OnSpinAttackCooldownEnd();
+}
+
+void APlayerCharacter::SpinAttackMovementEnd()
+{
+	//check if we've not hit an enemy with the spin attack
+	if (!bHitEnemyWithSpinAttack)
+	{
+		//clamp our velocity by the spin attack punishment
+		PlayerMovementComponent->Velocity = PlayerMovementComponent->Velocity.GetClampedToMaxSize(SpinAttackPunishmentSpeed);
+	}
+
+	//reset whether or not we've hit an enemy with the spin attack
+	bHitEnemyWithSpinAttack = false;
 }
 
 //bool APlayerCharacter::CrosshairCheck() const
@@ -564,29 +582,6 @@ bool APlayerCharacter::CanJumpInternal_Implementation() const
 	return Super::CanJumpInternal_Implementation();
 }
 
-void APlayerCharacter::CountTime()
-{
-	//if the timer shouldn't tick return
-	if (TimerShouldTick == false)
-		return;
-
-	//increment the seconds
-	Millisecs++;
-
-	if (Millisecs >= 1000)
-	{
-		Seconds++;
-		Millisecs = 0;
-	}
-
-	//convert seconds to minutes
-	if (Seconds >= 60)
-	{
-		Minutes++;
-		Seconds = 0;
-	}
-}
-
 void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 {
 	NumCompletes++;
@@ -656,7 +651,6 @@ void APlayerCharacter::SpawnGrappleProjectile()
 
 void APlayerCharacter::Inits()
 {
-	TimerInit();
 	InputInit();
 
 	//bind blueprint events
@@ -664,7 +658,12 @@ void APlayerCharacter::Inits()
 	PlayerMovementComponent->OnDirectionalJump.AddDynamic(this, &APlayerCharacter::OnDirectionalJumpStart);
 	PlayerMovementComponent->OnCorrectedDirectionalJump.AddDynamic(this, &APlayerCharacter::OnCorrectedDirectionalJump);
 	PlayerMovementComponent->OnStartGrapple.AddDynamic(this, &APlayerCharacter::OnStartGrapple);
-	//PlayerMovementComponent->OnWallJump.AddDynamic(this, &APlayerCharacter::OnWallJump);
+	PlayerMovementComponent->OnWallLatch.AddDynamic(this, &APlayerCharacter::OnWallLatch);
+	PlayerMovementComponent->OnWallLatchLaunch.AddDynamic(this, &APlayerCharacter::OnWallLatchLaunch);
+	PlayerMovementComponent->OnWallLatchFall.AddDynamic(this, &APlayerCharacter::OnWallLatchFall);
+	PlayerMovementComponent->OnWallRunStart.AddDynamic(this, &APlayerCharacter::OnWallRunStart);
+	PlayerMovementComponent->OnWallRunJump.AddDynamic(this, &APlayerCharacter::OnWallRunJump);
+	PlayerMovementComponent->OnWallRunFinish.AddDynamic(this, &APlayerCharacter::OnWallRunFinish);
 }
 
 void APlayerCharacter::InputInit()
@@ -679,12 +678,6 @@ void APlayerCharacter::InputInit()
 	}
 }
 
-void APlayerCharacter::TimerInit()
-{
-	// Each second it increases seconds float by one forever.
-	GetWorldTimerManager().SetTimer(TimerHandeler, this, &APlayerCharacter::CountTime,1.0f/1000,true);
-}
-
 void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
                                  UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep,
                                  const FHitResult& SweepResult)
@@ -692,6 +685,29 @@ void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 	if (OtherActor && (OtherActor->ActorHasTag(FName("Enemy")) || OtherActor->ActorHasTag(FName("Object"))) &&
 		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic && bIsSpinAttacking)
 	{
+		//set the bHitEnemyWithSpinAttack flag to true
+		bHitEnemyWithSpinAttack = true;
+
+		//check if the other actor has already been overlapped by one of the spin attack hitboxes
+		if (SpinAttackOverlappedActors.Contains(OtherActor))
+		{
+			//return
+			return;
+		}
+
+		//add the other actor to the overlapped actors array
+		SpinAttackOverlappedActors.Add(OtherActor);
+
+		//call the blueprint event
+		OnSpinAttackHit(OverlappedComponent, OtherActor, OtherComponent, OtherBodyIndex, bFromSweep, SweepResult);
+
+		//apply damage to the other actor
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
+	}
+	//check if we're spin attacking
+	else if (bIsSpinAttacking)
+	{
+		//call the blueprint event
+		OnSpinAttackHitNonEnemy(OverlappedComponent, OtherActor, OtherComponent, OtherBodyIndex, bFromSweep, SweepResult);
 	}
 }

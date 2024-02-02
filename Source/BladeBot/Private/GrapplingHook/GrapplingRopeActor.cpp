@@ -74,17 +74,8 @@ void AGrapplingRopeActor::Tick(float DeltaTime)
 	//update first and last points or Hitboxes
 	SetAttachedRopePointPositions();
 
-	//check if we don't have a valid Niagara system to render
-	if (NiagaraSystem->IsValidLowLevelFast())
-	{
-		//render the rope
-		RenderRope();
-	}
-	else
-	{
-		//draw debug message
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Draw debug is false, and we don't have a valid niagara system"));
-	}
+	//render the rope
+	RenderRope();
 }
 
 void AGrapplingRopeActor::Destroyed()
@@ -130,15 +121,15 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 				//remove the collision point from the array
 				RopePoints.RemoveAt(Index);
 
-				//check if we need to remove the niagara component for this collision point
-				if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
-				{
-					//destroy the niagara component
-					NiagaraComponents[Index]->DestroyComponent();
-					
-					//remove the niagara component from the array
-					NiagaraComponents.RemoveAt(Index);
-				}
+				////check if we need to remove the niagara component for this collision point
+				//if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
+				//{
+				//	//destroy the niagara component
+				//	NiagaraComponents[Index]->DestroyComponent();
+				//	
+				//	//remove the niagara component from the array
+				//	NiagaraComponents.RemoveAt(Index);
+				//}
 
 				//decrement i so we don't skip the next collision point
 				Index--;
@@ -188,53 +179,72 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 
 void AGrapplingRopeActor::RenderRope()
 {
-	//check if we have a valid Niagara system to render
-	if (NiagaraSystem->IsValidLowLevelFast())
+	//chceck if we should use debug drawing
+	if (bUseDebugDrawing)
 	{
 		//iterate through all the collision points except the last one
 		for (int Index = 0; Index < RopePoints.Num() - 1; ++Index)
 		{
-			//check if we have a valid Niagara component to use or if we need to create a new one
-			if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
+			//draw a debug line between the current collision point and the next collision point
+			DrawDebugLine(GetWorld(), RopePoints[Index], RopePoints[Index + 1], FColor::Red, false, 0.f, 0, 5.f);
+		}
+	}
+	//check if we don't have a valid Niagara system to render
+	else if (NiagaraSystem->IsValidLowLevelFast())
+	{
+		//check if we have a valid Niagara system to render
+		if (NiagaraSystem->IsValidLowLevelFast())
+		{
+			//iterate through all the collision points except the last one
+			for (int Index = 0; Index < RopePoints.Num() - 1; ++Index)
 			{
-				//set the start location of the Niagara component
-				NiagaraComponents[Index]->SetWorldLocation(RopePoints[Index]);
-
-				//set the end location of the Niagara component
-				NiagaraComponents[Index]->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
-
-				//set whether or not to use jitter
-				NiagaraComponents[Index]->SetBoolParameter(JitterParameterName, bUseJitter);
-
-				//check if we should use rope radius
-				if (UseRopeRadiusAsRibbonWidth)
+				//check if we have a valid Niagara component to use or if we need to create a new one
+				if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
 				{
-					//set the ribbon width to the rope radius
-					NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RopeRadius /* * 2*/);
+					//set the start location of the Niagara component
+					NiagaraComponents[Index]->SetWorldLocation(RopePoints[Index]);
+
+					//set the end location of the Niagara component
+					NiagaraComponents[Index]->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
+
+					//set whether or not to use jitter
+					NiagaraComponents[Index]->SetBoolParameter(JitterParameterName, bUseJitter);
+
+					//check if we should use rope radius
+					if (UseRopeRadiusAsRibbonWidth)
+					{
+						//set the ribbon width to the rope radius
+						NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RopeRadius /* * 2*/);
+					}
+					else
+					{
+						//set the ribbon width to the ribbon width
+						NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RibbonWidth);
+					}
 				}
 				else
 				{
-					//set the ribbon width to the ribbon width
-					NiagaraComponents[Index]->SetFloatParameter(RibbonWidthParameterName, RibbonWidth);
+					//create a new Niagara component
+					UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, RopePoints[Index]);
+
+					//set the end location of the Niagara component
+					NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
+
+					//add the new Niagara component to the array
+					NiagaraComponents.Add(NewNiagaraComponent);
 				}
 			}
-			else
-			{
-				//create a new Niagara component
-				UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, RopePoints[Index]);
-
-				//set the end location of the Niagara component
-				NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
-
-				//add the new Niagara component to the array
-				NiagaraComponents.Add(NewNiagaraComponent);
-			}
+		}
+		else
+		{
+			//draw debug message
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RopeRenderer has no valid niagara system"));
 		}
 	}
 	else
 	{
 		//draw debug message
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("RopeRenderer has no valid niagara system"));
+		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Draw debug is false, and we don't have a valid niagara system"));
 	}
 }
 
