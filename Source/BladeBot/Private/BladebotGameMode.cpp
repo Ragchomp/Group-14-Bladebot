@@ -7,6 +7,8 @@
 
 ABladebotGameMode::ABladebotGameMode()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
 	//Set default pawn class to our blueprint character
 	TSubclassOf<ACharacter> PlayerCharacterBlueprint;
 }
@@ -14,6 +16,15 @@ ABladebotGameMode::ABladebotGameMode()
 void ABladebotGameMode::RestartPlayer(AController* NewPlayer)
 {
 	Super::RestartPlayer(NewPlayer);
+}
+
+void ABladebotGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	//GEngine->AddOnScreenDebugMessage(1, 1, FColor::Green, FString::Printf(TEXT("Millies: %f"),Millisecs));
+	//GEngine->AddOnScreenDebugMessage(2, 1, FColor::Green, FString::Printf(TEXT("Secs: %f"), Seconds));
+	//GEngine->AddOnScreenDebugMessage(3, 1, FColor::Green, FString::Printf(TEXT("Mins: %f"), Minutes));
 }
 
 void ABladebotGameMode::BeginPlay()
@@ -25,6 +36,8 @@ void ABladebotGameMode::BeginPlay()
 	{
 		OnPlayerDeathSignature.AddDynamic(this, &ABladebotGameMode::PlayerDeath);
 	}
+
+	StartTimer();
 }
 
 void ABladebotGameMode::PlayerDeath(ACharacter* PlayerCharacter)
@@ -33,3 +46,47 @@ void ABladebotGameMode::PlayerDeath(ACharacter* PlayerCharacter)
 	const TObjectPtr<AController> PlayerController = PlayerCharacter->GetController();
 	RestartPlayer(PlayerController);
 }
+
+void ABladebotGameMode::StartTimer()
+{
+	// Each second it increases seconds float by one forever.
+	TimerShouldTick = true;
+	GetWorldTimerManager().SetTimer(TimerHandeler, this, &ABladebotGameMode::CountTime, 1.0f / 1000, true);
+}
+
+void ABladebotGameMode::StopTimer()
+{
+	GetWorldTimerManager().ClearTimer(TimerHandeler);
+	TimerShouldTick = false;
+}
+
+void ABladebotGameMode::CountTime()
+{
+	//if the timer shouldn't tick return
+	if (TimerShouldTick == false)
+		return;
+
+	//increment the seconds
+	Millisecs++;
+
+	if (Millisecs >= 1000)
+	{
+		Seconds++;
+		Millisecs = 0;
+	}
+
+	//convert seconds to minutes
+	if (Seconds >= 60)
+	{
+		Minutes++;
+		Seconds = 0;
+	}
+}
+
+void ABladebotGameMode::ResetTimer()
+{
+	Millisecs = 0;
+	Seconds = 0;
+	Minutes = 0;
+}
+
