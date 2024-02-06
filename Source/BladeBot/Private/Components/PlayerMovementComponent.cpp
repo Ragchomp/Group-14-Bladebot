@@ -383,65 +383,65 @@ void UPlayerMovementComponent::StopGrapple()
 	}
 }
 
-//bool UPlayerMovementComponent::CanGrapple() const
-//{
-//	//do a line trace to see if the player is aiming at something within grapple range
-//	FHitResult GrappleHit;
-//	GrappleLineTrace(GrappleHit, MaxGrappleDistance);
-//
-//	//return whether the line trace hit something or not
-//	return GrappleHit.bBlockingHit;
-//}
-//
-//float UPlayerMovementComponent::GetGrappleDistanceLeft() const
-//{
-//	//do a line trace to see if the player is aiming at something within the grapple check range
-//	FHitResult GrappleHit;
-//	GrappleLineTrace(GrappleHit, MaxGrappleCheckDistance);
-//
-//	//if the line trace hit something, return the distance to the hit
-//	if (GrappleHit.bBlockingHit)
-//	{
-//		//get the distance left until the player can grapple to where they are aiming and check if it's greater than 0
-//		if (const float GrappleDistanceLeft = FVector::Dist(GetOwner()->GetActorLocation(), GrappleHit.ImpactPoint) - MaxGrappleDistance; GrappleDistanceLeft > 0.f)
-//		{
-//			//return the distance left until the player can grapple to where they are aiming
-//			return GrappleDistanceLeft;
-//		}
-//	}
-//
-//	//otherwise return 0
-//	return 0.f;
-//}
-//
-//void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
-//{
-//	//get the camera location and rotation
-//	FVector CameraLocation;
-//	FRotator CameraRotation;
-//
-//	//set the camera location and rotation
-//	GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld())->GetPlayerViewPoint(CameraLocation, CameraRotation);
-//
-//	//get the forward vector of the camera rotation
-//	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
-//
-//	//get the end point of the line trace
-//	const FVector End = CameraLocation + Rotation * MaxDistance;
-//
-//	//the collision parameters to use for the line trace
-//	FCollisionQueryParams GrappleCollisionParams;
-//
-//	//ignore the owner of the grapple hook
-//	GrappleCollisionParams.AddIgnoredActor(GetOwner());
-//
-//	//set the collision shape
-//	FCollisionShape CollisionShape;
-//	CollisionShape.ShapeType = CanGrappleCollisionShape;
-//
-//	//do the line trace
-//	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
-//}
+bool UPlayerMovementComponent::CanGrapple() const
+{
+	//do a line trace to see if the player is aiming at something within grapple range
+	FHitResult GrappleHit;
+	GrappleLineTrace(GrappleHit, MaxGrappleDistance);
+
+	//return whether the line trace hit something or not
+	return GrappleHit.bBlockingHit;
+}
+
+float UPlayerMovementComponent::GetGrappleDistanceLeft() const
+{
+	//do a line trace to see if the player is aiming at something within the grapple check range
+	FHitResult GrappleHit;
+	GrappleLineTrace(GrappleHit, MaxGrappleCheckDistance);
+
+	//if the line trace hit something, return the distance to the hit
+	if (GrappleHit.bBlockingHit)
+	{
+		//get the distance left until the player can grapple to where they are aiming and check if it's greater than 0
+		if (const float GrappleDistanceLeft = FVector::Dist(GetOwner()->GetActorLocation(), GrappleHit.ImpactPoint) - MaxGrappleDistance; GrappleDistanceLeft > 0.f)
+		{
+			//return the distance left until the player can grapple to where they are aiming
+			return GrappleDistanceLeft;
+		}
+	}
+
+	//otherwise return 0
+	return 0.f;
+}
+
+void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
+{
+	//get the camera location and rotation
+	FVector CameraLocation;
+	FRotator CameraRotation;
+
+	//set the camera location and rotation
+	GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld())->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	//get the forward vector of the camera rotation
+	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
+
+	//get the end point of the line trace
+	const FVector End = CameraLocation + Rotation * MaxDistance;
+
+	//the collision parameters to use for the line trace
+	FCollisionQueryParams GrappleCollisionParams;
+
+	//ignore the owner of the grapple hook
+	GrappleCollisionParams.AddIgnoredActor(GetOwner());
+
+	//set the collision shape
+	FCollisionShape CollisionShape;
+	CollisionShape.ShapeType = CanGrappleCollisionShape;
+
+	//do the line trace
+	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
+}
 
 void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
