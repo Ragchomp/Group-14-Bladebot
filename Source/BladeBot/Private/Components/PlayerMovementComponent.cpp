@@ -2,7 +2,6 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
-#include "Kismet/KismetSystemLibrary.h"
 
 UPlayerMovementComponent::UPlayerMovementComponent()
 {
@@ -51,6 +50,9 @@ void UPlayerMovementComponent::TickComponent(float DeltaTime, ELevelTick TickTyp
 
 	//do wall latch checks and updates
 	bIsWallLatching = DoWallLatch(DeltaTime);
+
+	////reset bDidRotateThisFrame
+	//bDidRotateThisFrame = false;
 }
 
 FVector UPlayerMovementComponent::NewFallVelocity(const FVector& InitialVelocity, const FVector& Gravity, float DeltaTime) const
@@ -162,11 +164,38 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	//check if we're in the rotation mode
 	if (bRotationMode)
 	{
-		//rotate the character
-		GetOwner()->AddActorWorldRotation(FRotator(GetCharacterOwner()->GetPendingMovementInputVector().X, GetCharacterOwner()->GetPendingMovementInputVector().Y, GetCharacterOwner()->GetPendingMovementInputVector().Z), false, nullptr);
+		//check if the player is actually moving
+		if (GetCharacterOwner()->GetPendingMovementInputVector().IsNearlyZero())
+		{
+			//return zero vector
+			return FVector::ZeroVector;
+		}
 
-		//return zero vector
-		return FVector::ZeroVector;
+		////recalculate the rotation force left
+		//RotationForceLeft = RotationForceLeft + (GetWorld()->GetTimeSeconds() - LastRotationInputTime) * RotationSpeed;
+
+		////check if the rotation force left is greater than 0
+		//if (RotationForceLeft > 0.f)
+		//{
+			////check if the rotation force left is greater than the rotation force
+			//if (RotationForceLeft > MaxRotationForce)
+			//{
+			//	//set the rotation force left to the rotation force
+			//	RotationForceLeft = MaxRotationForce;
+			//}
+
+			////get how long the player has been holding the rotation input
+			//const float RotationInputTime = GetWorld()->GetTimeSeconds() - LastRotationInputTime;
+
+			//rotate the character
+			GetOwner()->AddActorWorldRotation(FRotator(GetCharacterOwner()->GetPendingMovementInputVector().X, GetCharacterOwner()->GetPendingMovementInputVector().Y, GetCharacterOwner()->GetPendingMovementInputVector().Z), false, nullptr);
+
+			////set the last rotation input time
+			//LastRotationInputTime = GetWorld()->GetTimeSeconds();
+
+			//return zero vector
+			return FVector::ZeroVector;
+		//}
 	}
 
 	//Store the input vector
@@ -253,16 +282,6 @@ float UPlayerMovementComponent::GetGravityZ() const
 	return Super::GetGravityZ();
 }
 
-float UPlayerMovementComponent::GetMinAnalogSpeed() const
-{
-	return Super::GetMinAnalogSpeed();
-}
-
-bool UPlayerMovementComponent::IsExceedingMaxSpeed(float MaxSpeed) const
-{
-	return Super::IsExceedingMaxSpeed(MaxSpeed);
-}
-
 float UPlayerMovementComponent::GetMaxSpeed() const
 {
 	//check if we're wall latching
@@ -279,11 +298,6 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 		return GrappleMaxSpeed;
 	}
 	return Super::GetMaxSpeed();
-}
-
-void UPlayerMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
-{
-	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 }
 
 float UPlayerMovementComponent::GetMaxAcceleration() const
@@ -303,21 +317,6 @@ float UPlayerMovementComponent::GetMaxAcceleration() const
 	}
 
 	return Super::GetMaxAcceleration();
-}
-
-void UPlayerMovementComponent::ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration)
-{
-	Super::ApplyVelocityBraking(DeltaTime, Friction, BrakingDeceleration);
-}
-
-void UPlayerMovementComponent::PhysFlying(float deltaTime, int32 Iterations)
-{
-	Super::PhysFlying(deltaTime, Iterations);
-}
-
-void UPlayerMovementComponent::ApplyAccumulatedForces(float DeltaSeconds)
-{
-	Super::ApplyAccumulatedForces(DeltaSeconds);
 }
 
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
@@ -384,65 +383,65 @@ void UPlayerMovementComponent::StopGrapple()
 	}
 }
 
-bool UPlayerMovementComponent::CanGrapple() const
-{
-	//do a line trace to see if the player is aiming at something within grapple range
-	FHitResult GrappleHit;
-	GrappleLineTrace(GrappleHit, MaxGrappleDistance);
-
-	//return whether the line trace hit something or not
-	return GrappleHit.bBlockingHit;
-}
-
-float UPlayerMovementComponent::GetGrappleDistanceLeft() const
-{
-	//do a line trace to see if the player is aiming at something within the grapple check range
-	FHitResult GrappleHit;
-	GrappleLineTrace(GrappleHit, MaxGrappleCheckDistance);
-
-	//if the line trace hit something, return the distance to the hit
-	if (GrappleHit.bBlockingHit)
-	{
-		//get the distance left until the player can grapple to where they are aiming and check if it's greater than 0
-		if (const float GrappleDistanceLeft = FVector::Dist(GetOwner()->GetActorLocation(), GrappleHit.ImpactPoint) - MaxGrappleDistance; GrappleDistanceLeft > 0.f)
-		{
-			//return the distance left until the player can grapple to where they are aiming
-			return GrappleDistanceLeft;
-		}
-	}
-
-	//otherwise return 0
-	return 0.f;
-}
-
-void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
-{
-	//get the camera location and rotation
-	FVector CameraLocation;
-	FRotator CameraRotation;
-
-	//set the camera location and rotation
-	GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld())->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-	//get the forward vector of the camera rotation
-	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
-
-	//get the end point of the line trace
-	const FVector End = CameraLocation + Rotation * MaxDistance;
-
-	//the collision parameters to use for the line trace
-	FCollisionQueryParams GrappleCollisionParams;
-
-	//ignore the owner of the grapple hook
-	GrappleCollisionParams.AddIgnoredActor(GetOwner());
-
-	//set the collision shape
-	FCollisionShape CollisionShape;
-	CollisionShape.ShapeType = CanGrappleCollisionShape;
-
-	//do the line trace
-	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
-}
+//bool UPlayerMovementComponent::CanGrapple() const
+//{
+//	//do a line trace to see if the player is aiming at something within grapple range
+//	FHitResult GrappleHit;
+//	GrappleLineTrace(GrappleHit, MaxGrappleDistance);
+//
+//	//return whether the line trace hit something or not
+//	return GrappleHit.bBlockingHit;
+//}
+//
+//float UPlayerMovementComponent::GetGrappleDistanceLeft() const
+//{
+//	//do a line trace to see if the player is aiming at something within the grapple check range
+//	FHitResult GrappleHit;
+//	GrappleLineTrace(GrappleHit, MaxGrappleCheckDistance);
+//
+//	//if the line trace hit something, return the distance to the hit
+//	if (GrappleHit.bBlockingHit)
+//	{
+//		//get the distance left until the player can grapple to where they are aiming and check if it's greater than 0
+//		if (const float GrappleDistanceLeft = FVector::Dist(GetOwner()->GetActorLocation(), GrappleHit.ImpactPoint) - MaxGrappleDistance; GrappleDistanceLeft > 0.f)
+//		{
+//			//return the distance left until the player can grapple to where they are aiming
+//			return GrappleDistanceLeft;
+//		}
+//	}
+//
+//	//otherwise return 0
+//	return 0.f;
+//}
+//
+//void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float MaxDistance) const
+//{
+//	//get the camera location and rotation
+//	FVector CameraLocation;
+//	FRotator CameraRotation;
+//
+//	//set the camera location and rotation
+//	GetOwner()->GetNetOwningPlayer()->GetPlayerController(GetWorld())->GetPlayerViewPoint(CameraLocation, CameraRotation);
+//
+//	//get the forward vector of the camera rotation
+//	const FVector Rotation = CameraRotation.Quaternion().GetForwardVector();
+//
+//	//get the end point of the line trace
+//	const FVector End = CameraLocation + Rotation * MaxDistance;
+//
+//	//the collision parameters to use for the line trace
+//	FCollisionQueryParams GrappleCollisionParams;
+//
+//	//ignore the owner of the grapple hook
+//	GrappleCollisionParams.AddIgnoredActor(GetOwner());
+//
+//	//set the collision shape
+//	FCollisionShape CollisionShape;
+//	CollisionShape.ShapeType = CanGrappleCollisionShape;
+//
+//	//do the line trace
+//	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
+//}
 
 void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
@@ -468,7 +467,7 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	{
 		case AddToVelocity:
 			//add the grapple vector to the character's velocity
-			GrappleVelocity = GrappleDirection * AddGrappleSpeed * DeltaTime;
+			GrappleVelocity = GrappleDirection * WasdPullSpeed * DeltaTime;
 
 			//get the dot product of the character's velocity and the grapple velocity
 			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
@@ -493,15 +492,15 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 			{
 				case Constant:
 					//interpolate the velocity
-					GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * NoWasdPullSpeed, DeltaTime, NoWasdPullAccelInterpSpeed);
 				break;
 				case InterpTo:
 					//interpolate the velocity
-					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * NoWasdPullSpeed, DeltaTime, NoWasdPullAccelInterpSpeed);
 				break;
 				case InterpStep:
 					//interpolate the velocity
-					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * InterpGrappleSpeed, DeltaTime, GrappleInterpSpeed);
+					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * NoWasdPullSpeed, DeltaTime, NoWasdPullAccelInterpSpeed);
 				break;
 			}
 
@@ -628,8 +627,8 @@ bool UPlayerMovementComponent::DoWallLatch(float DeltaTime)
 		return false;
 	}
 
-	//check if the actor the trace hits doesn't have the wall latch tag
-	if (!WallLatchHitResult.GetActor()->ActorHasTag(WallLatchTag))
+	//check if the actor the trace hits doesn't have the wall latch tag and the component doesn't have the wall latch tag
+	if (!WallLatchHitResult.GetActor()->ActorHasTag(WallLatchTag) && !WallLatchHitResult.GetComponent()->ComponentHasTag(WallLatchTag))
 	{
 		return false;
 	}
@@ -674,8 +673,8 @@ bool UPlayerMovementComponent::DoWallRunning(const float DeltaTime)
 		return false;
 	}
 
-	//check if the line trace didn't hit an actor with the wall running tag
-	if (!WallRunningHitResult.GetActor()->ActorHasTag(WallRunningTag))
+	//check if the line trace didn't hit an actor with the wall running tag and the component doesn't have the wall running tag
+	if (!WallRunningHitResult.GetActor()->ActorHasTag(WallRunningTag) && !WallRunningHitResult.GetComponent()->ComponentHasTag(WallRunningTag))
 	{
 		//check for wall run finish
 		CheckForWallRunFinish();
