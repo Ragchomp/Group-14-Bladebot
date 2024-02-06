@@ -266,6 +266,9 @@ void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
 		}
 	}
 
+	//set the grappling hook to destroy itself if the actor its attached to is destroyed
+	Hit.GetActor()->OnDestroyed.AddDynamic(this, &AGrapplingHookHead::DoDestroy2);
+
 	//attach to the wall that we hit
 	AttachToComponent(Hit.GetComponent(), FAttachmentTransformRules::KeepWorldTransform);
 }
