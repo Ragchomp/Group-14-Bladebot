@@ -66,11 +66,11 @@ public:
 
 	//the grappling speed in add velocity mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float AddGrappleSpeed = 6000.f;
+	float WasdPullSpeed = 6000.f;
 
 	//the grappling speed in interp velocity mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float InterpGrappleSpeed = 4000.f;
+	float NoWasdPullSpeed = 4000.f;
 
 	//the interp function to use when using the InterpToGrapple mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
@@ -81,20 +81,20 @@ public:
 	bool bUseFlyingMovementMode = true;
 
 	//whether to apply a speed boost when stopping grappling
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|EndGrappleSpeedBoost")
 	bool bEndGrappleSpeedBoost = true;
 
 	//whether to apply the boost in the direction the player is looking or in the direction the player is moving
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|EndGrappleSpeedBoost", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
 	bool bEndGrappleBoostInLookDirection = false;
 
 	//the amount of boost to apply when stopping grappling
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|EndGrappleSpeedBoost", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
 	FAsyncRootMovementParams EndGrappleBoostMovementParams = FAsyncRootMovementParams(FVector::UpVector);
 
 	//the interpolation speed when using the InterpToGrapple mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float GrappleInterpSpeed = 1.5f;
+	float NoWasdPullAccelInterpSpeed = 1.5f;
 
 	//whether or not the player is grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -158,11 +158,27 @@ public:
 
 	//whether or not we can activate rotation mode right now
 	UPROPERTY(BlueprintReadOnly, Category = "Movement|Rotation")
-	bool bCanActivateRotationMode = true;
+	bool bCanActivateRotationMode = false;
 
 	//whether or not WASD effects the player's movement or the player's rotation
-	UPROPERTY(BlueprintReadOnly, Category = "Movement")
+	UPROPERTY(BlueprintReadOnly, Category = "Movement|Rotation")
 	bool bRotationMode = false;
+
+	//the amount of force left to use to rotate the player character during rotation mode
+	UPROPERTY(EditAnywhere, Category = "Movement|Rotation")
+	float RotationForceLeft = 1000.f;
+
+	//the recharge rate of the rotation force per second
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
+	float RotationForceRechargeRate = 1000.f;
+
+	//the maximum amount of force to use to rotate the player character during rotation mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
+	float MaxRotationForce = 1000.f;
+
+	//float curve for how much rotation force to use based on how long the player has been holding down the rotation input
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
+	UCurveFloat* RotationForceCurve = nullptr;
 
 	//the amount of time to hang before starting to slide down a wall latching wall
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
@@ -257,6 +273,14 @@ public:
 	//the last time the player launched out of a wall latch
 	float LastWallLatchLaunchTime = 0;
 
+	////the last time the player used wasd to rotate the player character
+	//float LastRotationInputTime = 0.f;
+
+	////the last time the player didn't use wasd to rotate the player character
+	//float LastNoRotationInputTime = 0.f;
+
+	////whether or not the player is rotating the player character using wasd input this frame
+	//bool bDidRotateThisFrame = false;
 
 
 	//override functions
@@ -270,14 +294,14 @@ public:
 	virtual bool IsValidLandingSpot(const FVector& CapsuleLocation, const FHitResult& Hit) const override;
 	virtual float GetGravityZ() const override;
 
-	virtual float GetMinAnalogSpeed() const override;
-	virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
 	virtual float GetMaxSpeed() const override;
-	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	virtual float GetMaxAcceleration() const override;
-	virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
-	virtual void PhysFlying(float deltaTime, int32 Iterations) override;
-	virtual void ApplyAccumulatedForces(float DeltaSeconds) override;
+	//virtual float GetMinAnalogSpeed() const override;
+	//virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
+	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
+	//virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
+	//virtual void PhysFlying(float deltaTime, int32 Iterations) override;
+	//virtual void ApplyAccumulatedForces(float DeltaSeconds) override;|
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
