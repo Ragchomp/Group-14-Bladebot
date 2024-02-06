@@ -128,13 +128,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
 	float MaxGrappleDistance = 9000.f;
 
-	////the max distance to check for when checking if the player can grapple to where they are aiming
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
-	//float MaxGrappleCheckDistance = 18000.f;
+	//the max distance to check for when checking if the player can grapple to where they are aiming
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
+	float MaxGrappleCheckDistance = 18000.f;
 
-	////the trace channel to use when checking if the player can grapple to where they are aiming
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance");
-	//TEnumAsByte<ECollisionChannel> CanGrappleTraceChannel = ECC_Visibility;
+	//the trace channel to use when checking if the player can grapple to where they are aiming
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance");
+	TEnumAsByte<ECollisionChannel> CanGrappleTraceChannel = ECC_Visibility;
 
 	//the amount of force to apply in the direction the player is looking when jumping
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping|DirectionalBoost")
@@ -301,7 +301,7 @@ public:
 	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	//virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 	//virtual void PhysFlying(float deltaTime, int32 Iterations) override;
-	//virtual void ApplyAccumulatedForces(float DeltaSeconds) override;
+	//virtual void ApplyAccumulatedForces(float DeltaSeconds) override;|
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
@@ -311,16 +311,16 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void StopGrapple();
 
-	////function that detects if the player can grapple or not
-	//UFUNCTION(BlueprintCallable)
-	//bool CanGrapple() const;
+	//function that detects if the player can grapple or not
+	UFUNCTION(BlueprintCallable)
+	bool CanGrapple() const;
 
-	////gets the distance to the point the player is looking at minus the max grapple distance or returns 0 if that distance is less than 0 or what the player is looking at is not within the max grapple check distance
-	//UFUNCTION(BlueprintCallable)
-	//float GetGrappleDistanceLeft() const;
+	//gets the distance to the point the player is looking at minus the max grapple distance or returns 0 if that distance is less than 0 or what the player is looking at is not within the max grapple check distance
+	UFUNCTION(BlueprintCallable)
+	float GetGrappleDistanceLeft() const;
 
-	////line trace function for the grapple hook
-	//void GrappleLineTrace(FHitResult& OutHit, float MaxDistance) const;
+	//line trace function for the grapple hook
+	void GrappleLineTrace(FHitResult& OutHit, float MaxDistance) const;
 
 	//sets the velocity of the player character when grappling
 	void UpdateGrappleVelocity(float DeltaTime);
