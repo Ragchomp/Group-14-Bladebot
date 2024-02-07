@@ -3,12 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Interface/HitInterface.h"
 #include "GameFramework/Character.h"
 #include "BaseCharacter.generated.h"
 
 UCLASS()
-class BLADEBOT_API ABaseCharacter : public ACharacter, public IHitInterface
+class BLADEBOT_API ABaseCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
