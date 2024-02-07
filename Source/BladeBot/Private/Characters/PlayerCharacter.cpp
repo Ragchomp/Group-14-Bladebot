@@ -182,7 +182,7 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 	//get the vector direction from the input value
 	const FVector2D VectorDirection = Value.Get<FVector2D>();
 
-	//check if we're in the rotation mode
+	//check if we're in the rotation modenumEnemiesDestroyed
 	if (PlayerMovementComponent->bRotationMode)
 	{
 		//add w and s movement input
@@ -523,6 +523,7 @@ void APlayerCharacter::CallRestartPlayer()
 	const TObjectPtr<AController> ControllerReference = GetController();
 
 	//DashEnergy = MaximumDashEnergy;
+	numEnemiesDestroyed = 0;
 
 	//Destroying Player
 	Destroyed();
@@ -703,6 +704,8 @@ void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 
 		//apply damage to the other actor
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
+		//Increase kills by one
+		numEnemiesDestroyed += 1;
 	}
 	//check if we're spin attacking
 	else if (bIsSpinAttacking)
