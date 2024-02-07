@@ -5,7 +5,7 @@
 
 // Components
 #include "Components/CapsuleComponent.h"
-#include "Components/SphereComponent.h"
+//#include "Components/SphereComponent.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Kismet/GameplayStatics.h"
 
@@ -25,23 +25,23 @@ AMineEnemy::AMineEnemy()
 	GetMesh()->SetupAttachment(GetRootComponent());
 
 
-	// Detection sphere init
-	DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
-	DetectionSphere->SetSphereRadius(DetectionRange);
-	DetectionSphere->SetupAttachment(GetRootComponent());
+	//// Detection sphere init
+	//DetectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("DetectionSphere"));
+	//DetectionSphere->SetSphereRadius(DetectionRange);
+	//DetectionSphere->SetupAttachment(GetRootComponent());
 
-	// Detection sphere Collisions
-	DetectionSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
-	DetectionSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	DetectionSphere->SetGenerateOverlapEvents(true);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Ignore);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
-	DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Vehicle, ECollisionResponse::ECR_Ignore);
+	//// Detection sphere Collisions
+	//DetectionSphere->SetCollisionObjectType(ECollisionChannel::ECC_WorldDynamic);
+	//DetectionSphere->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	//DetectionSphere->SetGenerateOverlapEvents(true);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Ignore);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldDynamic, ECollisionResponse::ECR_Ignore);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_WorldStatic, ECollisionResponse::ECR_Ignore);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Ignore);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
+	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Vehicle, ECollisionResponse::ECR_Ignore);
 }
 
 void AMineEnemy::BeginPlay()
@@ -52,12 +52,16 @@ void AMineEnemy::BeginPlay()
 
 	Tags.Add(FName("Enemy"));
 
-	DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMineEnemy::OnOverlap);
-	DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &AMineEnemy::EndOverlap);
+	//DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMineEnemy::OnOverlap);
+	//DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &AMineEnemy::EndOverlap);
 
 	// Moves to first patrol
 	PatrolTarget = ChoosePatrolTarget();
-		
+	startingLocation = GetActorLocation();;
+	startingRotation = GetActorRotation();
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("begin play"));
+
 }
 
 void AMineEnemy::Tick(float DeltaTime)
@@ -75,8 +79,9 @@ void AMineEnemy::Tick(float DeltaTime)
 
 void AMineEnemy::Die()
 {
-	GetWorldTimerManager().ClearTimer(DischargeChargeUpTimer);
-	GetWorldTimerManager().ClearTimer(DischargeCoolDownTimer);
+	//GetWorldTimerManager().ClearTimer(DischargeChargeUpTimer);
+	//GetWorldTimerManager().ClearTimer(DischargeCoolDownTimer);
+	
 	Super::Die();
 }
 
@@ -177,92 +182,104 @@ void AMineEnemy::MoveToTarget(float DeltaTime)
 	}
 }
 
-// Combat -------------------
-
-void AMineEnemy::SeenAnEnemy()
+void AMineEnemy::myReset()
 {
-	if (EnemyState == EEnemyState::EES_Attacking || CombatTarget == nullptr) return;
-
-	EnemyState = EEnemyState::EES_Attacking;
-
-	// Charge gun
-	if (GunState == ESGunState::ESGS_Idle)
-	{
-		GunState = ESGunState::ESGS_Chargeing;
-		PlayVFXChargeUp(GetActorLocation());
-		PlayAudioChargeUp(GetActorLocation());
-		GetWorldTimerManager().SetTimer(DischargeChargeUpTimer, this, &AMineEnemy::DischargeChargeUpComplete, DischargeChargeRate);
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Charging"));
-	}
-}
-
-void AMineEnemy::DischargeChargeUpComplete()
-{
-	if (GunState != ESGunState::ESGS_Chargeing) return;
-
-	GunState = ESGunState::ESGS_Shooting;
-	if (CombatTarget && InTargetRange(CombatTarget, DischargeMaxRange))
-	{
-		if (CombatTarget->ActorHasTag("Player"))
-			UGameplayStatics::ApplyDamage(CombatTarget, Damage, GetController(), this, UDamageType::StaticClass());
-		/*GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Orange, FString::Printf(TEXT("Mine attack")));
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, FString::Printf(TEXT("Distance between %f"), GetDistanceBetweenTwoPoints(GetActorLocation(), CombatTarget->GetActorLocation())));
-		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, FString::Printf(TEXT("Max range %f"), DamageRange));*/
-
-		PlayVFXAttack(GetActorLocation());
-		PlayAudioAttack(GetActorLocation());
-	}
-
-	GunState = ESGunState::ESGS_Cooling;
-	PlayVFXCoolDown(GetActorLocation());
-	PlayAudioCoolDown(GetActorLocation());
-	GetWorldTimerManager().SetTimer(DischargeCoolDownTimer, this, &AMineEnemy::DischargeCoolDownComplete, DischargeCooldownRate);
-}
-
-void AMineEnemy::DischargeCoolDownComplete()
-{
-	if (GunState != ESGunState::ESGS_Cooling) return;
-
-	GunState = ESGunState::ESGS_Idle;
-	if (EnemyState == EEnemyState::EES_Attacking)
-	{
-		GunState = ESGunState::ESGS_Chargeing;
-		PlayVFXChargeUp(GetActorLocation());
-		PlayAudioChargeUp(GetActorLocation());
-		GetWorldTimerManager().SetTimer(DischargeChargeUpTimer, this, &AMineEnemy::DischargeChargeUpComplete, DischargeChargeRate);
-		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Cooldown complete -> charging"));
-	}
-}
-
-void AMineEnemy::EnemyLeft()
-{
-	// Clear all combat timers
-	GetWorldTimerManager().ClearTimer(DischargeChargeUpTimer);
-	GetWorldTimerManager().ClearTimer(DischargeCoolDownTimer);
-	// Start cooldown on Discharge
-	GunState = ESGunState::ESGS_Cooling;
-	GetWorldTimerManager().SetTimer(DischargeCoolDownTimer, this, &AMineEnemy::DischargeCoolDownComplete, DischargeCooldownRate);
-	// goes back to patrolling
-	CombatTarget = nullptr;
+	//this->SetActorLocation(startingLocation);
+	//this->SetActorRotation(startingRotation);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("reset called"));
+	CurrentTargetIndex = -1;
+	Tags.Add(FName("Enemy"));
+	PatrolTarget = ChoosePatrolTarget();
 	EnemyState = EEnemyState::EES_Patroling;
+	GunState = ESGunState::ESGS_Idle;
 }
 
-// Other -------------------
-
-void AMineEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
-
-	if (Player && Player->ActorHasTag(FName("Player")))
-	{
-		CombatTarget = Player;
-		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Detected player"));
-		SeenAnEnemy();
-	}
-}
-
-void AMineEnemy::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-	EnemyLeft();
-	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player gone"));
-}
+// Combat -------------------
+//
+//void AMineEnemy::SeenAnEnemy()
+//{
+//	if (EnemyState == EEnemyState::EES_Attacking || CombatTarget == nullptr) return;
+//
+//	EnemyState = EEnemyState::EES_Attacking;
+//
+//	// Charge gun
+//	if (GunState == ESGunState::ESGS_Idle)
+//	{
+//		GunState = ESGunState::ESGS_Chargeing;
+//		PlayVFXChargeUp(GetActorLocation());
+//		PlayAudioChargeUp(GetActorLocation());
+//		GetWorldTimerManager().SetTimer(DischargeChargeUpTimer, this, &AMineEnemy::DischargeChargeUpComplete, DischargeChargeRate);
+//		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Charging"));
+//	}
+//}
+//
+//void AMineEnemy::DischargeChargeUpComplete()
+//{
+//	if (GunState != ESGunState::ESGS_Chargeing) return;
+//
+//	GunState = ESGunState::ESGS_Shooting;
+//	if (CombatTarget && InTargetRange(CombatTarget, DischargeMaxRange))
+//	{
+//		if (CombatTarget->ActorHasTag("Player"))
+//			UGameplayStatics::ApplyDamage(CombatTarget, Damage, GetController(), this, UDamageType::StaticClass());
+//		/*GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Orange, FString::Printf(TEXT("Mine attack")));
+//		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Red, FString::Printf(TEXT("Distance between %f"), GetDistanceBetweenTwoPoints(GetActorLocation(), CombatTarget->GetActorLocation())));
+//		GEngine->AddOnScreenDebugMessage(-1, 10, FColor::Yellow, FString::Printf(TEXT("Max range %f"), DamageRange));*/
+//
+//		PlayVFXAttack(GetActorLocation());
+//		PlayAudioAttack(GetActorLocation());
+//	}
+//
+//	GunState = ESGunState::ESGS_Cooling;
+//	PlayVFXCoolDown(GetActorLocation());
+//	PlayAudioCoolDown(GetActorLocation());
+//	GetWorldTimerManager().SetTimer(DischargeCoolDownTimer, this, &AMineEnemy::DischargeCoolDownComplete, DischargeCooldownRate);
+//}
+//
+//void AMineEnemy::DischargeCoolDownComplete()
+//{
+//	if (GunState != ESGunState::ESGS_Cooling) return;
+//
+//	GunState = ESGunState::ESGS_Idle;
+//	if (EnemyState == EEnemyState::EES_Attacking)
+//	{
+//		GunState = ESGunState::ESGS_Chargeing;
+//		PlayVFXChargeUp(GetActorLocation());
+//		PlayAudioChargeUp(GetActorLocation());
+//		GetWorldTimerManager().SetTimer(DischargeChargeUpTimer, this, &AMineEnemy::DischargeChargeUpComplete, DischargeChargeRate);
+//		//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Cooldown complete -> charging"));
+//	}
+//}
+//
+//void AMineEnemy::EnemyLeft()
+//{
+//	// Clear all combat timers
+//	GetWorldTimerManager().ClearTimer(DischargeChargeUpTimer);
+//	GetWorldTimerManager().ClearTimer(DischargeCoolDownTimer);
+//	// Start cooldown on Discharge
+//	GunState = ESGunState::ESGS_Cooling;
+//	GetWorldTimerManager().SetTimer(DischargeCoolDownTimer, this, &AMineEnemy::DischargeCoolDownComplete, DischargeCooldownRate);
+//	// goes back to patrolling
+//	CombatTarget = nullptr;
+//	EnemyState = EEnemyState::EES_Patroling;
+//}
+//
+//// Other -------------------
+//
+//void AMineEnemy::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+//{
+//	APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
+//
+//	if (Player && Player->ActorHasTag(FName("Player")))
+//	{
+//		CombatTarget = Player;
+//		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Detected player"));
+//		SeenAnEnemy();
+//	}
+//}
+//
+//void AMineEnemy::EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+//{
+//	EnemyLeft();
+//	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Player gone"));
+//}

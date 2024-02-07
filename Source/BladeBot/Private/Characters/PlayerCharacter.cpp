@@ -198,7 +198,7 @@ void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
 	//get the vector direction from the input value
 	const FVector2D VectorDirection = Value.Get<FVector2D>();
 
-	//check if we're in the rotation mode
+	//check if we're in the rotation modenumEnemiesDestroyed
 	if (PlayerMovementComponent->bRotationMode)
 	{
 		//add w and s movement input
@@ -423,6 +423,9 @@ void APlayerCharacter::DoSpinAttackOnEnemy(AActor* Enemy)
 
 	//apply damage to the enemy
 	UGameplayStatics::ApplyDamage(Enemy, Damage, GetController(), this, UDamageType::StaticClass());
+
+	//Increase kills by one
+	numEnemiesDestroyed += 1;
 }
 
 //bool APlayerCharacter::CrosshairCheck() const
@@ -577,6 +580,7 @@ void APlayerCharacter::CallRestartPlayer()
 	const TObjectPtr<AController> ControllerReference = GetController();
 
 	//DashEnergy = MaximumDashEnergy;
+	numEnemiesDestroyed = 0;
 
 	//Destroying Player
 	Destroyed();

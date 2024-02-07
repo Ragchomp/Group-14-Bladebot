@@ -33,23 +33,26 @@ protected:
 	void PatrolTimerFinished();
 	bool RotateToFace(float DeltaTime, FVector Direction);
 	void MoveToTarget(float DeltaTime);
-
+public:
+	UFUNCTION(BlueprintCallable)
+	void myReset();
+protected:
 	// Combat ----------
-	void SeenAnEnemy();
-	void DischargeChargeUpComplete();
-	void DischargeCoolDownComplete();
-	void EnemyLeft();
+	//void SeenAnEnemy();
+	//void DischargeChargeUpComplete();
+	//void DischargeCoolDownComplete();
+	//void EnemyLeft();
 
 	// Other ----------
 
-	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-		UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
-		bool bFromSweep, const FHitResult& SweepResult) override;
+	//virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	//	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex,
+	//	bool bFromSweep, const FHitResult& SweepResult) override;
 
-	virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
-			UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
+	//virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+	//		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
-private:
+public:
 
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
@@ -58,46 +61,46 @@ private:
 	UPROPERTY(VisibleAnywhere)
 		class AActor* PatrolTarget;
 
-	UPROPERTY(EditAnywhere, Category = "Patrol")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Patrol")
 		TArray<AActor*> PatrolTargets;
 
 	UPROPERTY()
 		TArray<AActor*> Targets;
 	// ------------- Components ------------
-	UPROPERTY(VisibleAnywhere)
-		class USphereComponent* DetectionSphere;
+	//UPROPERTY(VisibleAnywhere)
+	//	class USphereComponent* DetectionSphere;
 
 
 	// ------------- Timer Handlers ------------
 
 	FTimerHandle PatrolTimer;
 
-	FTimerHandle DischargeChargeUpTimer;
+	//FTimerHandle DischargeChargeUpTimer;
 
-	FTimerHandle DischargeCoolDownTimer;
+	//FTimerHandle DischargeCoolDownTimer;
 
 
 public:
 
 	// ------------- Constants ------------
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
-		float DischargeMaxRange = 2000.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+	//	float DischargeMaxRange = 2000.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
-		float DischargeChargeRate = 3.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+	//	float DischargeChargeRate = 3.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
-		float DischargeCooldownRate = 3.f;
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+	//	float DischargeCooldownRate = 3.f;
 
-	UPROPERTY()
-		float DetectionRange = 2000.f;
+	//UPROPERTY()
+	//	float DetectionRange = 2000.f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
+	/*UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
 		double Damage = 1.f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
-		double DamageRange = 2000.f;
+		double DamageRange = 2000.f;*/
 	
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Constants")
@@ -118,6 +121,12 @@ public:
 
 	UPROPERTY()
 		int32 CurrentTargetIndex = -1;
+
+	UPROPERTY()
+		FVector startingLocation;
+
+	UPROPERTY()
+		FRotator startingRotation;
 
 	// ------------- Bools ------------
 

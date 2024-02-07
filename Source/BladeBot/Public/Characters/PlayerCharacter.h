@@ -164,6 +164,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	bool GameComplete = false;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objective")
+	int numEnemiesDestroyed = 0;
+
 	/**
 	 * Dash Variables
 	 */

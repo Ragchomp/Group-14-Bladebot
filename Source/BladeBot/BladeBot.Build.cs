@@ -10,7 +10,7 @@ public class BladeBot : ModuleRules
 	
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "EnhancedInput", "UMG", "GeometryCollectionEngine", "Niagara", "UMG", "AIModule", "PhysicsCore" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "CableComponent", "NavigationSystem", "GeometryProcessingInterfaces" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "CableComponent", "NavigationSystem" });
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
