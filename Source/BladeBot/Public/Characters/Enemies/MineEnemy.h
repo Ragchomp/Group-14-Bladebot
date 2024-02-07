@@ -33,7 +33,10 @@ protected:
 	void PatrolTimerFinished();
 	bool RotateToFace(float DeltaTime, FVector Direction);
 	void MoveToTarget(float DeltaTime);
-
+public:
+	UFUNCTION(BlueprintCallable)
+	void myReset();
+protected:
 	// Combat ----------
 	//void SeenAnEnemy();
 	//void DischargeChargeUpComplete();
@@ -49,7 +52,7 @@ protected:
 	//virtual void EndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	//		UPrimitiveComponent* OtherComp, int32 OtherBodyIndex) override;
 
-private:
+public:
 
 	// ------------- class Refs ------------
 	UPROPERTY(VisibleAnywhere)
@@ -58,7 +61,7 @@ private:
 	UPROPERTY(VisibleAnywhere)
 		class AActor* PatrolTarget;
 
-	UPROPERTY(EditAnywhere, Category = "Patrol")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Patrol")
 		TArray<AActor*> PatrolTargets;
 
 	UPROPERTY()
@@ -118,6 +121,12 @@ public:
 
 	UPROPERTY()
 		int32 CurrentTargetIndex = -1;
+
+	UPROPERTY()
+		FVector startingLocation;
+
+	UPROPERTY()
+		FRotator startingRotation;
 
 	// ------------- Bools ------------
 
