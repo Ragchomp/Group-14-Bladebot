@@ -57,7 +57,11 @@ void AMineEnemy::BeginPlay()
 
 	// Moves to first patrol
 	PatrolTarget = ChoosePatrolTarget();
-		
+	startingLocation = GetActorLocation();;
+	startingRotation = GetActorRotation();
+
+	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("begin play"));
+
 }
 
 void AMineEnemy::Tick(float DeltaTime)
@@ -176,6 +180,18 @@ void AMineEnemy::MoveToTarget(float DeltaTime)
 		}
 
 	}
+}
+
+void AMineEnemy::myReset()
+{
+	//this->SetActorLocation(startingLocation);
+	//this->SetActorRotation(startingRotation);
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("reset called"));
+	CurrentTargetIndex = -1;
+	Tags.Add(FName("Enemy"));
+	PatrolTarget = ChoosePatrolTarget();
+	EnemyState = EEnemyState::EES_Patroling;
+	GunState = ESGunState::ESGS_Idle;
 }
 
 // Combat -------------------
