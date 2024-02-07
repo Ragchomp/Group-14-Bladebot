@@ -557,8 +557,8 @@ void UPlayerMovementComponent::BoostJump(const float JumpZVel)
 
 void UPlayerMovementComponent::ToggleRotationMode(bool InValue)
 {
-	//check if we're trying to enable the rotation mode and we're not supposed to be able to
-	if (InValue && !bCanActivateRotationMode)
+	//check if we can't activate the rotation mode
+	if (!(bCanActivateRotationMode && bCanEverActivateRotationMode))
 	{
 		return;
 	}

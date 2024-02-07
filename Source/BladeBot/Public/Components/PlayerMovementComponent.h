@@ -158,7 +158,11 @@ public:
 
 	//whether or not we can activate rotation mode right now
 	UPROPERTY(BlueprintReadOnly, Category = "Movement|Rotation")
-	bool bCanActivateRotationMode = false;
+	bool bCanActivateRotationMode = true;
+
+	//whether or not we can ever activate rotation mode
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
+	bool bCanEverActivateRotationMode = false;
 
 	//whether or not WASD effects the player's movement or the player's rotation
 	UPROPERTY(BlueprintReadOnly, Category = "Movement|Rotation")

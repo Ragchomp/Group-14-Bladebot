@@ -48,6 +48,10 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	SpinAttackHitbox = CreateDefaultSubobject<USphereComponent>(TEXT("SpinAttackHitbox"));
 	SpinAttackSwordHitbox = CreateDefaultSubobject<UBoxComponent>(TEXT("SpinAttackSwordHitbox"));
 
+	////deactivate the spin attack hitboxes
+	//SpinAttackHitbox->SetActive(false);
+	//SpinAttackSwordHitbox->SetActive(false);
+
 	//setup attachments
 	CameraArm->SetupAttachment(GetRootComponent());
 	Camera->SetupAttachment(CameraArm);
@@ -109,10 +113,6 @@ void APlayerCharacter::BeginPlay()
 	Inits();
 	GetCapsuleComponent()->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
 
-	//spin attack hitboxes overlaps setup
-	SpinAttackHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
-	SpinAttackSwordHitbox->OnComponentBeginOverlap.AddDynamic(this, &APlayerCharacter::OnOverlap);
-
 	//spin attack movement params setup
 	SpinAttackMovementParams.OnComplete.AddDynamic(this, &APlayerCharacter::SpinAttackMovementEnd);
 
@@ -169,6 +169,22 @@ void APlayerCharacter::Tick(float DeltaTime)
 
 	//EnergyRegeneration();
 
+	//check if we're spin attacking
+	if (bIsSpinAttacking)
+	{
+		TArray<AActor*> OverlappingActors;
+		SpinAttackSwordHitbox->GetOverlappingActors(OverlappingActors);
+		for (AActor* Actor : OverlappingActors)
+		{
+			DoSpinAttackOnEnemy(Actor);
+		}
+
+		SpinAttackHitbox->GetOverlappingActors(OverlappingActors);
+		for (AActor* Actor : OverlappingActors)
+		{
+			DoSpinAttackOnEnemy(Actor);
+		}
+	}
 }
 
 void APlayerCharacter::GroundMovement(const FInputActionValue& Value)
@@ -298,6 +314,10 @@ void APlayerCharacter::DoSpinAttack(const FInputActionValue& Value)
 	//check if we're not dead
 	if (CharacterState != ECharacterState::ECS_Dead && bCanSpinAttack)
 	{
+		////activate the spin attack hitboxes
+		//SpinAttackHitbox->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
+		//SpinAttackSwordHitbox->SetCollisionEnabled(ECollisionEnabled::Type::QueryOnly);
+
 		//set the spin attack flag to true
 		bIsSpinAttacking = true;
 
@@ -327,6 +347,10 @@ void APlayerCharacter::SpinAttackEnd()
 		return;
 	}
 
+	////deactivate the spin attack hitboxes
+	//SpinAttackHitbox->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+	//SpinAttackSwordHitbox->SetCollisionEnabled(ECollisionEnabled::Type::NoCollision);
+
 	//set bIsSpinAttacking to false
 	bIsSpinAttacking = false;
 
@@ -334,7 +358,10 @@ void APlayerCharacter::SpinAttackEnd()
 	PlayerMovementComponent->bCanActivateRotationMode = true;
 
 	//empty the overlapped actors array
-	SpinAttackOverlappedActors.Empty();
+	//SpinAttackOverlappedActors.Empty();
+
+	//empty the hit actors array
+	SpinAttackHitActors.Empty();
 
 	//set a timer to end the cooldown of the character's spin attack
 	GetWorldTimerManager().SetTimer(SpinAttackCooldownTimer, this, &APlayerCharacter::SpinAttackCooldownEnd, SpinAttackCooldownTime, false);
@@ -369,6 +396,33 @@ void APlayerCharacter::SpinAttackMovementEnd()
 
 	//reset whether or not we've hit an enemy with the spin attack
 	bHitEnemyWithSpinAttack = false;
+}
+
+void APlayerCharacter::DoSpinAttackOnEnemy(AActor* Enemy)
+{
+	if (!Enemy || !(Enemy->ActorHasTag(FName("Enemy")) || Enemy->ActorHasTag(FName("Object"))))
+	{
+		return;
+	}
+
+	//set the bHitEnemyWithSpinAttack flag to true
+	bHitEnemyWithSpinAttack = true;
+
+	//check if the enemy has already been hit or hasn't been overlapped by one of the spin attack hitboxes
+	if (SpinAttackHitActors.Contains(Enemy))
+	{
+		//return
+		return;
+	}
+
+	//add the enemy to the overlapped actors array
+	SpinAttackHitActors.Add(Enemy);
+
+	////call the blueprint event
+	//OnSpinAttackHit(Enemy);
+
+	//apply damage to the enemy
+	UGameplayStatics::ApplyDamage(Enemy, Damage, GetController(), this, UDamageType::StaticClass());
 }
 
 //bool APlayerCharacter::CrosshairCheck() const
@@ -686,23 +740,23 @@ void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 		OtherComponent->GetCollisionObjectType() != ECC_WorldDynamic && bIsSpinAttacking)
 	{
 		//set the bHitEnemyWithSpinAttack flag to true
-		bHitEnemyWithSpinAttack = true;
+		//bHitEnemyWithSpinAttack = true;
 
-		//check if the other actor has already been overlapped by one of the spin attack hitboxes
-		if (SpinAttackOverlappedActors.Contains(OtherActor))
-		{
-			//return
-			return;
-		}
+		////check if the other actor has already been overlapped by one of the spin attack hitboxes
+		//if (SpinAttackOverlappedActors.Contains(OtherActor))
+		//{
+		//	//return
+		//	return;
+		//}
 
-		//add the other actor to the overlapped actors array
-		SpinAttackOverlappedActors.Add(OtherActor);
+		////add the other actor to the overlapped actors array
+		//SpinAttackOverlappedActors.Add(OtherActor);
 
-		//call the blueprint event
-		OnSpinAttackHit(OverlappedComponent, OtherActor, OtherComponent, OtherBodyIndex, bFromSweep, SweepResult);
+		////call the blueprint event
+		//OnSpinAttackHit(OverlappedComponent, OtherActor, OtherComponent, OtherBodyIndex, bFromSweep, SweepResult);
 
-		//apply damage to the other actor
-		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
+		////apply damage to the other actor
+		//UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
 	}
 	//check if we're spin attacking
 	else if (bIsSpinAttacking)

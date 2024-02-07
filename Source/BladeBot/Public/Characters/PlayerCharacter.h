@@ -123,9 +123,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
 	float SpinAttackCooldownTime = 1.0f;
 
-	//array of actors that have been overlapped by the spin attack
+	//array of actors that have been hit by the spin attack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
-	TArray<AActor*> SpinAttackOverlappedActors;
+	TArray<AActor*> SpinAttackHitActors;
 
 	//movement parameters for the spin attack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
@@ -303,6 +303,9 @@ public:
 
 	UFUNCTION()
 	void SpinAttackMovementEnd();
+
+	UFUNCTION()
+	void DoSpinAttackOnEnemy(AActor* Enemy);
 
 	/**
 	 * Dash Function(s)
