@@ -123,9 +123,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
 	float SpinAttackCooldownTime = 1.0f;
 
-	//array of actors that have been overlapped by the spin attack
+	//array of actors that have been hit by the spin attack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
-	TArray<AActor*> SpinAttackOverlappedActors;
+	TArray<AActor*> SpinAttackHitActors;
 
 	//movement parameters for the spin attack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
@@ -163,6 +163,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	bool GameComplete = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objective")
+	int numEnemiesDestroyed = 0;
 
 	/**
 	 * Dash Variables
@@ -225,7 +228,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
+	//virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
@@ -304,6 +307,9 @@ public:
 	UFUNCTION()
 	void SpinAttackMovementEnd();
 
+	UFUNCTION()
+	void DoSpinAttackOnEnemy(AActor* Enemy);
+
 	/**
 	 * Dash Function(s)
 	 */
@@ -358,11 +364,11 @@ public:
 
 	//blueprint event for when the spin attack hits an enemy (called for each enemy hit)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
-	void OnSpinAttackHit(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnSpinAttackHit(AActor* HitActor);
 
 	//blueprint event for when the spin attack hits something that isn't an enemy (called for each non-enemy hit)
 	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
-	void OnSpinAttackHitNonEnemy(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+	void OnSpinAttackHitNonEnemy(AActor* HitActor);
 
 	//blueprint event for when the spin attack ends
 	UFUNCTION(BlueprintImplementableEvent, Category = "Attacking")
