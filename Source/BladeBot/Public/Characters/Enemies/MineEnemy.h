@@ -61,7 +61,7 @@ public:
 	UPROPERTY(VisibleAnywhere)
 		class AActor* PatrolTarget;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Patrol")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Patrol")
 		TArray<AActor*> PatrolTargets;
 
 	UPROPERTY()
