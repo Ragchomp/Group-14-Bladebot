@@ -392,6 +392,7 @@ void APlayerCharacter::DoSpinAttackOnEnemy(AActor* Enemy)
 	if (!Enemy || Enemy == this)
 	{
 		//return
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("func return 1")));
 		return;
 	}
 
@@ -400,6 +401,8 @@ void APlayerCharacter::DoSpinAttackOnEnemy(AActor* Enemy)
 	{
 		//call the non enemy hit event
 		OnSpinAttackHitNonEnemy(Enemy);
+
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("func return 2")));
 
 		return;
 	}
@@ -411,6 +414,8 @@ void APlayerCharacter::DoSpinAttackOnEnemy(AActor* Enemy)
 	if (SpinAttackHitActors.Contains(Enemy))
 	{
 		//return
+
+		GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("func return 3")));
 		return;
 	}
 
@@ -420,6 +425,7 @@ void APlayerCharacter::DoSpinAttackOnEnemy(AActor* Enemy)
 	//call the blueprint event
 	OnSpinAttackHit(Enemy);
 
+	GEngine->AddOnScreenDebugMessage(-1, 1, FColor::Red, FString::Printf(TEXT("Should do damage")));
 	//apply damage to the enemy
 	UGameplayStatics::ApplyDamage(Enemy, Damage, GetController(), this, UDamageType::StaticClass());
 
