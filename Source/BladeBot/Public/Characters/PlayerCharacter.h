@@ -123,10 +123,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
 	float SpinAttackCooldownTime = 1.0f;
 
-	//array of actors that have been hit by the spin attack
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
-	TArray<AActor*> SpinAttackHitActors;
-
 	//movement parameters for the spin attack
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SpinAttack")
 	FAsyncRootMovementParams SpinAttackMovementParams = FAsyncRootMovementParams(FVector::ZeroVector, 0,0,0.5f,true);
@@ -151,6 +147,10 @@ public:
 	FTimerHandle SpinAttackTimer = FTimerHandle();
 	FTimerHandle SpinAttackCooldownTimer = FTimerHandle();
 
+	//array of actors that have been overlapped by the spin attack
+	UPROPERTY()
+	TArray<AActor*> SpinAttackOverlappedActors;
+
 	// Objective Variables
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	TArray<AActor*> ValidObjectives;
@@ -166,6 +166,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objective")
 	int numEnemiesDestroyed = 0;
+	
 
 	/**
 	 * Dash Variables
@@ -228,7 +229,7 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(UInputComponent* InInputComponent) override;
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
-	//virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
+	virtual void OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult) override;
 	virtual void Destroyed() override;
 	virtual void Die() override;
 	virtual void StopJumping() override;
