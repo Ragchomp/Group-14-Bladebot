@@ -59,27 +59,73 @@ void AObjectivePoint::Tick(float DeltaTime)
 void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
 	UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// if player touches the overlap mesh it becomes active and changes to the active mesh if enabled through player character.
-	if (AlreadyHit == false)
+	if(!DamageToComplete)
 	{
-		APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-		if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
+		// if player touches the overlap mesh it becomes active and changes to the active mesh if enabled through player character.
+		if (AlreadyHit == false)
 		{
-			Tags.Add(FName("ObjectiveComplete"));
-			ObjectveMesh->SetVisibility(false);
-			ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-			AfterActivationMesh->SetVisibility(true);
-			AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-			PlayAudioChange(GetActorLocation());
-			PlayVFXChange(GetActorLocation());
-			AlreadyHit = true;
-			ObjectiveComplete = true;
+			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
+			{
+				Tags.Add(FName("ObjectiveComplete"));
 
-			Player->CheckIfObjectivesComplete(this);
+				PlayAudioChange(GetActorLocation());
+				PlayVFXChange(GetActorLocation());
+				AlreadyHit = true;
+				ObjectiveComplete = true;
+
+				if (shouldBeDestroyed)
+				{
+					ObjectveMesh->SetVisibility(false);
+					ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+					AfterActivationMesh->SetVisibility(true);
+					AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+					this->Destroy();
+				}
+
+				Player->CheckIfObjectivesComplete(this);
+			}
 		}
 	}
+
+}
+
+float AObjectivePoint::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	if(DamageToComplete)
+	{
+		// if player touches the overlap mesh it becomes active and changes to the active mesh if enabled through player character.
+		if (AlreadyHit == false)
+		{
+			APlayerCharacter* Player = Cast<APlayerCharacter>(DamageCauser);
+
+			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
+			{
+				Tags.Add(FName("ObjectiveComplete"));
+
+				PlayAudioChange(GetActorLocation());
+				PlayVFXChange(GetActorLocation());
+				AlreadyHit = true;
+				ObjectiveComplete = true;
+
+				if (shouldBeDestroyed)
+				{
+					ObjectveMesh->SetVisibility(false);
+					ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+					AfterActivationMesh->SetVisibility(true);
+					AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+					this->Destroy();
+				}
+
+				Player->CheckIfObjectivesComplete(this);
+			}
+		}
+	}
+	
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Took damage"));
+	return 0.0f;
 }
 
 void AObjectivePoint::SetInactive()
