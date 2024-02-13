@@ -59,6 +59,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Despawn", meta = (EditCondition = "bDestroyOnImpact == true", editconditionHides))
 	float DestroyDelay = 0.1f;
 
+	//the tag to use for when an object shouldn't be grappleable
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grapple")
+	FName NonGrappleableTag = "NoGrapple";
+
 	//the hitbox for the grappling hook head's collisions with surfaces
 	UPROPERTY(VisibleAnywhere)
 	class USphereComponent* WallHitbox;

@@ -3,6 +3,11 @@
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
 
+FGrappleInterpStruct::FGrappleInterpStruct(const float InPullSpeed, const float InPullAccel, const EInterpToTargetType InInterpMode): InInterpMode(InInterpMode), PullSpeed(InPullSpeed), PullAccel(InPullAccel)
+{
+
+}
+
 UPlayerMovementComponent::UPlayerMovementComponent()
 {
 	bUseFlatBaseForFloorChecks = true;
@@ -11,7 +16,9 @@ UPlayerMovementComponent::UPlayerMovementComponent()
 	BrakingFrictionFactor = 0.1f;
 	JumpZVelocity = 800.f;
 	AirControl = 2.f;
-	GravityScale = 2.f;
+	GravityScale = 4.f;
+	FallingLateralFriction = 4.f;
+	MaxFlySpeed = 200000.f;
 }
 
 void UPlayerMovementComponent::BeginPlay()
@@ -201,16 +208,20 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 	//Store the input vector
 	FVector ReturnVec = Super::ConsumeInputVector();
 
-	//check if the input vector is zero
-	if (ReturnVec.IsNearlyZero())
+	//check if we can change grapple mode
+	if (bCanChangeGrappleMode)
 	{
-		//set the grapple mode to set velocity
-		GrappleMode = InterpVelocity;
-	}
-	else
-	{
-		//set the grapple mode to add to velocity
-		GrappleMode = AddToVelocity;
+		//check if the input vector is zero
+		if (ReturnVec.IsNearlyZero())
+		{
+			//set the grapple mode to set velocity
+			GrappleMode = InterpVelocity;
+		}
+		else
+		{
+			//set the grapple mode to add to velocity
+			GrappleMode = AddToVelocity;
+		}
 	}
 
 	//check if the player is grappling
@@ -443,6 +454,25 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float 
 	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
 }
 
+void UPlayerMovementComponent::DoInterpGrapple(const float DeltaTime, FVector& GrappleVelocity, const FGrappleInterpStruct GrappleInterpStruct)
+{
+	switch (GrappleInterpStruct.InterpMode)
+	{
+		case Constant:
+			//interpolate the velocity
+			GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * GrappleInterpStruct.PullSpeed, DeltaTime, GrappleInterpStruct.PullAccel);
+			break;
+		case InterpTo:
+			//interpolate the velocity
+			GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * GrappleInterpStruct.PullSpeed, DeltaTime, GrappleInterpStruct.PullAccel);
+			break;
+		case InterpStep:
+			//interpolate the velocity
+			GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * GrappleInterpStruct.PullSpeed, DeltaTime, GrappleInterpStruct.PullAccel);
+			break;
+	}
+}
+
 void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 {
 	//check if we're on the ground
@@ -487,30 +517,15 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 
 		break;
 		case InterpVelocity:
-			// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-			switch (GrappleInterpType)
-			{
-				case Constant:
-					//interpolate the velocity
-					GrappleVelocity = FMath::VInterpConstantTo(Velocity, GrappleDirection.GetSafeNormal() * NoWasdPullSpeed, DeltaTime, NoWasdPullAccelInterpSpeed);
-				break;
-				case InterpTo:
-					//interpolate the velocity
-					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * NoWasdPullSpeed, DeltaTime, NoWasdPullAccelInterpSpeed);
-				break;
-				case InterpStep:
-					//interpolate the velocity
-					GrappleVelocity = FMath::VInterpTo(Velocity, GrappleDirection.GetSafeNormal() * NoWasdPullSpeed, DeltaTime, NoWasdPullAccelInterpSpeed);
-				break;
-			}
-
-			//get the dot product of the character's velocity and the grapple velocity
-			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
-
-			//apply the grapple velocity
-			Velocity = GrappleVelocity;
+			//do the interpolation
+			DoInterpGrapple(DeltaTime, Velocity, NoWasdGrappleInterpStruct);
 
 		break;
+		case InterpToFinish:
+		{
+			//do the interpolation
+			DoInterpGrapple(DeltaTime, Velocity, FinishGrappleInterpStruct);
+		}
 	}
 
 	//update the character's velocity

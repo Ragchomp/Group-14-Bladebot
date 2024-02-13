@@ -54,6 +54,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	SpinAttackHitbox->SetupAttachment(GetRootComponent());
 	SpinAttackSwordHitbox->SetupAttachment(GetRootComponent());
 
+	//set spin attack hitbox collision settings and size
+	SpinAttackHitbox->SetSphereRadius(1000);
+
 	//set relative location and rotation for the mesh
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));
@@ -137,6 +140,7 @@ void APlayerCharacter::BeginPlay()
 			ValidObjectives.Add(Objectives[i]);
 		}
 	}
+	NumEnabledObjectivesTotal = ValidObjectives.Num();
 }
 
 void APlayerCharacter::SetupPlayerInputComponent(UInputComponent* InInputComponent)
@@ -629,29 +633,33 @@ void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 {
 	NumCompletes++;
 
-	if(Objective->OrderIndex == expextedOrder)
+	if(Objective->RequiresOrder == true && Objective->OrderIndex == expextedOrder)
 	{
 		expextedOrder++;
 		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("In order"));
 	}
-	else
+	else if(Objective->RequiresOrder == true)
 	{
 
 		Tags.Remove(FName("ObjectiveComplete"));
-		Objective->ObjectveMesh->SetVisibility(true);
-		Objective->ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-		Objective->AfterActivationMesh->SetVisibility(false);
-		Objective->AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+
 
 		Objective->AlreadyHit = false;
 		Objective->ObjectiveComplete = false;
+		if(Objective->shouldBeDestroyed)
+		{
+			Objective->ObjectveMesh->SetVisibility(true);
+			Objective->ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+			Objective->AfterActivationMesh->SetVisibility(false);
+			Objective->AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		}
 
 		NumCompletes--;
 	}
 
 	if (NumCompletes == ValidObjectives.Num())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
 		ObjectiveComplete();
 		GameComplete = true;
 	}
