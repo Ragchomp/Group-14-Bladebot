@@ -60,7 +60,7 @@ void AMineEnemy::BeginPlay()
 	startingLocation = GetActorLocation();;
 	startingRotation = GetActorRotation();
 
-	GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("begin play"));
+	//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("begin play"));
 
 }
 

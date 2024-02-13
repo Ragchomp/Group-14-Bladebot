@@ -159,6 +159,9 @@ public:
 	int NumCompletes = 0;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	int NumEnabledObjectivesTotal;
+
+	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	int expextedOrder = 1;
 
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
