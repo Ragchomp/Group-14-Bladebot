@@ -54,6 +54,9 @@ APlayerCharacter::APlayerCharacter(const FObjectInitializer& ObjectInitializer) 
 	SpinAttackHitbox->SetupAttachment(GetRootComponent());
 	SpinAttackSwordHitbox->SetupAttachment(GetRootComponent());
 
+	//set spin attack hitbox collision settings and size
+	SpinAttackHitbox->SetSphereRadius(1000);
+
 	//set relative location and rotation for the mesh
 	GetMesh()->SetRelativeLocation(FVector(0.f, 0.f, -60.f));
 	GetMesh()->SetRelativeRotation(FRotator(0.f, 90.f, 0.f));

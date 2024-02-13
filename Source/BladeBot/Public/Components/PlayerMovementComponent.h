@@ -21,6 +21,30 @@ enum EGrapplingMode
 {
 	AddToVelocity,
 	InterpVelocity,
+	InterpToFinish,
+};
+
+USTRUCT(BlueprintType)
+struct FGrappleInterpStruct
+{
+	GENERATED_BODY()
+
+	//the pull speed to use
+	UPROPERTY(editanywhere, BlueprintReadWrite)
+	float PullSpeed = 0.f;
+
+	//the pull acceleration to use
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float PullAccel = 0.f;
+
+	//the interp mode to use
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	TEnumAsByte<EInterpToTargetType> InterpMode = InterpTo;
+	EInterpToTargetType InInterpMode;
+
+	//constructor(s)
+	FGrappleInterpStruct() = default;
+	FGrappleInterpStruct(float InPullSpeed, float InPullAccel, EInterpToTargetType InInterpMode);
 };
 
 /**
@@ -61,20 +85,12 @@ public:
 	FOnWallRunFinish OnWallRunFinish;
 
 	//whether or not to set the velocity of the player when grappling
-	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
+	UPROPERTY(BlueprintReadWrite, Category = "Grappling")
 	TEnumAsByte<EGrapplingMode> GrappleMode = InterpVelocity;
 
 	//the grappling speed in add velocity mode
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float WasdPullSpeed = 6000.f;
-
-	//the grappling speed in interp velocity mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float NoWasdPullSpeed = 4000.f;
-
-	//the interp function to use when using the InterpToGrapple mode
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	TEnumAsByte<EInterpToTargetType> GrappleInterpType = InterpTo;
+	float WasdPullSpeed = 22500;
 
 	//whether or not to use the flying movement mode when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
@@ -92,13 +108,21 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|EndGrappleSpeedBoost", meta = (EditCondition = "bEndGrappleSpeedBoost == true", editconditionHides))
 	FAsyncRootMovementParams EndGrappleBoostMovementParams = FAsyncRootMovementParams(FVector::UpVector);
 
-	//the interpolation speed when using the InterpToGrapple mode
+	//the nowasd grapple interp struct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	float NoWasdPullAccelInterpSpeed = 1.5f;
+	FGrappleInterpStruct NoWasdGrappleInterpStruct = FGrappleInterpStruct(11250, 0.1f, InterpTo);
+
+	//the finishing grapple interp struct
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
+	FGrappleInterpStruct FinishGrappleInterpStruct = FGrappleInterpStruct(11250, 0.1f, InterpTo);
 
 	//whether or not the player is grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
 	bool bIsGrappling = false;
+
+	//whether or not we can change grapple mode right now
+	UPROPERTY(BlueprintReadWrite, Category = "Grappling")
+	bool bCanChangeGrappleMode = true;
 
 	//storage for the dot product of the character's velocity and the velocity that was added from grappling last frame
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -106,7 +130,7 @@ public:
 
 	//the max acceleration to use when grappling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
-	float GrappleMaxAcceleration = 8000.f;
+	float GrappleMaxAcceleration = 2000.f;
 
 	//the float curve to use when applying the grapple velocity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
@@ -126,7 +150,7 @@ public:
 
 	//the max distance the Grappling hook can travel
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
-	float MaxGrappleDistance = 9000.f;
+	float MaxGrappleDistance = 17000.f;
 
 	//the max distance to check for when checking if the player can grapple to where they are aiming
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|MaxDistance")
@@ -190,11 +214,11 @@ public:
 
 	//wall latch fall movement params
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
-	FAsyncRootMovementParams WallLatchFallMovementParams = FAsyncRootMovementParams();
+	FAsyncRootMovementParams WallLatchFallMovementParams = FAsyncRootMovementParams(FVector::DownVector); 
 
 	//wall latch launch movement params
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
-	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector::DownVector);
+	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector(0,0,0), 1, 5000, 0.5,false, nullptr, ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity, FVector::ZeroVector, 0, true);
 
 	//the tag that activates wall latching when the player is touching an actor with this tag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
@@ -325,6 +349,9 @@ public:
 
 	//line trace function for the grapple hook
 	void GrappleLineTrace(FHitResult& OutHit, float MaxDistance) const;
+
+	//function to handle the interpolation modes of the grapple
+	void DoInterpGrapple(float DeltaTime, FVector& GrappleVelocity, FGrappleInterpStruct GrappleInterpStruct);
 
 	//sets the velocity of the player character when grappling
 	void UpdateGrappleVelocity(float DeltaTime);
