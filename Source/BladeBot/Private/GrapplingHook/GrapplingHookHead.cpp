@@ -237,6 +237,14 @@ void AGrapplingHookHead::DoDestroy2(AActor* DestroyedActor)
 
 void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
 {
+	//check if the hit component doesn't have the no grappling tag
+	if (Hit.GetComponent()->ComponentHasTag("NoGrapple"))
+	{
+		//destroy ourselves
+		Destroy();
+		return;
+	}
+
 	//set the grapple state to attached
 	GrappleState = EGrappleState::EGS_Attached;
 
