@@ -659,7 +659,7 @@ void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 
 	if (NumCompletes == ValidObjectives.Num())
 	{
-		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
+		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
 		ObjectiveComplete();
 		GameComplete = true;
 	}
