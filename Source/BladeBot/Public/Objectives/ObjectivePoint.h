@@ -49,7 +49,7 @@ public:
 	// References ------------------------------
 
 	UPROPERTY(EditAnywhere)
-	class UStaticMeshComponent* ObjectveMesh;
+	class USkeletalMeshComponent* ObjectveMesh;
 
 	UPROPERTY(EditAnywhere)
 	class UStaticMeshComponent* AfterActivationMesh;
