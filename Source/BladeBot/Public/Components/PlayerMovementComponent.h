@@ -212,6 +212,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
 	UCurveFloat* RotationForceCurve = nullptr;
 
+	//the minimum amount of force to use for wall latch
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	float MinWallLatchForce = 1000.f;
+
 	//the amount of time to hang before starting to slide down a wall latching wall
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
 	float WallLatchHangTime = 0.5f;
