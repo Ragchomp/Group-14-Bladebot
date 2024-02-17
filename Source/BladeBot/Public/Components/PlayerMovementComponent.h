@@ -84,6 +84,10 @@ public:
 	FOnWallRunJump OnWallRunJump;
 	FOnWallRunFinish OnWallRunFinish;
 
+	//the max movement speed when falling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
+	float MaxFallSpeed = 2000.f;
+
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadWrite, Category = "Grappling")
 	TEnumAsByte<EGrapplingMode> GrappleMode = InterpVelocity;
@@ -207,6 +211,10 @@ public:
 	//float curve for how much rotation force to use based on how long the player has been holding down the rotation input
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
 	UCurveFloat* RotationForceCurve = nullptr;
+
+	//the minimum amount of force to use for wall latch
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	float MinWallLatchForce = 1000.f;
 
 	//the amount of time to hang before starting to slide down a wall latching wall
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
