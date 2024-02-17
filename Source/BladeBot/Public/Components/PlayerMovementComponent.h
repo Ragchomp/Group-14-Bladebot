@@ -84,6 +84,10 @@ public:
 	FOnWallRunJump OnWallRunJump;
 	FOnWallRunFinish OnWallRunFinish;
 
+	//the max movement speed when falling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
+	float MaxFallSpeed = 2000.f;
+
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadWrite, Category = "Grappling")
 	TEnumAsByte<EGrapplingMode> GrappleMode = InterpVelocity;

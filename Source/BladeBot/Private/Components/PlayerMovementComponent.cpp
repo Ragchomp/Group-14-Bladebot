@@ -308,6 +308,14 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 		//return the max speed when grappling
 		return GrappleMaxSpeed;
 	}
+
+	//check if we're falling
+	if (IsFalling())
+	{
+		//return the max fall speed
+		return MaxFallSpeed;
+	}
+
 	return Super::GetMaxSpeed();
 }
 
