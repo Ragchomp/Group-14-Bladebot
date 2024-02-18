@@ -308,6 +308,14 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 		//return the max speed when grappling
 		return GrappleMaxSpeed;
 	}
+
+	//check if we're falling
+	if (IsFalling())
+	{
+		//return the max fall speed
+		return MaxFallSpeed;
+	}
+
 	return Super::GetMaxSpeed();
 }
 
@@ -622,6 +630,9 @@ void UPlayerMovementComponent::LaunchOffWallLatch()
 
 	//set the direction to launch in
 	WallLatchLaunchMovementParams.WorldDirection = Forward;
+
+	//set the strength of the launch to be the larger of the minimum wall latch force and the velocity's length
+	WallLatchLaunchMovementParams.Strength = FMath::Max(MinWallLatchForce, Velocity.Length());
 
 	//activate the root motion
 	UAsyncRootMovement::AsyncRootMovement(this, this, WallLatchLaunchMovementParams)->Activate();

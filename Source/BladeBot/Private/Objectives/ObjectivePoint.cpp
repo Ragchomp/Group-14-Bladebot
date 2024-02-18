@@ -4,6 +4,7 @@
 
 // Components
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h"
 #include "Components/SphereComponent.h"
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
@@ -17,7 +18,7 @@ AObjectivePoint::AObjectivePoint()
 	CollisionMesh = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
 	SetRootComponent(CollisionMesh);
 
-	ObjectveMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ObjectiveMesh"));
+	ObjectveMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ObjectiveMesh"));
 	ObjectveMesh->SetupAttachment(CollisionMesh);
 
 	AfterActivationMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AfterActivationMesh"));
