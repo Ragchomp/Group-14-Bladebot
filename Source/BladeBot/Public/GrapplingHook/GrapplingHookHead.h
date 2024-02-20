@@ -88,7 +88,7 @@ public:
 	class UPlayerMovementComponent* PlayerMovementComponent;
 
 	//the rope actor that this grappling hook head is attached to
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly)
 	class AGrapplingRopeActor* RopeActor;
 
 	//timer handle for destroying the grappling hook head after a delay
