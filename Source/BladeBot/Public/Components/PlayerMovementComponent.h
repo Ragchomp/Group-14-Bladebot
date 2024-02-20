@@ -136,9 +136,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
 	float GrappleMaxAcceleration = 2000.f;
 
-	//the float curve to use when applying the grapple velocity
+	//the float curve to use when applying the grapple velocity using the dot product of the character's velocity and the velocity that was added from grappling last frame (-1 = opposite direction, 0 = perpendicular(90 degrees), 1 = same direction)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
-	UCurveFloat* GrappleVelocityCurve = nullptr;
+	UCurveFloat* GrappleAngleVelocityCurve = nullptr;
+
+	//the float curve to use when applying the grapple velocity using the rope length divided by the max grapple distance (1 = max distance, 0 = 0 distance, clamped to 0-1)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	UCurveFloat* GrappleDistanceVelocityCurve = nullptr;
 
 	//the float curve to use when applying the grapple wasd movement
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
