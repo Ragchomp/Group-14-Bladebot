@@ -226,7 +226,7 @@ public:
 
 	//wall latch launch movement params
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
-	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector(0,0,0), 1, 5000, 0.5,false, nullptr, ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity, FVector::ZeroVector, 0, true);
+	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector(0,0,0), 1, 5000, 0.5, false, nullptr, ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity, FVector::ZeroVector, 0, true);
 
 	//the tag that activates wall latching when the player is touching an actor with this tag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
