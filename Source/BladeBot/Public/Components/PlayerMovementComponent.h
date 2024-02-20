@@ -84,6 +84,10 @@ public:
 	FOnWallRunJump OnWallRunJump;
 	FOnWallRunFinish OnWallRunFinish;
 
+	//the max movement speed when falling
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
+	float MaxFallSpeed = 2000.f;
+
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadWrite, Category = "Grappling")
 	TEnumAsByte<EGrapplingMode> GrappleMode = InterpVelocity;
@@ -208,6 +212,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement|Rotation")
 	UCurveFloat* RotationForceCurve = nullptr;
 
+	//the minimum amount of force to use for wall latch
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
+	float MinWallLatchForce = 1000.f;
+
 	//the amount of time to hang before starting to slide down a wall latching wall
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
 	float WallLatchHangTime = 0.5f;
@@ -218,7 +226,7 @@ public:
 
 	//wall latch launch movement params
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")
-	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector(0,0,0), 1, 5000, 0.5,false, nullptr, ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity, FVector::ZeroVector, 0, true);
+	FAsyncRootMovementParams WallLatchLaunchMovementParams = FAsyncRootMovementParams(FVector(0,0,0), 1, 5000, 0.5, false, nullptr, ERootMotionFinishVelocityMode::MaintainLastRootMotionVelocity, FVector::ZeroVector, 0, true);
 
 	//the tag that activates wall latching when the player is touching an actor with this tag
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Latch")

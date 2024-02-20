@@ -253,7 +253,12 @@ bool UPlayerMovementComponent::ShouldRemainVertical() const
 		//return false
 		return false;
 	}
-
+	//check if we're grappling
+	if (bIsGrappling)
+	{
+		//return false
+		return false;
+	}
 
 	return Super::ShouldRemainVertical();
 }
@@ -308,6 +313,14 @@ float UPlayerMovementComponent::GetMaxSpeed() const
 		//return the max speed when grappling
 		return GrappleMaxSpeed;
 	}
+
+	//check if we're falling
+	if (IsFalling())
+	{
+		//return the max fall speed
+		return MaxFallSpeed;
+	}
+
 	return Super::GetMaxSpeed();
 }
 
@@ -489,7 +502,7 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	GrappleDirection = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
 
 	//storage for the velocity that will be applied from the grapple
-	FVector GrappleVelocity = FVector::ZeroVector;
+	FVector GrappleVelocity;
 
 	//check how we should set the velocity
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
@@ -622,6 +635,9 @@ void UPlayerMovementComponent::LaunchOffWallLatch()
 
 	//set the direction to launch in
 	WallLatchLaunchMovementParams.WorldDirection = Forward;
+
+	//set the strength of the launch to be the larger of the minimum wall latch force and the velocity's length
+	WallLatchLaunchMovementParams.Strength = FMath::Max(MinWallLatchForce, Velocity.Length());
 
 	//activate the root motion
 	UAsyncRootMovement::AsyncRootMovement(this, this, WallLatchLaunchMovementParams)->Activate();

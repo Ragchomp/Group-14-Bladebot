@@ -121,15 +121,15 @@ void AGrapplingRopeActor::CheckCollisionPoints()
 				//remove the collision point from the array
 				RopePoints.RemoveAt(Index);
 
-				////check if we need to remove the niagara component for this collision point
-				//if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
-				//{
-				//	//destroy the niagara component
-				//	NiagaraComponents[Index]->DestroyComponent();
-				//	
-				//	//remove the niagara component from the array
-				//	NiagaraComponents.RemoveAt(Index);
-				//}
+				//check if we need to remove the niagara component for this collision point
+				if (NiagaraComponents.IsValidIndex(Index) && NiagaraComponents[Index]->IsValidLowLevelFast())
+				{
+					//destroy the niagara component
+					NiagaraComponents[Index]->DestroyComponent();
+					
+					//remove the niagara component from the array
+					NiagaraComponents.RemoveAt(Index);
+				}
 
 				//decrement i so we don't skip the next collision point
 				Index--;
@@ -173,8 +173,28 @@ void AGrapplingRopeActor::SetAttachedRopePointPositions(const bool FixedLength)
 	//set the end of the rope to the owner's location
 	RopePoints[RopePoints.Num() - 1] = Owner->GetActorLocation();
 
-	//draw a debug sphere at the socket location
-	DrawDebugSphere(GetWorld(), RopePoints[0], 10.f, 12, FColor::Red, false, 0.f);
+	//check if we're using debug rendering mode
+	if (bUseDebugDrawing)
+	{
+		//draw a debug sphere at the socket location
+		DrawDebugSphere(GetWorld(), RopePoints[0], 10.f, 12, FColor::Red, false, 0.f);	
+	}
+}
+
+void AGrapplingRopeActor::SpawnNiagaraSystem(int Index)
+{
+	//create a new Niagara component
+	UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, RopePoints[Index]);
+
+	//set the end location of the Niagara component
+	NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
+
+	//set tick group and behavior
+	NewNiagaraComponent->SetTickGroup(TickGroup);
+	NewNiagaraComponent->SetTickBehavior(TickBehavior);
+
+	//add the new Niagara component to the array
+	NiagaraComponents.Add(NewNiagaraComponent);
 }
 
 void AGrapplingRopeActor::RenderRope()
@@ -225,13 +245,7 @@ void AGrapplingRopeActor::RenderRope()
 				else
 				{
 					//create a new Niagara component
-					UNiagaraComponent* NewNiagaraComponent = UNiagaraFunctionLibrary::SpawnSystemAtLocation(GetWorld(), NiagaraSystem, RopePoints[Index]);
-
-					//set the end location of the Niagara component
-					NewNiagaraComponent->SetVectorParameter(RibbonEndParameterName, RopePoints[Index + 1]);
-
-					//add the new Niagara component to the array
-					NiagaraComponents.Add(NewNiagaraComponent);
+					SpawnNiagaraSystem(Index);
 				}
 			}
 		}
@@ -246,6 +260,22 @@ void AGrapplingRopeActor::RenderRope()
 		//draw debug message
 		GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Draw debug is false, and we don't have a valid niagara system"));
 	}
+}
+
+float AGrapplingRopeActor::GetRopeLength() const
+{
+	//initialize the rope length
+	float Length = 0.f;
+
+	//iterate through all the collision points except the last one
+	for (int Index = 0; Index < RopePoints.Num() - 1; ++Index)
+	{
+		//add the distance between the current collision point and the next collision point to the rope length
+		Length += FVector::Dist(RopePoints[Index], RopePoints[Index + 1]);
+	}
+
+	//return the rope length
+	return Length;
 }
 
 void AGrapplingRopeActor::OnOwnerDestroyed(AActor* DestroyedActor)
