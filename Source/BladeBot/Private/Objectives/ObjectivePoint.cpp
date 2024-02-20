@@ -77,16 +77,17 @@ void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 				AlreadyHit = true;
 				ObjectiveComplete = true;
 
+				Player->CheckIfObjectivesComplete(this);
+
 				if (shouldBeDestroyed)
 				{
+					//GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Yellow, TEXT("Objective complete once."));
 					ObjectveMesh->SetVisibility(false);
 					ObjectveMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 					AfterActivationMesh->SetVisibility(true);
 					AfterActivationMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
 					this->Destroy();
 				}
-
-				Player->CheckIfObjectivesComplete(this);
 			}
 		}
 	}
@@ -111,6 +112,8 @@ float AObjectivePoint::TakeDamage(float DamageAmount, FDamageEvent const& Damage
 				AlreadyHit = true;
 				ObjectiveComplete = true;
 
+
+				Player->CheckIfObjectivesComplete(this);
 				if (shouldBeDestroyed)
 				{
 					ObjectveMesh->SetVisibility(false);
@@ -120,7 +123,7 @@ float AObjectivePoint::TakeDamage(float DamageAmount, FDamageEvent const& Damage
 					this->Destroy();
 				}
 
-				Player->CheckIfObjectivesComplete(this);
+			
 			}
 		}
 	}
