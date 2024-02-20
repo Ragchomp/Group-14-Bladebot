@@ -253,7 +253,12 @@ bool UPlayerMovementComponent::ShouldRemainVertical() const
 		//return false
 		return false;
 	}
-
+	//check if we're grappling
+	if (bIsGrappling)
+	{
+		//return false
+		return false;
+	}
 
 	return Super::ShouldRemainVertical();
 }
@@ -497,7 +502,7 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	GrappleDirection = (GrapplePoint - GetCharacterOwner()->GetActorLocation()).GetSafeNormal();
 
 	//storage for the velocity that will be applied from the grapple
-	FVector GrappleVelocity = FVector::ZeroVector;
+	FVector GrappleVelocity;
 
 	//check how we should set the velocity
 	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
