@@ -123,6 +123,10 @@ public:
 	//renders the rope using the niagara system
 	void RenderRope();
 
+	//function to get the length of the rope
+	UFUNCTION(BlueprintCallable, Category = "Rope")
+	float GetRopeLength() const;
+
 	//called when the owner of this rope is destroyed
 	UFUNCTION()
 	void OnOwnerDestroyed(AActor* DestroyedActor);

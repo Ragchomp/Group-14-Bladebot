@@ -262,6 +262,22 @@ void AGrapplingRopeActor::RenderRope()
 	}
 }
 
+float AGrapplingRopeActor::GetRopeLength() const
+{
+	//initialize the rope length
+	float Length = 0.f;
+
+	//iterate through all the collision points except the last one
+	for (int Index = 0; Index < RopePoints.Num() - 1; ++Index)
+	{
+		//add the distance between the current collision point and the next collision point to the rope length
+		Length += FVector::Dist(RopePoints[Index], RopePoints[Index + 1]);
+	}
+
+	//return the rope length
+	return Length;
+}
+
 void AGrapplingRopeActor::OnOwnerDestroyed(AActor* DestroyedActor)
 {
 	//destroy ourselves
