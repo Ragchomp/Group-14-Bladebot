@@ -155,19 +155,19 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "Objective")
 	TArray<AActor*> ValidObjectives;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Objective")
 	int NumCompletes = 0;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Objective")
 	int NumEnabledObjectivesTotal;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	UPROPERTY(BlueprintReadWrite, Category = "Objective")
 	int expextedOrder = 1;
 
-	UPROPERTY(BlueprintReadOnly, Category = "Objective")
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "Objective")
 	bool GameComplete = false;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Objective")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Objective")
 	int numEnemiesDestroyed = 0;
 	
 
