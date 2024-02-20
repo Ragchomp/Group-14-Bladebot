@@ -516,13 +516,16 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
 
 			//check if we have a valid grapple velocity curve
-			if (GrappleVelocityCurve)
+			if (GrappleAngleVelocityCurve && GrappleDistanceVelocityCurve)
 			{
-				//get the grapple velocity curve value
-				const float GrappleVelocityCurveValue = GrappleVelocityCurve->GetFloatValue(GrappleDotProduct);
+				//get the grapple angle velocity curve value
+				const float GrappleAngleVelocityCurveValue = GrappleAngleVelocityCurve->GetFloatValue(GrappleDotProduct);
+
+				//get the grapple distance velocity curve value
+				const float GrappleDistanceVelocityCurveValue = GrappleDistanceVelocityCurve->GetFloatValue(FMath::Clamp(FVector::Dist(GetOwner()->GetActorLocation() , GrapplePoint) / MaxGrappleDistance, 0, 1));
 
 				//multiply the grapple velocity by the grapple velocity curve value
-				GrappleVelocity *= GrappleVelocityCurveValue;
+				GrappleVelocity *= GrappleAngleVelocityCurveValue * GrappleDistanceVelocityCurveValue;
 			}
 
 			//apply the grapple velocity
