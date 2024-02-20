@@ -224,21 +224,20 @@ FVector UPlayerMovementComponent::ConsumeInputVector()
 		}
 	}
 
-	//check if the player is grappling
-	if (bIsGrappling)
+	//check if the player is grappling and we have valid angle and distance input curves
+	if (bIsGrappling && GrappleMovementAngleInputCurve && GrappleMovementDistanceInputCurve)
 	{
-		//check if we have a valid grapple movement input curve
-		if (GrappleMovementInputCurve)
-		{
-			//get the dot product of the current grapple direction and the return vector
-			const float DotProduct = FVector::DotProduct(GetOwner()->GetActorUpVector(), ReturnVec.GetSafeNormal());
+		//get the dot product of the current grapple direction and the return vector
+		const float DotProduct = FVector::DotProduct(GetOwner()->GetActorUpVector(), ReturnVec.GetSafeNormal());
 
-			//get the grapple movement input curve value
-			const float GrappleMovementInputCurveValue = GrappleMovementInputCurve->GetFloatValue(DotProduct);
+		//get the grapple angle movement input curve value
+		const float GrappleMovementInputAngleCurveValue = GrappleMovementAngleInputCurve->GetFloatValue(DotProduct);
 
-			//multiply the return vector by the grapple movement input curve value
-			ReturnVec *= GrappleMovementInputCurveValue * GrappleMovementInputModifier;
-		}
+		//get the grapple distance movement input curve value
+		const float GrappleMovementInputDistanceCurveValue = GrappleMovementDistanceInputCurve->GetFloatValue(FMath::Clamp(FVector::Dist(GetOwner()->GetActorLocation(), GrappleRope->GetGrapplePoint(GetCharacterOwner())) / MaxGrappleDistance, 0, 1));
+
+		//multiply the return vector by the grapple movement input curve value, the grapple distance movement input curve value, and the grapple movement input modifier
+		ReturnVec *= GrappleMovementInputAngleCurveValue * GrappleMovementInputDistanceCurveValue * GrappleMovementInputModifier;
 	}
 
 	//return the return vector
