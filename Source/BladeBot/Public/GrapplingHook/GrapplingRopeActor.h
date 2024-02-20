@@ -37,7 +37,7 @@ public:
 
 	//whether or not to use debug drawing
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Debug")
-	bool bUseDebugDrawing = true;
+	bool bUseDebugDrawing = false;
 
 	//the radius of the rope
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, category = "Rope")
@@ -95,6 +95,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering|Jitter", meta = (EditCondition = "bUseJitter == true", EditConditionHides))
 	FName JitterParameterName = "DoJitter";
 
+	//the tick behaviour to use for the niagara components
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
+	TEnumAsByte<ENiagaraTickBehavior> TickBehavior = ENiagaraTickBehavior::UseComponentTickGroup;
+
+	//the tick group to use for the niagara components
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rope|Rendering")
+	TEnumAsByte<ETickingGroup> TickGroup = ETickingGroup::TG_LastDemotable;
+
 	//actor overrides
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
@@ -108,6 +116,9 @@ public:
 
 	//sets the collision points for the rope to the current location of the actors we're attached to
 	void SetAttachedRopePointPositions(bool FixedLength = false);
+
+	//spawns a new niagara system for a rope point at the given index in the rope points array, pointing towards the next point in the array (not called for the last point in the array)
+	void SpawnNiagaraSystem(int Index);
 
 	//renders the rope using the niagara system
 	void RenderRope();
