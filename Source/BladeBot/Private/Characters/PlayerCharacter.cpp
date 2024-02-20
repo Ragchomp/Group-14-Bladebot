@@ -659,7 +659,7 @@ void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
 
 	if (NumCompletes == ValidObjectives.Num())
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
+		//GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Game Won"));
 		ObjectiveComplete();
 		GameComplete = true;
 	}
@@ -753,8 +753,10 @@ void APlayerCharacter::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 
 		//apply damage to the other actor
 		UGameplayStatics::ApplyDamage(OtherActor, Damage, GetController(), this, UDamageType::StaticClass());
-
-		//Increase kills by one
-		numEnemiesDestroyed += 1;
+		if(OtherActor->ActorHasTag(FName("Enemy")))
+		{
+			//Increase kills by one
+			numEnemiesDestroyed += 1;
+		}
 	}
 }
