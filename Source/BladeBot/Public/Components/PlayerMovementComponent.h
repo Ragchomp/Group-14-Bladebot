@@ -15,13 +15,21 @@
 class UPlayerCameraComponent;
 class AGrapplingHookHead;
 
-//enum for different grappling modes
+//enum for different grappling modes based of player input
 UENUM(BlueprintType)
 enum EGrapplingMode
 {
 	AddToVelocity,
 	InterpVelocity,
-	InterpToFinish,
+};
+
+//enum for different grappling modes based of what the grappling hook hit
+UENUM(BlueprintType)
+enum EGrappleHitType
+{
+	None,
+	Normal,
+	Objective,
 };
 
 USTRUCT(BlueprintType)
@@ -64,7 +72,7 @@ public:
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnNormalJump);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDirectionalJump, FVector, Direction);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnCorrectedDirectionalJump, FVector, OriginalDirection, FVector, CorrectedDirection);
-	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnStartGrapple);
+	DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnStartGrapple, FHitResult, GrappleHitResult, EGrappleHitType, GrappleHitType);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWallLatch, FHitResult, HitResult);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallLatchLaunch);
 	DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnWallLatchFall);
@@ -118,7 +126,11 @@ public:
 
 	//the finishing grapple interp struct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	FGrappleInterpStruct FinishGrappleInterpStruct = FGrappleInterpStruct(11250, 0.1f, InterpTo);
+	FGrappleInterpStruct ObjectiveGrappleInterpStruct = FGrappleInterpStruct(11250, 0.1f, InterpTo);
+
+	//the current grapple hit type
+	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
+	TEnumAsByte<EGrappleHitType> GrappleHitType = None;
 
 	//whether or not the player is grappling
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -349,7 +361,7 @@ public:
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
-	void StartGrapple(AGrapplingRopeActor* InGrappleRope);
+	void StartGrapple(AGrapplingRopeActor* InGrappleRope, FHitResult InGrappleHit);
 
 	//function that stops the grapple
 	UFUNCTION(BlueprintCallable)
