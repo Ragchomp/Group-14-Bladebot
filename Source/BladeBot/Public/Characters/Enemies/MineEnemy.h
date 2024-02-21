@@ -6,6 +6,9 @@
 #include "Characters/BaseEnemy.h"
 #include "MineEnemy.generated.h"
 
+//the tags for enemies
+static const FName ENEMY_TAG = TEXT("Enemy");
+
 UCLASS()
 class BLADEBOT_API AMineEnemy : public ABaseEnemy
 {
