@@ -310,6 +310,9 @@ void APlayerCharacter::DoSpinAttack(const FInputActionValue& Value)
 		//prevent the player from activating rotation mode
 		PlayerMovementComponent->bCanActivateRotationMode = false;
 
+		//disable orient rotation to movement
+		GetCharacterMovement()->bOrientRotationToMovement = false;
+
 		//set timer to reset the spin attack flag
 		GetWorldTimerManager().SetTimer(SpinAttackTimer, this, &APlayerCharacter::SpinAttackEnd, SpinAttackDuration, false);
 
@@ -348,6 +351,9 @@ void APlayerCharacter::SpinAttackEnd()
 
 	//re enable the player's ability to activate rotation mode
 	PlayerMovementComponent->bCanActivateRotationMode = true;
+
+	//re enable orient rotation to movement
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 
 	//empty the overlapped actors array
 	SpinAttackOverlappedActors.Empty();
