@@ -4,6 +4,9 @@
 #include "GameFramework/Actor.h"
 #include "ObjectivePoint.generated.h"
 
+//the tag used for objectives
+static FName ObjectiveTag = FName("Object");
+
 UCLASS()
 class BLADEBOT_API AObjectivePoint : public AActor
 {

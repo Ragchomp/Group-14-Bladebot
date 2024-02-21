@@ -33,14 +33,14 @@ AObjectivePoint::AObjectivePoint()
 
 	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
 	NiagaraComp->SetupAttachment(GetRootComponent());
+
+	Tags.Add(ObjectiveTag);
 }
 
 void AObjectivePoint::BeginPlay()
 {
 	Super::BeginPlay();
 
-
-	Tags.Add(FName("Object"));
 	PlayAudioPassive(GetActorLocation());
 	PlayVFXPassive(GetActorLocation());
 
