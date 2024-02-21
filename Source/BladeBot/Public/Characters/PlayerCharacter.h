@@ -340,7 +340,7 @@ public:
 
 	//blueprint event for when the player starts grappling
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-	void OnStartGrapple();
+	void OnStartGrapple(FHitResult GrappleHit, EGrappleHitType GrappleHitType);
 
 	//blueprint event for when the player stops grappling
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")

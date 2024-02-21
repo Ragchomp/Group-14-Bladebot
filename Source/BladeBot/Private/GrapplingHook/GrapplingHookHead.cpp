@@ -255,7 +255,7 @@ void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
 	if (PlayerMovementComponent)
 	{
 		//start player grapple
-		PlayerMovementComponent->StartGrapple(RopeActor);
+		PlayerMovementComponent->StartGrapple(RopeActor, Hit);
 	}
 
 	//check if we should destroy on impact

@@ -9,6 +9,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Characters/PlayerCharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AObjectivePoint::AObjectivePoint()
@@ -33,14 +34,14 @@ AObjectivePoint::AObjectivePoint()
 
 	NiagaraComp = CreateDefaultSubobject<UNiagaraComponent>(TEXT("NiagaraComponent"));
 	NiagaraComp->SetupAttachment(GetRootComponent());
+
+	Tags.Add(ObjectiveTag);
 }
 
 void AObjectivePoint::BeginPlay()
 {
 	Super::BeginPlay();
 
-
-	Tags.Add(FName("Object"));
 	PlayAudioPassive(GetActorLocation());
 	PlayVFXPassive(GetActorLocation());
 
@@ -68,7 +69,7 @@ void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 		{
 			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
+			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false && OverlappedComponent->StaticClass() == UCapsuleComponent::StaticClass())
 			{
 				Tags.Add(FName("ObjectiveComplete"));
 
