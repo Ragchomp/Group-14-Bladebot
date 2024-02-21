@@ -2,6 +2,7 @@
 
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraSystem.h"
+#include "Components/PlayerMovementComponent.h"
 
 AGrapplingRopeActor::AGrapplingRopeActor()
 {
@@ -10,6 +11,9 @@ AGrapplingRopeActor::AGrapplingRopeActor()
 
 	//initialize the collision points array
 	RopePoints.Init(FVector(), 2);
+
+	//add the no grapple tag
+	Tags.Add(NoGrappleTag);
 }
 
 void AGrapplingRopeActor::BeginPlay()
@@ -192,6 +196,9 @@ void AGrapplingRopeActor::SpawnNiagaraSystem(int Index)
 	//set tick group and behavior
 	NewNiagaraComponent->SetTickGroup(TickGroup);
 	NewNiagaraComponent->SetTickBehavior(TickBehavior);
+
+	//add the no grapple tag to the Niagara component
+	NewNiagaraComponent->ComponentTags.Add(NoGrappleTag);
 
 	//add the new Niagara component to the array
 	NiagaraComponents.Add(NewNiagaraComponent);
