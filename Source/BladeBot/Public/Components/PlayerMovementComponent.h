@@ -33,6 +33,7 @@ enum EGrappleHitType
 	None,
 	Normal,
 	Objective,
+	Enemy,
 };
 
 USTRUCT(BlueprintType)
@@ -99,6 +100,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
 	float MaxFallSpeed = 2000.f;
 
+	//whether or not we're using terminal velocity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
+	bool bUseTerminalVelocity = true;
+
+	//the dot product(player velocity(normalized), gravity direction(normalized)) limit that we have to be over to apply terminal velocity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
+	float TerminalVelocityDotProductLimit = 0.3f;
+
 	//whether or not to set the velocity of the player when grappling
 	UPROPERTY(BlueprintReadWrite, Category = "Grappling")
 	TEnumAsByte<EGrapplingMode> GrappleMode = InterpVelocity;
@@ -125,11 +134,15 @@ public:
 
 	//the nowasd grapple interp struct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	FGrappleInterpStruct NoWasdGrappleInterpStruct = FGrappleInterpStruct(11250, 0.1f, InterpTo);
+	FGrappleInterpStruct NoWasdGrappleInterpStruct = FGrappleInterpStruct(10000.0f, 5.f, InterpTo);
 
 	//the finishing grapple interp struct
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
-	FGrappleInterpStruct ObjectiveGrappleInterpStruct = FGrappleInterpStruct(11250, 0.1f, InterpTo);
+	FGrappleInterpStruct ObjectiveGrappleInterpStruct = FGrappleInterpStruct(30000.f, 10.f, InterpTo);
+
+	//the enemy grapple interp struct
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
+	FGrappleInterpStruct EnemyGrappleInterpStruct = FGrappleInterpStruct(30000.f, 10.f, InterpTo);
 
 	//the current grapple hit type
 	UPROPERTY(BlueprintReadOnly, Category = "Grappling")
@@ -360,7 +373,7 @@ public:
 	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
 	//virtual void ApplyVelocityBraking(float DeltaTime, float Friction, float BrakingDeceleration) override;
 	//virtual void PhysFlying(float deltaTime, int32 Iterations) override;
-	//virtual void ApplyAccumulatedForces(float DeltaSeconds) override;|
+	//virtual void ApplyAccumulatedForces(float DeltaSeconds) override;
 
 	//function that starts the grapple
 	UFUNCTION(BlueprintCallable)
