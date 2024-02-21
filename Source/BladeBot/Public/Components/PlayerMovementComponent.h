@@ -15,6 +15,9 @@
 class UPlayerCameraComponent;
 class AGrapplingHookHead;
 
+//the tag to use for when an object shouldn't be grappleable
+static FName NoGrappleTag = "NoGrapple";
+
 //enum for different grappling modes based of player input
 UENUM(BlueprintType)
 enum EGrapplingMode

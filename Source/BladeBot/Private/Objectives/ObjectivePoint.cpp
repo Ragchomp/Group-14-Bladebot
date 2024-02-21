@@ -17,7 +17,7 @@ AObjectivePoint::AObjectivePoint()
 	PrimaryActorTick.bCanEverTick = true;
 
 	CollisionMesh = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionMesh"));
-	SetRootComponent(CollisionMesh);
+	//SetRootComponent(CollisionMesh);
 
 	ObjectveMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ObjectiveMesh"));
 	ObjectveMesh->SetupAttachment(CollisionMesh);
@@ -69,7 +69,7 @@ void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 		{
 			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false && OverlappedComponent->StaticClass() == UCapsuleComponent::StaticClass())
+			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
 			{
 				Tags.Add(FName("ObjectiveComplete"));
 
