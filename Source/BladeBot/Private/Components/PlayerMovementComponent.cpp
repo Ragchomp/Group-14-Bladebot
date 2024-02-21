@@ -2,6 +2,7 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Objectives/ObjectivePoint.h"
 
 FGrappleInterpStruct::FGrappleInterpStruct(const float InPullSpeed, const float InPullAccel, const EInterpToTargetType InInterpMode): InInterpMode(InInterpMode), PullSpeed(InPullSpeed), PullAccel(InPullAccel)
 {
@@ -342,7 +343,7 @@ float UPlayerMovementComponent::GetMaxAcceleration() const
 	return Super::GetMaxAcceleration();
 }
 
-void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
+void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope, const FHitResult InGrappleHit)
 {
 	//check if the player is already grappling
 	if (bIsGrappling)
@@ -352,6 +353,17 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
 
 	//set is grappling to true
 	bIsGrappling = true;
+
+	//check if what we've hit is an objective
+	if (InGrappleHit.GetActor()->ActorHasTag(ObjectiveTag))
+	{
+		//set the grapple hit type to objective
+		GrappleHitType = Objective;
+	}
+	else
+	{
+		GrappleHitType = Normal;
+	}
 
 	//set the grapple object
 	GrappleRope = InGrappleRope;
@@ -364,7 +376,7 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope)
 	}
 
 	//call the start grapple event
-	OnStartGrapple.Broadcast();
+	OnStartGrapple.Broadcast(InGrappleHit, GrappleHitType);
 }
 
 void UPlayerMovementComponent::StopGrapple()
@@ -503,13 +515,21 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	//storage for the velocity that will be applied from the grapple
 	FVector GrappleVelocity;
 
-	//check how we should set the velocity
-	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-	switch (GrappleMode)
+	//check if the hit type is objective
+	if (GrappleHitType == Objective)
 	{
-		case AddToVelocity:
-			//add the grapple vector to the character's velocity
-			GrappleVelocity = GrappleDirection * WasdPullSpeed * DeltaTime;
+		//do the interpolation
+		DoInterpGrapple(DeltaTime, Velocity, ObjectiveGrappleInterpStruct);
+	}
+	else
+	{
+		//check how we should set the velocity
+		// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+		switch (GrappleMode)
+		{
+			case AddToVelocity:
+				//add the grapple vector to the character's velocity
+				GrappleVelocity = GrappleDirection * WasdPullSpeed * DeltaTime;
 
 			//get the dot product of the character's velocity and the grapple velocity
 			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
@@ -530,16 +550,12 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 			//apply the grapple velocity
 			Velocity += GrappleVelocity;
 
-		break;
-		case InterpVelocity:
-			//do the interpolation
-			DoInterpGrapple(DeltaTime, Velocity, NoWasdGrappleInterpStruct);
+			break;
+			case InterpVelocity:
+				//do the interpolation
+				DoInterpGrapple(DeltaTime, Velocity, NoWasdGrappleInterpStruct);
 
-		break;
-		case InterpToFinish:
-		{
-			//do the interpolation
-			DoInterpGrapple(DeltaTime, Velocity, FinishGrappleInterpStruct);
+			break;
 		}
 	}
 
