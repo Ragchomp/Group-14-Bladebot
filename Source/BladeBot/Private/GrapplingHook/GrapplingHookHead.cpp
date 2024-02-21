@@ -34,6 +34,9 @@ AGrapplingHookHead::AGrapplingHookHead()
 	WallHitbox->SetCollisionObjectType(ECC_PhysicsBody);
 	WallHitbox->SetSphereRadius(32);
 
+	//enable returning the physics material on hit
+	WallHitbox->bReturnMaterialOnMove = true;
+
 	//set player hitbox collision settings and size
 	PlayerHitbox->SetNotifyRigidBodyCollision(true);
 	PlayerHitbox->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
@@ -47,6 +50,9 @@ AGrapplingHookHead::AGrapplingHookHead()
 	//set the projectile movement component settings
 	ProjectileMovementComponent->ProjectileGravityScale = 0;
 	ProjectileMovementComponent->InitialSpeed = 2000;
+
+	//add the no grappling tag to the wall hitbox
+	Tags.Add(NoGrappleTag);
 }
 
 void AGrapplingHookHead::BeginPlay()
@@ -238,7 +244,7 @@ void AGrapplingHookHead::DoDestroy2(AActor* DestroyedActor)
 void AGrapplingHookHead::HandleWallCollision(const FHitResult& Hit)
 {
 	//check if the hit component doesn't have the no grappling tag
-	if (Hit.GetComponent()->ComponentHasTag("NoGrapple"))
+	if (Hit.GetComponent()->ComponentHasTag(NoGrappleTag))
 	{
 		//destroy ourselves
 		Destroy();

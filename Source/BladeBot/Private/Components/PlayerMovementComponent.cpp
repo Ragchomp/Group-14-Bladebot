@@ -424,8 +424,8 @@ bool UPlayerMovementComponent::CanGrapple() const
 	FHitResult GrappleHit;
 	GrappleLineTrace(GrappleHit, MaxGrappleDistance);
 
-	//return whether the line trace hit something or not
-	return GrappleHit.bBlockingHit;
+	//return whether the line trace hit something grappleable or not
+	return GrappleHit.bBlockingHit && !GrappleHit.GetActor()->ActorHasTag(NoGrappleTag) && !GrappleHit.GetComponent()->ComponentHasTag(NoGrappleTag);
 }
 
 float UPlayerMovementComponent::GetGrappleDistanceLeft() const
