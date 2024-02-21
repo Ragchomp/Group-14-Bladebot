@@ -137,16 +137,20 @@ public:
 	float GrappleMaxAcceleration = 2000.f;
 
 	//the float curve to use when applying the grapple velocity using the dot product of the character's velocity and the velocity that was added from grappling last frame (-1 = opposite direction, 0 = perpendicular(90 degrees), 1 = same direction)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	UCurveFloat* GrappleAngleVelocityCurve = nullptr;
 
 	//the float curve to use when applying the grapple velocity using the rope length divided by the max grapple distance (1 = max distance, 0 = 0 distance, clamped to 0-1)
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling")
 	UCurveFloat* GrappleDistanceVelocityCurve = nullptr;
 
-	//the float curve to use when applying the grapple wasd movement
+	//the float curve to use when applying the grapple wasd movement using the dot product of the character's up vector (so a 90 degree angle off of the the vector pointing to the grappling point) and the velocity that will be added from this input (-1 = opposite direction, 0 = perpendicular(90 degrees), 1 = same direction)
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
-	UCurveFloat* GrappleMovementInputCurve = nullptr;
+	UCurveFloat* GrappleMovementAngleInputCurve = nullptr;
+
+	//the float curve to use when applying the grapple wasd movement using the rope length divided by the max grapple distance (1 = max distance, 0 = 0 distance, clamped to 0-1)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
+	UCurveFloat* GrappleMovementDistanceInputCurve = nullptr;
 
 	//the movement input modifier to use when processing the grapple movement input curve
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Grappling|Movement")
