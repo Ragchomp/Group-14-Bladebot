@@ -2,6 +2,7 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "GameFramework/PhysicsVolume.h"
 #include "Objectives/ObjectivePoint.h"
 
 FGrappleInterpStruct::FGrappleInterpStruct(const float InPullSpeed, const float InPullAccel, const EInterpToTargetType InInterpMode): InInterpMode(InInterpMode), PullSpeed(InPullSpeed), PullAccel(InPullAccel)
@@ -127,8 +128,8 @@ bool UPlayerMovementComponent::DoJump(bool bReplayingMoves)
 		return true;
 	}
 
-	//check if we're moving fast enough to do a boosted jump and we're on the ground
-	if (Velocity.Length() >= MinSpeedForSpeedBoost && !IsFalling())
+	//check if we're moving fast enough to do a boosted jump and we're on the ground and that this isn't a double jump
+	if (Velocity.Length() >= MinSpeedForSpeedBoost && !IsFalling() &&  GetCharacterOwner()->JumpCurrentCount == 0)
 	{
 		//update bLastJumpWasDirectional
 		bLastJumpWasDirectional = true;
@@ -516,48 +517,58 @@ void UPlayerMovementComponent::UpdateGrappleVelocity(const float DeltaTime)
 	FVector GrappleVelocity;
 
 	//check if the hit type is objective
-	if (GrappleHitType == Objective)
+	// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+	switch (GrappleHitType)
 	{
-		//do the interpolation
-		DoInterpGrapple(DeltaTime, Velocity, ObjectiveGrappleInterpStruct);
-	}
-	else
-	{
-		//check how we should set the velocity
-		// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
-		switch (GrappleMode)
-		{
-			case AddToVelocity:
-				//add the grapple vector to the character's velocity
-				GrappleVelocity = GrappleDirection * WasdPullSpeed * DeltaTime;
 
-			//get the dot product of the character's velocity and the grapple velocity
-			GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
+		//hit a normal object
+		case Normal:
 
-			//check if we have a valid grapple velocity curve
-			if (GrappleAngleVelocityCurve && GrappleDistanceVelocityCurve)
+			//check how we should set the velocity
+			// ReSharper disable once CppDefaultCaseNotHandledInSwitchStatement
+			switch (GrappleMode)
 			{
-				//get the grapple angle velocity curve value
-				const float GrappleAngleVelocityCurveValue = GrappleAngleVelocityCurve->GetFloatValue(GrappleDotProduct);
+				case AddToVelocity:
+					//add the grapple vector to the character's velocity
+					GrappleVelocity = GrappleDirection * WasdPullSpeed * DeltaTime;
 
-				//get the grapple distance velocity curve value
-				const float GrappleDistanceVelocityCurveValue = GrappleDistanceVelocityCurve->GetFloatValue(FMath::Clamp(FVector::Dist(GetOwner()->GetActorLocation() , GrapplePoint) / MaxGrappleDistance, 0, 1));
+					//get the dot product of the character's velocity and the grapple velocity
+					GrappleDotProduct = FVector::DotProduct(Velocity.GetSafeNormal(), GrappleVelocity.GetSafeNormal());
 
-				//multiply the grapple velocity by the grapple velocity curve value
-				GrappleVelocity *= GrappleAngleVelocityCurveValue * GrappleDistanceVelocityCurveValue;
+					//check if we have a valid grapple velocity curve
+					if (GrappleAngleVelocityCurve && GrappleDistanceVelocityCurve)
+					{
+						//get the grapple angle velocity curve value
+						const float GrappleAngleVelocityCurveValue = GrappleAngleVelocityCurve->GetFloatValue(GrappleDotProduct);
+
+						//get the grapple distance velocity curve value
+						const float GrappleDistanceVelocityCurveValue = GrappleDistanceVelocityCurve->GetFloatValue(FMath::Clamp(FVector::Dist(GetOwner()->GetActorLocation() , GrapplePoint) / MaxGrappleDistance, 0, 1));
+
+						//multiply the grapple velocity by the grapple velocity curve value
+						GrappleVelocity *= GrappleAngleVelocityCurveValue * GrappleDistanceVelocityCurveValue;
+					}
+
+					//apply the grapple velocity
+					Velocity += GrappleVelocity;
+
+				break;
+				case InterpVelocity:
+					//do the interpolation
+					DoInterpGrapple(DeltaTime, Velocity, NoWasdGrappleInterpStruct);
+
+				break;
 			}
 
-			//apply the grapple velocity
-			Velocity += GrappleVelocity;
-
-			break;
-			case InterpVelocity:
-				//do the interpolation
-				DoInterpGrapple(DeltaTime, Velocity, NoWasdGrappleInterpStruct);
-
-			break;
-		}
+		break;
+		case Objective:
+			DoInterpGrapple(DeltaTime, Velocity, ObjectiveGrappleInterpStruct);
+		break;
+		case Enemy:
+			DoInterpGrapple(DeltaTime, Velocity, EnemyGrappleInterpStruct);
+		break;
 	}
+
+	
 
 	//update the character's velocity
 	UpdateComponentVelocity();
