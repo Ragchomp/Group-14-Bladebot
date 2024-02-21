@@ -359,9 +359,6 @@ void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope, 
 	{
 		//set the grapple hit type to objective
 		GrappleHitType = Objective;
-
-		//disable the player's ability to change grapple mode
-		bCanChangeGrappleMode = false;
 	}
 	else
 	{

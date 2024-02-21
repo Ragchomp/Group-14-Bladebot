@@ -9,6 +9,7 @@
 #include "NiagaraFunctionLibrary.h"
 #include "NiagaraComponent.h"
 #include "Characters/PlayerCharacter.h"
+#include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 
 AObjectivePoint::AObjectivePoint()
@@ -68,7 +69,7 @@ void AObjectivePoint::OnOverlap(UPrimitiveComponent* OverlappedComponent, AActor
 		{
 			APlayerCharacter* Player = Cast<APlayerCharacter>(OtherActor);
 
-			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false)
+			if (Player && Player->ActorHasTag(FName("Player")) && isDisabled == false && OverlappedComponent->StaticClass() == UCapsuleComponent::StaticClass())
 			{
 				Tags.Add(FName("ObjectiveComplete"));
 
