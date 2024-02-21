@@ -81,7 +81,17 @@ FVector UPlayerMovementComponent::NewFallVelocity(const FVector& InitialVelocity
 	}
 
 	//store the result of the parent implementation
-	FVector Result = Super::NewFallVelocity(InitialVelocity, Gravity, DeltaTime);
+	FVector Result;
+
+	//check if we should use terminal velocity
+	if (bUseTerminalVelocity == true)
+	{
+		Result =  Super::NewFallVelocity(InitialVelocity, Gravity, DeltaTime);
+	}
+	else
+	{
+		Result = InitialVelocity + Gravity * DeltaTime;
+	}
 
 	//check if jump is providing force
 	if (GetCharacterOwner()->JumpForceTimeRemaining > 0 && bLastJumpWasDirectional)
