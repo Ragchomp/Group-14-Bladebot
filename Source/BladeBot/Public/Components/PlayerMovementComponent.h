@@ -100,6 +100,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
 	float MaxFallSpeed = 2000.f;
 
+	//whether or not we're using terminal velocity
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
+	bool bUseTerminalVelocity = true;
+
 	//the dot product(player velocity(normalized), gravity direction(normalized)) limit that we have to be over to apply terminal velocity
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
 	float TerminalVelocityDotProductLimit = 0.3f;
