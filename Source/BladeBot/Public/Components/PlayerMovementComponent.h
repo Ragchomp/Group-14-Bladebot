@@ -395,7 +395,7 @@ public:
 	void GrappleLineTrace(FHitResult& OutHit, float MaxDistance) const;
 
 	//function to handle the interpolation modes of the grapple
-	void DoInterpGrapple(float DeltaTime, FVector& GrappleVelocity, FGrappleInterpStruct GrappleInterpStruct);
+	void DoInterpGrapple(float DeltaTime, FVector& GrappleVelocity, FGrappleInterpStruct GrappleInterpStruct) const;
 
 	//sets the velocity of the player character when grappling
 	void UpdateGrappleVelocity(float DeltaTime);
