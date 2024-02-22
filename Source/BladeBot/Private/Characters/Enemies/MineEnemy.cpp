@@ -42,6 +42,8 @@ AMineEnemy::AMineEnemy()
 	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Destructible, ECollisionResponse::ECR_Ignore);
 	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_PhysicsBody, ECollisionResponse::ECR_Ignore);
 	//DetectionSphere->SetCollisionResponseToChannel(ECollisionChannel::ECC_Vehicle, ECollisionResponse::ECR_Ignore);
+
+	Tags.Add(FName(ENEMY_TAG));
 }
 
 void AMineEnemy::BeginPlay()
@@ -49,8 +51,6 @@ void AMineEnemy::BeginPlay()
 	Super::BeginPlay();
 	EnemyState = EEnemyState::EES_Patroling;
 	GunState = ESGunState::ESGS_Idle;
-
-	Tags.Add(FName("Enemy"));
 
 	//DetectionSphere->OnComponentBeginOverlap.AddDynamic(this, &AMineEnemy::OnOverlap);
 	//DetectionSphere->OnComponentEndOverlap.AddDynamic(this, &AMineEnemy::EndOverlap);
