@@ -2,7 +2,6 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
-#include "GameFramework/PhysicsVolume.h"
 #include "Objectives/ObjectivePoint.h"
 
 FGrappleInterpStruct::FGrappleInterpStruct(const float InPullSpeed, const float InPullAccel, const EInterpToTargetType InInterpMode): InInterpMode(InInterpMode), PullSpeed(InPullSpeed), PullAccel(InPullAccel)
@@ -489,7 +488,7 @@ void UPlayerMovementComponent::GrappleLineTrace(FHitResult& OutHit, const float 
 	GetWorld()->SweepSingleByChannel(OutHit, CameraLocation, End, FQuat::Identity, CanGrappleTraceChannel, CollisionShape, GrappleCollisionParams);
 }
 
-void UPlayerMovementComponent::DoInterpGrapple(const float DeltaTime, FVector& GrappleVelocity, const FGrappleInterpStruct GrappleInterpStruct)
+void UPlayerMovementComponent::DoInterpGrapple(const float DeltaTime, FVector& GrappleVelocity, const FGrappleInterpStruct GrappleInterpStruct) const
 {
 	switch (GrappleInterpStruct.InterpMode)
 	{
