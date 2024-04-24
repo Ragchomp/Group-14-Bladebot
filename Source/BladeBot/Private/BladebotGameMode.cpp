@@ -37,7 +37,7 @@ void ABladebotGameMode::BeginPlay()
 		OnPlayerDeathSignature.AddDynamic(this, &ABladebotGameMode::PlayerDeath);
 	}
 
-	StartTimer();
+	//StartTimer();
 }
 
 void ABladebotGameMode::PlayerDeath(ACharacter* PlayerCharacter)
