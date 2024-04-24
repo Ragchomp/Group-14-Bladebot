@@ -241,6 +241,7 @@ public:
 	virtual void Die() override;
 	virtual void StopJumping() override;
 	virtual bool CanJumpInternal_Implementation() const override;
+	virtual void SetPlayerDefaults() override;
 
 
 	
@@ -251,6 +252,10 @@ public:
 
 	void InputInit();
 	void Inits();
+
+	//function to update the objective and enemy related variables
+	UFUNCTION(BlueprintCallable)
+	void UpdateObjectiveEnemyVariables();
 
 	/** Respawning Player **/
 	UFUNCTION(BlueprintCallable)

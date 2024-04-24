@@ -4,13 +4,11 @@
 #include "BladebotGameMode.h"
 
 #include "GameFramework/Character.h"
+#include "Kismet/GameplayStatics.h"
 
 ABladebotGameMode::ABladebotGameMode()
 {
 	PrimaryActorTick.bCanEverTick = true;
-
-	//Set default pawn class to our blueprint character
-	TSubclassOf<ACharacter> PlayerCharacterBlueprint;
 }
 
 void ABladebotGameMode::RestartPlayer(AController* NewPlayer)
@@ -52,6 +50,9 @@ void ABladebotGameMode::StartTimer()
 	// Each second it increases seconds float by one forever.
 	TimerShouldTick = true;
 	GetWorldTimerManager().SetTimer(TimerHandeler, this, &ABladebotGameMode::CountTime, 1.0f / 1000, true);
+
+	//set the last time the timer was started
+	LastTimerStart = GetWorld()->TimeSeconds;
 }
 
 void ABladebotGameMode::StopTimer()
@@ -65,22 +66,18 @@ void ABladebotGameMode::CountTime()
 	//if the timer shouldn't tick return
 	if (TimerShouldTick == false)
 		return;
+	
+	//Get the current time of the world
+	const float PlaySeconds = GetWorld()->TimeSeconds - LastTimerStart;
 
-	//increment the seconds
-	Millisecs++;
+	//Calculate the minutes
+	Minutes = FMath::Floor(PlaySeconds / 60);
 
-	if (Millisecs >= 1000)
-	{
-		Seconds++;
-		Millisecs = 0;
-	}
+	//Calculate the seconds
+	Seconds = FMath::Floor(FMath::Fmod(PlaySeconds, 60));
 
-	//convert seconds to minutes
-	if (Seconds >= 60)
-	{
-		Minutes++;
-		Seconds = 0;
-	}
+	//Calculate the milliseconds
+	Millisecs = FMath::Floor(FMath::Fmod(PlaySeconds, 1) * 1000);
 }
 
 void ABladebotGameMode::ResetTimer()
