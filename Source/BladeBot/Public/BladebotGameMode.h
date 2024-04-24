@@ -36,6 +36,9 @@ protected:
 	//Signature to bind the delegate
 	FOnPlayerDeathSignature OnPlayerDeathSignature;
 
+	//the last time the timer was started
+	float LastTimerStart = 0;
+
 	UFUNCTION(BlueprintCallable)
 	void StartTimer();
 

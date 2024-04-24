@@ -51,19 +51,19 @@ public:
 
 	// References ------------------------------
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	class USkeletalMeshComponent* ObjectveMesh;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	class UStaticMeshComponent* AfterActivationMesh;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		class UStaticMeshComponent* DisabledMesh;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	class USphereComponent* CollisionMesh;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 		class UNiagaraComponent* NiagaraComp;
 
 	UPROPERTY(EditAnywhere, Category = "VFX")
@@ -86,7 +86,7 @@ public:
 
 	// Constants ------------------------------
 
-	UPROPERTY(EditAnywhere,BlueprintReadOnly)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool AlreadyHit = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)

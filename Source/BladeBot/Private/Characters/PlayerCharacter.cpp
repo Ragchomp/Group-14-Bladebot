@@ -568,7 +568,7 @@ void APlayerCharacter::Destroyed()
 		{
 			//broadcast the on player death event
 			GameMode->GetOnPlayerDeath().Broadcast(this);
-			GetWorld()->GetTimerManager().SetTimer(RespawnTime, this, &APlayerCharacter::CallRestartPlayer, 3.f, false);
+			//GetWorld()->GetTimerManager().SetTimer(RespawnTime, this, &APlayerCharacter::CallRestartPlayer, 3.f, false);
 		}
 	}
 }
@@ -578,33 +578,37 @@ void APlayerCharacter::CallRestartPlayer()
 	//unpause the game
 	UGameplayStatics::SetGamePaused(GetWorld(), false);
 
-	//print debug message
-	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Player Respawned"));
-
-	//set game complete to false
-	GameComplete = false;
-
-	//Getting Pawn Controller reference
-	const TObjectPtr<AController> ControllerReference = GetController();
-
-	//DashEnergy = MaximumDashEnergy;
-	numEnemiesDestroyed = 0;
-
-	//Destroying Player
-	Destroyed();
-
 	//Getting the World and GameMode in the world to invoke the restart player function
 	if (const TObjectPtr<UWorld> World = GetWorld())
 	{
 		if (const TObjectPtr<ABladebotGameMode> GameMode = Cast<ABladebotGameMode>(World->GetAuthGameMode()))
 		{
+			//Getting Pawn Controller reference
+			const TObjectPtr<AController> ControllerReference = GetController();
+
+			//calling the RestartPlayer function
 			GameMode->RestartPlayer(ControllerReference);
+
+			//reset the player location
+			AActor* PlayerStart = GameMode->FindPlayerStart(ControllerReference, TEXT("PlayerStart"));
+
+			//set the player location to the player start location
+			SetActorLocation(PlayerStart->GetActorLocation());
+
+			//set the player rotation to the player start rotation
+			SetActorRotation(PlayerStart->GetActorRotation());
+
+			//set the player character's velocity to zero
+			PlayerMovementComponent->Velocity = FVector::ZeroVector;
+
+			//call the stop grappling function
+			StopGrapple(FInputActionValue());
 
 			//call the blueprint event
 			OnRespawn();
 		}
 	}
-	Destroy();
+	//Destroy();
 }
 
 // Player Spesific Functions
@@ -646,6 +650,21 @@ bool APlayerCharacter::CanJumpInternal_Implementation() const
 
 	//otherwise return the parent implementation
 	return Super::CanJumpInternal_Implementation();
+}
+
+void APlayerCharacter::SetPlayerDefaults()
+{
+	//call the parent implementation
+	Super::SetPlayerDefaults();
+
+	//set game complete to false
+	GameComplete = false;
+
+	//set num enemies destroyed to 0
+	numEnemiesDestroyed = 0;
+
+	//set num objectives complete to 0
+	NumCompletes = 0;
 }
 
 void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
@@ -734,6 +753,27 @@ void APlayerCharacter::Inits()
 	PlayerMovementComponent->OnWallRunStart.AddDynamic(this, &APlayerCharacter::OnWallRunStart);
 	PlayerMovementComponent->OnWallRunJump.AddDynamic(this, &APlayerCharacter::OnWallRunJump);
 	PlayerMovementComponent->OnWallRunFinish.AddDynamic(this, &APlayerCharacter::OnWallRunFinish);
+}
+
+void APlayerCharacter::UpdateObjectiveEnemyVariables()
+{
+	//set the number of enemies destroyed to 0
+	numEnemiesDestroyed = 0;
+
+	//set the number of objectives complete to 0
+	NumCompletes = 0;
+
+	TArray<AActor*> Objectives;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AObjectivePoint::StaticClass(), Objectives);
+
+	for(int i = 0; i < Objectives.Num(); i++)
+	{
+		if(!Objectives[i]->ActorHasTag("ObjectiveDisabled"))
+		{
+			ValidObjectives.Add(Objectives[i]);
+		}
+	}
+	NumEnabledObjectivesTotal = ValidObjectives.Num();
 }
 
 void APlayerCharacter::InputInit()
