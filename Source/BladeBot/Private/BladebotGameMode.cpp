@@ -70,14 +70,14 @@ void ABladebotGameMode::CountTime()
 	//Get the current time of the world
 	const float PlaySeconds = GetWorld()->TimeSeconds - LastTimerStart;
 
-	//Calculate the minutes
-	Minutes = FMath::Floor(PlaySeconds / 60);
-
-	//Calculate the seconds
-	Seconds = FMath::Floor(FMath::Fmod(PlaySeconds, 60));
-
 	//Calculate the milliseconds
 	Millisecs = FMath::Floor(FMath::Fmod(PlaySeconds, 1) * 1000);
+
+	//Calculate the seconds
+	Seconds = int(FMath::Floor(PlaySeconds)) % 60;
+
+	//Calculate the minutes
+	Minutes = FMath::Floor(PlaySeconds / 60);
 }
 
 void ABladebotGameMode::ResetTimer()
