@@ -21,6 +21,10 @@ public:
 	//constructor with objectinitializer to override the movement component class
 	explicit APlayerCharacter(const FObjectInitializer& ObjectInitializer);
 
+	//whether or not the character can currently jump
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	bool bCanJump = true;
+
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UPlayerCameraComponent* Camera;

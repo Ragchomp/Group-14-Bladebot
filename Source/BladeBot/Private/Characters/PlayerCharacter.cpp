@@ -260,6 +260,12 @@ void APlayerCharacter::DoJump(const FInputActionValue& Value)
 		return;
 	}
 
+	//check if we can't jump using our variable
+	if (!bCanJump)
+	{
+		return;
+	}
+
 	//call the jump function
 	Jump();
 }
@@ -569,7 +575,14 @@ void APlayerCharacter::Destroyed()
 
 void APlayerCharacter::CallRestartPlayer()
 {
+	//unpause the game
 	UGameplayStatics::SetGamePaused(GetWorld(), false);
+
+	//print debug message
+	GEngine->AddOnScreenDebugMessage(-1, 1.f, FColor::Orange, TEXT("Player Respawned"));
+
+	//set game complete to false
+	GameComplete = false;
 
 	//Getting Pawn Controller reference
 	const TObjectPtr<AController> ControllerReference = GetController();
