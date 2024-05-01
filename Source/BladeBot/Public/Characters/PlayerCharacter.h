@@ -25,6 +25,10 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	bool bCanJump = true;
 
+	//whether or not to fire of the ongrapplestop event
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	bool bShouldFireOnGrappleStop = true;
+
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	class UPlayerCameraComponent* Camera;
@@ -353,7 +357,7 @@ public:
 
 	//blueprint event for when the player stops grappling
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-	void OnStopGrapple(FVector GrappleHookLocation, bool HasHitWall);
+	void OnStopGrapple(FVector GrappleHookLocation, bool HasHitWall, bool IsReset);
 
 	//blueprint event for when the player does a normal jump
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
