@@ -601,6 +601,9 @@ void APlayerCharacter::CallRestartPlayer()
 			//set the player character's velocity to zero
 			PlayerMovementComponent->Velocity = FVector::ZeroVector;
 
+			//set should fire on stop grapple to false
+			this->bShouldFireOnGrappleStop = false;
+
 			//call the stop grappling function
 			StopGrapple(FInputActionValue());
 
@@ -665,6 +668,18 @@ void APlayerCharacter::SetPlayerDefaults()
 
 	//set num objectives complete to 0
 	NumCompletes = 0;
+
+	//set should fire on stop grapple to true
+	bShouldFireOnGrappleStop = true;
+
+	TActorIterator<ASpawnPoint> SpawnPointIterator(GetWorld());
+	ASpawnPoint* SpawnPoint = SpawnPointIterator ? *SpawnPointIterator : nullptr;
+
+	if (SpawnPoint)
+	{
+		//reset the camera rotation (by setting the control rotation)
+		GetController()->SetControlRotation(SpawnPoint->GetActorRotation());
+	}
 }
 
 void APlayerCharacter::CheckIfObjectivesComplete(AObjectivePoint* Objective)
