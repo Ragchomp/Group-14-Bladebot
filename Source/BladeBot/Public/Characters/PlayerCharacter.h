@@ -10,8 +10,6 @@ class AObjectivePoint;
 struct FInputActionValue;
 class UCameraArmComponent;
 
-//todo fix on start grapple to be called in the movement component when it starts grappling instead of in the player character when it shoots the grapple
-
 UCLASS()
 class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
@@ -25,9 +23,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
 	bool bCanJump = true;
 
-	//whether or not to fire of the ongrapplestop event
+	//whether or not we're currently in the process of resetting
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
-	bool bShouldFireOnGrappleStop = true;
+	bool bIsResetting = true;
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
