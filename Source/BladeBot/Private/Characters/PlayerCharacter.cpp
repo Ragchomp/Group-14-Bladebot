@@ -476,6 +476,9 @@ void APlayerCharacter::StopGrapple(const FInputActionValue& Value)
 	//stop grappling
 	PlayerMovementComponent->StopGrapple();
 
+	//set is resetting to false
+	bIsResetting = false;
+
 	//check if there is an existing grappling hook
 	if (!GrapplingHookRef)
 	{
