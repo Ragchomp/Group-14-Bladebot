@@ -602,7 +602,7 @@ void APlayerCharacter::CallRestartPlayer()
 			PlayerMovementComponent->Velocity = FVector::ZeroVector;
 
 			//set should fire on stop grapple to false
-			this->bShouldFireOnGrappleStop = false;
+			this->bIsResetting = false;
 
 			//call the stop grappling function
 			StopGrapple(FInputActionValue());
@@ -670,7 +670,7 @@ void APlayerCharacter::SetPlayerDefaults()
 	NumCompletes = 0;
 
 	//set should fire on stop grapple to true
-	bShouldFireOnGrappleStop = true;
+	bIsResetting = true;
 
 	TActorIterator<ASpawnPoint> SpawnPointIterator(GetWorld());
 	ASpawnPoint* SpawnPoint = SpawnPointIterator ? *SpawnPointIterator : nullptr;
