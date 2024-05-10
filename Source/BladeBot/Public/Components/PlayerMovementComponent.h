@@ -96,6 +96,18 @@ public:
 	FOnWallRunJump OnWallRunJump;
 	FOnWallRunFinish OnWallRunFinish;
 
+	//the minimum speed to launch the character off of a collision
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
+	float MinCollisionLaunchSpeed = 1000.f;
+
+	//the maximum speed to launch the character off of a collision
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
+	float MaxCollisionLaunchSpeed = 2000.f;
+
+	//the float curve to use when applying the collision launch speed based on the speed of the player (0 = min speed, 1 = max speed)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Collision")
+	UCurveFloat* CollisionLaunchSpeedCurve = nullptr;
+
 	//the max movement speed when falling
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Falling")
 	float MaxFallSpeed = 2000.f;
@@ -368,6 +380,7 @@ public:
 
 	virtual float GetMaxSpeed() const override;
 	virtual float GetMaxAcceleration() const override;
+	virtual void HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta) override;
 	//virtual float GetMinAnalogSpeed() const override;
 	//virtual bool IsExceedingMaxSpeed(float MaxSpeed) const override;
 	//virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
