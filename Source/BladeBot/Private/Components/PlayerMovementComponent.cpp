@@ -2,6 +2,7 @@
 #include "Components/PlayerCameraComponent.h"
 #include "Characters/PlayerCharacter.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/SphereComponent.h"
 #include "Objectives/ObjectivePoint.h"
 
 FGrappleInterpStruct::FGrappleInterpStruct(const float InPullSpeed, const float InPullAccel, const EInterpToTargetType InInterpMode): InInterpMode(InInterpMode), PullSpeed(InPullSpeed), PullAccel(InPullAccel)
@@ -351,6 +352,40 @@ float UPlayerMovementComponent::GetMaxAcceleration() const
 	}
 
 	return Super::GetMaxAcceleration();
+}
+
+void UPlayerMovementComponent::HandleImpact(const FHitResult& Hit, float TimeSlice, const FVector& MoveDelta)
+{
+	const UCapsuleComponent* Hitbox = GetCharacterOwner()->GetCapsuleComponent();
+
+	//check if we don't have a physics material or if we have invalid curves
+	if (Hitbox->BodyInstance.GetSimplePhysicalMaterial() || !CollisionLaunchSpeedCurve->IsValidLowLevelFast())
+	{
+		//delegate to the parent implementation
+		Super::HandleImpact(Hit, TimeSlice, MoveDelta);
+
+		return;
+	}
+
+	//get the bounciness of the physics material
+	const float Bounciness = Hitbox->BodyInstance.GetSimplePhysicalMaterial()->Restitution;
+
+	//check if the bounciness is less than or equal to 0
+	if (Bounciness <= 0)
+	{
+		//delegate to the parent implementation
+		Super::HandleImpact(Hit, TimeSlice, MoveDelta);
+
+		return;
+	}
+
+	//calculate the launch velocity
+	const FVector UnclampedLaunchVelocity = Hit.ImpactNormal * Bounciness * CollisionLaunchSpeedCurve->GetFloatValue(Velocity.Size() / GetMaxSpeed());
+
+	//clamp the launch velocity and launch the character
+	GetCharacterOwner()->LaunchCharacter(UnclampedLaunchVelocity.GetClampedToSize(MinCollisionLaunchSpeed, MaxCollisionLaunchSpeed), true, true);
+
+	Super::HandleImpact(Hit, TimeSlice, MoveDelta);
 }
 
 void UPlayerMovementComponent::StartGrapple(AGrapplingRopeActor* InGrappleRope, const FHitResult InGrappleHit)
