@@ -20,7 +20,7 @@ AObjectivePoint::AObjectivePoint()
 	//SetRootComponent(CollisionMesh);
 
 	ObjectveMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ObjectiveMesh"));
-	//ObjectveMesh->SetupAttachment(CollisionMesh);
+	ObjectveMesh->SetupAttachment(CollisionMesh);
 
 	AfterActivationMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AfterActivationMesh"));
 	AfterActivationMesh->SetupAttachment(CollisionMesh);

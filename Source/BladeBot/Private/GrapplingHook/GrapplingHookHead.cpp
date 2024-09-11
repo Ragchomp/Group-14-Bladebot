@@ -229,7 +229,7 @@ void AGrapplingHookHead::DoDestroy()
 	APlayerCharacter* PlayerCharacter = Cast<APlayerCharacter>(GetInstigator());
 
 	//call the player characters blueprint event
-	PlayerCharacter->OnStopGrapple(GetActorLocation(), HasHitWall());
+	PlayerCharacter->OnStopGrapple(GetActorLocation(), HasHitWall(), PlayerCharacter->bIsResetting);
 
 	//set the player character's grappling hook reference to null
 	PlayerCharacter->GrapplingHookRef = nullptr;

@@ -10,8 +10,6 @@ class AObjectivePoint;
 struct FInputActionValue;
 class UCameraArmComponent;
 
-//todo fix on start grapple to be called in the movement component when it starts grappling instead of in the player character when it shoots the grapple
-
 UCLASS()
 class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 {
@@ -20,6 +18,14 @@ class BLADEBOT_API APlayerCharacter : public ABaseCharacter
 public:
 	//constructor with objectinitializer to override the movement component class
 	explicit APlayerCharacter(const FObjectInitializer& ObjectInitializer);
+
+	//whether or not the character can currently jump
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	bool bCanJump = true;
+
+	//whether or not we're currently in the process of resetting
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jumping")
+	bool bIsResetting = true;
 
 	/** Class Components  */
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
@@ -237,6 +243,7 @@ public:
 	virtual void Die() override;
 	virtual void StopJumping() override;
 	virtual bool CanJumpInternal_Implementation() const override;
+	virtual void SetPlayerDefaults() override;
 
 
 	
@@ -247,6 +254,10 @@ public:
 
 	void InputInit();
 	void Inits();
+
+	//function to update the objective and enemy related variables
+	UFUNCTION(BlueprintCallable)
+	void UpdateObjectiveEnemyVariables();
 
 	/** Respawning Player **/
 	UFUNCTION(BlueprintCallable)
@@ -344,7 +355,7 @@ public:
 
 	//blueprint event for when the player stops grappling
 	UFUNCTION(BlueprintImplementableEvent, Category = "Grappling")
-	void OnStopGrapple(FVector GrappleHookLocation, bool HasHitWall);
+	void OnStopGrapple(FVector GrappleHookLocation, bool HasHitWall, bool IsReset);
 
 	//blueprint event for when the player does a normal jump
 	UFUNCTION(BlueprintImplementableEvent, Category = "Jumping")
